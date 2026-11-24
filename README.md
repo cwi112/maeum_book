@@ -167,7 +167,7 @@ iOS (XCUITest):          driver.findElement(AppiumBy.accessibilityId("tab_stats"
 ## 실행 방법
 
 ```bash
-git clone https://github.com/jjwwii/maeum_book.git
+git clone https://github.com/cwi112/maeum_book.git
 cd maeum_book
 
 fvm install
