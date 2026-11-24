@@ -27,7 +27,9 @@ extension BuildContextX on BuildContext {
 
   // ── 알림·키보드 ────────────────────────
   /// 화면 아래에 토스트를 띄운다. 기본은 성공(초록 체크). 자세한 동작은 [AppToast] 참고.
-  void showToast(String message, {ToastType type = ToastType.success}) => AppToast.show(this, message, type: type);
+  /// [actionLabel]·[onAction]을 넣으면 "되돌리기" 같은 버튼이 붙는다.
+  void showToast(String message, {ToastType type = ToastType.success, String? actionLabel, VoidCallback? onAction}) =>
+      AppToast.show(this, message, type: type, actionLabel: actionLabel, onAction: onAction);
 
   void hideKeyboard() => FocusScope.of(this).unfocus();
 }

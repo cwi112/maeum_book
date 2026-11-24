@@ -1,4 +1,5 @@
 import 'package:maeum_book/core/define/typedefs.dart';
+import 'package:maeum_book/core/extensions/widget_extension.dart';
 import 'package:maeum_book/core/theme/app_dimens.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -21,6 +22,7 @@ class ChoiceChipGroup<T> extends StatelessWidget {
     required this.labelOf,
     required this.onSelected,
     this.allowDeselect = false,
+    this.testIdPrefix,
   });
 
   final List<T> values;
@@ -28,6 +30,11 @@ class ChoiceChipGroup<T> extends StatelessWidget {
   final String Function(T value) labelOf;
   final NullableCallback<T> onSelected;
   final bool allowDeselect;
+
+  /// 자동화 테스트용 이름 접두어. 칩마다 `접두어_값이름`이 붙는다. (예: form_event_type_wedding)
+  final String? testIdPrefix;
+
+  String? _testIdOf(T value) => testIdPrefix == null ? null : '${testIdPrefix}_${value is Enum ? value.name : value}';
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +54,7 @@ class ChoiceChipGroup<T> extends StatelessWidget {
                 onSelected(null);
               }
             },
-          ),
+          ).testIdOrSelf(_testIdOf(value)),
       ],
     );
   }

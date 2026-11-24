@@ -24,8 +24,12 @@ class LedgerListViewModel extends BaseAsyncViewModel<LedgerListState> {
   Stream<LedgerListState> watch() =>
       ref.watch(ledgerRepositoryProvider).watchEntries(direction).map((entries) => LedgerListState(entries: entries));
 
-  /// 기록을 삭제한다. 목록은 Stream이 알아서 갱신하므로 따로 상태를 바꿀 필요가 없다.
+  /// 기록을 삭제한다. 목록·합계·통계는 Stream이 알아서 갱신하므로 따로 상태를 바꿀 필요가 없다.
   Future<bool> remove(int id, {ErrorCallback? onError}) => runTask(() => _repository.remove(id), onError: onError);
+
+  /// 삭제한 기록을 되돌린다. (삭제 토스트의 "되돌리기" 버튼)
+  Future<bool> restore(LedgerEntry entry, {ErrorCallback? onError}) =>
+      runTask(() => _repository.restore(entry), onError: onError);
 }
 
 /// 방향별 ViewModel provider.

@@ -47,4 +47,28 @@ class AppColors {
 
   /// 보낸 금액: 장밋빛 빨강
   static const Color sent = Color(0xFFCB5C5C);
+
+  // ── 밀어서 나오는 버튼 (스와이프 액션) ──
+  /// 삭제 버튼 / 눌렀을 때 (조금 더 진하게 가라앉는 느낌)
+  static const Color deleteAction = Color(0xFFD9655A);
+  static const Color deleteActionPressed = Color(0xFFB04A40);
+
+  /// 수정 버튼 / 눌렀을 때
+  static const Color editAction = Color(0xFFE2A55B);
+  static const Color editActionPressed = Color(0xFFC4863D);
+
+  /// 목록 줄을 눌렀을 때 퍼지는 색 (아주 옅은 테라코타)
+  static const Color pressedOverlay = Color(0x33C0714A);
+
+  // ── 차트 ───────────────────────────────
+  /// 그래프 조각 색. 따뜻한 톤 안에서 서로 잘 구분되도록 고른 순서다. (경조사 종류 순서대로 사용)
+  static const List<Color> chartPalette = [
+    Color(0xFFC0714A), // 테라코타
+    Color(0xFF6B8F9C), // 회청
+    Color(0xFFE2A55B), // 꿀색
+    Color(0xFFCB5C5C), // 장밋빛
+    Color(0xFF7FA37A), // 세이지
+    Color(0xFF9A7BA8), // 라벤더
+    Color(0xFFB7A99A), // 모래
+  ];
 }

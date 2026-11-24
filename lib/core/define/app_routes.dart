@@ -22,4 +22,10 @@ abstract final class AppRoutes {
 
   /// 기록 입력 화면으로 갈 실제 경로를 만든다. 예) `/entry/new/sent`
   static String entryNew(Enum direction) => '/entry/new/${direction.name}';
+
+  /// 기록 수정 화면 경로 패턴. `:id` 자리에 기록 번호가 들어간다.
+  static const String entryEditPattern = '/entry/:id/edit';
+
+  /// 기록 수정 화면으로 갈 실제 경로. 예) `/entry/12/edit`
+  static String entryEdit(int id) => '/entry/$id/edit';
 }

@@ -42,7 +42,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: AppRoutes.entryNewPattern,
         builder: (context, state) =>
-            EntryFormView(direction: RecordDirection.values.byName(state.pathParameters['direction']!)),
+            EntryFormView.create(direction: RecordDirection.values.byName(state.pathParameters['direction']!)),
+      ),
+
+      // 기록 수정: 경로의 :id를 숫자로 바꿔 넘긴다. 숫자가 아니면 -1(없는 기록) → "기록을 찾을 수 없어요" 화면.
+      GoRoute(
+        path: AppRoutes.entryEditPattern,
+        builder: (context, state) => EntryFormView.edit(entryId: int.tryParse(state.pathParameters['id']!) ?? -1),
       ),
     ],
   );

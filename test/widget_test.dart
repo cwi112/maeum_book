@@ -3,6 +3,7 @@ import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maeum_book/app.dart';
+import 'package:maeum_book/core/define/test_ids.dart';
 import 'package:maeum_book/data/data.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -117,6 +118,79 @@ void main() {
     await tester.pump(const Duration(seconds: 1)); // 화면 닫힘 애니메이션이 끝나길 기다림
     expect(find.text('김철수'), findsOneWidget);
     expect(find.text('50,000원'), findsNWidgets(2)); // 합계 카드 + 목록
+
+    await closeApp(tester);
+  });
+
+  /// 테스트용 기록을 DB에 바로 넣는다.
+  Future<int> seed(WidgetTester tester, {String name = '김철수', int amount = 50000}) async {
+    final id = await tester.runAsync(
+      () => LedgerRepository(database.ledgerDao).add(
+        direction: RecordDirection.sent,
+        eventType: EventType.wedding,
+        personName: name,
+        amount: amount,
+        date: DateTime(2026, 11, 24),
+      ),
+    );
+    await settle(tester);
+    return id!;
+  }
+
+  testWidgets('왼쪽으로 밀어 삭제하면 목록에서 사라지고, 되돌리기를 누르면 다시 나타난다', (tester) async {
+    await pumpApp(tester);
+    final id = await seed(tester);
+
+    await tester.drag(find.bySemanticsIdentifier(TestIds.entryTile(id)), const Offset(-300, 0));
+    await settle(tester);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.entryDelete(id)));
+    await settle(tester);
+
+    expect(find.text('김철수'), findsNothing);
+    expect(find.text('김철수님 기록을 삭제했어요'), findsOneWidget);
+
+    await tester.tap(find.text('되돌리기'));
+    await settle(tester);
+    expect(find.text('김철수'), findsOneWidget);
+
+    await closeApp(tester);
+  });
+
+  testWidgets('기록을 눌러 수정하면 기존 값이 채워져 있고, 바꾼 값이 목록에 반영된다', (tester) async {
+    await pumpApp(tester);
+    final id = await seed(tester);
+
+    await tester.tap(find.bySemanticsIdentifier(TestIds.entryTile(id)));
+    await settle(tester);
+    expect(find.text('기록 수정'), findsOneWidget);
+    expect(find.text('50,000'), findsOneWidget); // 금액 칸에 기존 값
+
+    await tester.ensureVisible(find.bySemanticsIdentifier(TestIds.formAmountAdd(10000)));
+    await tester.tap(find.bySemanticsIdentifier(TestIds.formAmountAdd(10000)));
+    await tester.tap(find.bySemanticsIdentifier(TestIds.formSave));
+    await settle(tester);
+
+    expect(find.text('수정했어요'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('60,000원'), findsNWidgets(2)); // 합계 카드 + 목록
+
+    await closeApp(tester);
+  });
+
+  testWidgets('통계 탭에서 보낸·받은 그래프와 종류별 그래프를 보여준다', (tester) async {
+    await pumpApp(tester);
+    await seed(tester);
+
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabStats));
+    await settle(tester);
+
+    expect(find.bySemanticsIdentifier(TestIds.statsBalanceChart), findsOneWidget);
+    expect(find.bySemanticsIdentifier(TestIds.statsTypeChart), findsOneWidget);
+    expect(find.text('-50,000원'), findsOneWidget); // 가운데 차액
+
+    await tester.tap(find.bySemanticsIdentifier(TestIds.statsTypeDirection(RecordDirection.received)));
+    await settle(tester);
+    expect(find.text('아직 받음 기록이 없어요'), findsOneWidget);
 
     await closeApp(tester);
   });

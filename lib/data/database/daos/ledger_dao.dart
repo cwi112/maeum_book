@@ -87,6 +87,31 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
     );
   }
 
+  /// 방향·경조사 종류별 합계와 건수를 구독한다. (통계 화면의 그래프용)
+  ///
+  /// SQL로 쓰면: `SELECT direction, event_type, SUM(amount), COUNT(id) FROM ledger_entries GROUP BY direction, event_type`
+  /// 결과는 `{보냄: {결혼: 합계, ...}, 받음: {...}}` 형태다. 기록이 없는 조합은 들어 있지 않다.
+  Stream<Map<RecordDirection, Map<EventType, LedgerSummary>>> watchTypeSummaries() {
+    final total = ledgerEntries.amount.sum();
+    final count = ledgerEntries.id.count();
+    final query = selectOnly(ledgerEntries)
+      ..addColumns([ledgerEntries.direction, ledgerEntries.eventType, total, count])
+      ..groupBy([ledgerEntries.direction, ledgerEntries.eventType]);
+
+    return query.watch().map((rows) {
+      final result = <RecordDirection, Map<EventType, LedgerSummary>>{};
+      for (final row in rows) {
+        final direction = row.readWithConverter<RecordDirection?, String>(ledgerEntries.direction)!;
+        final type = row.readWithConverter<EventType?, String>(ledgerEntries.eventType)!;
+        (result[direction] ??= {})[type] = LedgerSummary(total: row.read(total) ?? 0, count: row.read(count) ?? 0);
+      }
+      return result;
+    });
+  }
+
+  /// id로 기록 한 건을 읽는다. 없으면 null. (수정 화면에서 기존 값을 채울 때 사용)
+  Future<LedgerEntry?> getById(int id) => (select(ledgerEntries)..where((t) => t.id.equals(id))).getSingleOrNull();
+
   /// 전체 기록을 **오래된 날짜순**으로 한 번 읽는다. 엑셀 내보내기에 쓴다.
   Future<List<LedgerEntry>> getAllOrderByDate() {
     final query = select(ledgerEntries)..orderBy([(t) => OrderingTerm.asc(t.date), (t) => OrderingTerm.asc(t.id)]);
@@ -99,6 +124,9 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
   ///
   /// [LedgerEntriesCompanion]은 "일부 값만 채운 행"이다. id·createdAt처럼 DB가 채워 주는 값은 비워 둔다.
   Future<int> insertEntry(LedgerEntriesCompanion entry) => into(ledgerEntries).insert(entry);
+
+  /// 지웠던 기록을 **원래 id·작성 시각 그대로** 다시 넣는다. (삭제 후 "되돌리기")
+  Future<int> restoreEntry(LedgerEntry entry) => into(ledgerEntries).insert(entry);
 
   /// 기록 한 건을 통째로 덮어쓴다. id가 같은 행을 찾아 바꾸며, 바뀐 행이 있으면 true.
   Future<bool> updateEntry(LedgerEntry entry) => update(ledgerEntries).replace(entry);

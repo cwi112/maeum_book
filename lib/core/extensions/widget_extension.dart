@@ -28,3 +28,17 @@ extension WidgetX on Widget {
 
   Widget onTap(VoidCallback? onTap) => GestureDetector(onTap: onTap, behavior: HitTestBehavior.opaque, child: this);
 }
+
+/// 자동화 테스트용 이름표를 붙이는 확장. 이름 목록은 `TestIds`(test_ids.dart) 참고.
+///
+/// ```dart
+/// FilledButton(...).testId(TestIds.formSave)
+/// ```
+/// `Semantics.identifier`는 화면 낭독(TalkBack·VoiceOver)에는 읽히지 않고,
+/// 테스트 도구에만 resource-id / accessibilityIdentifier로 보인다. 그래서 사용자에게는 영향이 없다.
+extension TestIdX on Widget {
+  Widget testId(String id) => Semantics(identifier: id, child: this);
+
+  /// [id]가 있을 때만 이름표를 붙인다. 컴포넌트에서 testId를 선택 파라미터로 받을 때 쓴다.
+  Widget testIdOrSelf(String? id) => id == null ? this : testId(id);
+}

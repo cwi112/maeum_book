@@ -153,6 +153,9 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl))),
       ),
       progressIndicatorTheme: const ProgressIndicatorThemeData(color: AppColors.primary),
+      // 눌렀을 때 효과(물결·강조) 색. 앱 전체 InkWell·ListTile·버튼에 공통으로 적용된다.
+      splashColor: AppColors.pressedOverlay,
+      highlightColor: AppColors.pressedOverlay,
     );
   }
 }

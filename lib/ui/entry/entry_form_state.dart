@@ -1,6 +1,6 @@
 part of 'entry_form_view_model.dart';
 
-/// 기록 입력 화면의 상태. (entry_form_view_model.dart의 일부 — part of)
+/// 기록 입력·수정 화면의 상태. (entry_form_view_model.dart의 일부 — part of)
 ///
 /// ## 입력 항목
 /// | 항목 | 필수 | 기본값 |
@@ -28,7 +28,20 @@ class EntryFormState {
     this.memo = '',
     this.showErrors = false,
     this.isSaving = false,
+    this.original,
   });
+
+  /// 수정할 기록으로 모든 칸을 채운 상태를 만든다.
+  factory EntryFormState.fromEntry(LedgerEntry entry) => EntryFormState(
+    direction: entry.direction,
+    date: entry.date,
+    eventType: entry.eventType,
+    personName: entry.personName,
+    amount: entry.amount,
+    relation: entry.relation,
+    memo: entry.memo ?? '',
+    original: entry,
+  );
 
   final RecordDirection direction;
   final DateTime date;
@@ -43,6 +56,12 @@ class EntryFormState {
 
   /// 저장 중인지. 저장 중에는 버튼을 막아 같은 기록이 두 번 저장되지 않게 한다.
   final bool isSaving;
+
+  /// 수정 중인 원래 기록. 새 기록이면 null.
+  final LedgerEntry? original;
+
+  /// 수정 화면인지 (화면 제목·완료 문구가 달라진다)
+  bool get isEditing => original != null;
 
   // ── 항목별 오류 (없으면 null) ──────────────
   String? get eventTypeError => showErrors && eventType == null ? '경조사 종류를 골라 주세요' : null;
@@ -83,5 +102,6 @@ class EntryFormState {
     memo: memo ?? this.memo,
     showErrors: showErrors ?? this.showErrors,
     isSaving: isSaving ?? this.isSaving,
+    original: original,
   );
 }

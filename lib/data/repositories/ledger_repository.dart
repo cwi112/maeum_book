@@ -39,6 +39,14 @@ class LedgerRepository {
   /// 엑셀 내보내기용 전체 기록 (오래된 날짜순)
   Future<List<LedgerEntry>> fetchAllForExport() => _dao.getAllOrderByDate();
 
+  /// 방향·종류별 합계 (통계 그래프용). 기록이 없는 방향도 빈 Map으로 채워서 돌려준다.
+  Stream<Map<RecordDirection, Map<EventType, LedgerSummary>>> watchTypeSummaries() => _dao.watchTypeSummaries().map(
+    (summaries) => {for (final direction in RecordDirection.values) direction: summaries[direction] ?? const {}},
+  );
+
+  /// id로 기록 한 건 찾기. 없으면 null (이미 지워진 경우 등)
+  Future<LedgerEntry?> findById(int id) => _dao.getById(id);
+
   // ── 저장·수정·삭제 ────────────────────
 
   /// 새 기록을 저장하고 id를 돌려준다.
@@ -79,8 +87,36 @@ class LedgerRepository {
     );
   }
 
+  /// 원래 기록([original])의 값을 입력 화면에서 바꾼 값으로 고쳐 저장한다. id·작성 시각은 그대로 유지된다.
+  ///
+  /// 관계·메모처럼 "비우기"가 가능한 값은 null을 넣으면 비워진다.
+  /// (DB 라이브러리의 Value 타입을 화면 쪽에서 몰라도 되도록 여기서 감싼다)
+  Future<bool> edit(
+    LedgerEntry original, {
+    required RecordDirection direction,
+    required EventType eventType,
+    required String personName,
+    required int amount,
+    required DateTime date,
+    Relation? relation,
+    String? memo,
+  }) => update(
+    original.copyWith(
+      direction: direction,
+      eventType: eventType,
+      personName: personName,
+      amount: amount,
+      date: date,
+      relation: Value(relation),
+      memo: Value(memo),
+    ),
+  );
+
   /// 기록을 삭제한다. 실제로 지워졌으면 true.
   Future<bool> remove(int id) async => await _dao.deleteEntry(id) > 0;
+
+  /// 삭제한 기록을 되돌린다. id·작성 시각까지 그대로라 목록의 원래 자리로 돌아간다.
+  Future<void> restore(LedgerEntry entry) => _dao.restoreEntry(entry);
 
   // ── 내부 도우미 ───────────────────────
 

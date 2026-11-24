@@ -18,6 +18,21 @@ class LedgerListView extends BaseAsyncView<LedgerListViewModel, LedgerListState>
   @override
   AsyncNotifierProvider<LedgerListViewModel, LedgerListState> get provider => ledgerListViewModelProvider(direction);
 
+  /// 삭제: 확인 창 없이 바로 지우고, 4초 동안 "되돌리기" 버튼이 있는 토스트를 띄운다. (아이폰 메일과 같은 방식)
+  /// 지운 기록(entry)을 그대로 들고 있다가, 되돌리기를 누르면 id까지 똑같이 다시 넣는다.
+  Future<void> _delete(BuildContext context, LedgerListViewModel viewModel, LedgerEntry entry) async {
+    void showError(Object _) => context.showToast('처리하지 못했어요. 다시 시도해 주세요', type: ToastType.error);
+
+    final removed = await viewModel.remove(entry.id, onError: showError);
+    if (!removed || !context.mounted) return;
+    context.showToast(
+      '${entry.personName}님 기록을 삭제했어요',
+      type: ToastType.info,
+      actionLabel: '되돌리기',
+      onAction: () => viewModel.restore(entry, onError: showError),
+    );
+  }
+
   @override
   Widget buildView(BuildContext context, WidgetRef ref, LedgerListState state, LedgerListViewModel viewModel) {
     final texts = _LedgerTexts.of(direction);
@@ -27,11 +42,27 @@ class LedgerListView extends BaseAsyncView<LedgerListViewModel, LedgerListState>
       total: state.total,
       color: direction == RecordDirection.sent ? AppColors.sent : AppColors.received,
       itemCount: state.count,
-      itemBuilder: (context, index) => LedgerEntryTile(entry: state.entries[index]),
+      itemBuilder: (context, index) {
+        final entry = state.entries[index];
+        void openEdit() => context.push(AppRoutes.entryEdit(entry.id));
+        return SwipeActionTile(
+          key: ValueKey(entry.id),
+          actions: [
+            SwipeAction.edit(onPressed: openEdit, testId: TestIds.entryEdit(entry.id)),
+            SwipeAction.delete(
+              onPressed: () => _delete(context, viewModel, entry),
+              testId: TestIds.entryDelete(entry.id),
+            ),
+          ],
+          child: LedgerEntryTile(entry: entry, onTap: openEdit).testId(TestIds.entryTile(entry.id)),
+        );
+      },
       emptyIcon: texts.emptyIcon,
       emptyTitle: texts.emptyTitle,
       emptyMessage: texts.emptyMessage,
       addLabel: texts.addLabel,
+      addTestId: TestIds.ledgerAdd(direction),
+      summaryTestId: TestIds.ledgerSummary(direction),
       onAdd: () => context.push(AppRoutes.entryNew(direction)),
     );
   }

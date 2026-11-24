@@ -22,6 +22,7 @@ class AmountField extends StatefulWidget {
     this.errorText,
     this.maxAmount,
     this.quickAmounts = const [10000, 50000, 100000],
+    this.testId,
   });
 
   /// 현재 금액 (원). 0이면 입력칸을 비워 둔다.
@@ -34,6 +35,9 @@ class AmountField extends StatefulWidget {
 
   /// 빠른 입력 버튼 금액들. 누르면 현재 금액에 더한다.
   final List<int> quickAmounts;
+
+  /// 자동화 테스트용 이름. 입력칸은 그대로, 빠른 입력 버튼은 `이름_add_금액`이 붙는다. (예: form_amount_add_50000)
+  final String? testId;
 
   @override
   State<AmountField> createState() => _AmountFieldState();
@@ -82,14 +86,17 @@ class _AmountFieldState extends State<AmountField> {
           inputFormatters: [_ThousandsFormatter(widget.maxAmount)],
           onChanged: (text) => widget.onChanged(text.toAmount ?? 0),
           decoration: InputDecoration(hintText: '0', suffixText: '원', errorText: widget.errorText),
-        ),
+        ).testIdOrSelf(widget.testId),
         const SizedBox(height: AppSpacing.sm),
         Wrap(
           spacing: AppSpacing.sm,
           children: [
             // 10000 → '+1만', 50000 → '+5만'
             for (final amount in widget.quickAmounts)
-              ActionChip(label: Text('+${amount ~/ 10000}만'), onPressed: () => _add(amount)),
+              ActionChip(
+                label: Text('+${amount ~/ 10000}만'),
+                onPressed: () => _add(amount),
+              ).testIdOrSelf(widget.testId == null ? null : '${widget.testId}_add_$amount'),
             ActionChip(label: const Text('지우기'), onPressed: () => widget.onChanged(0)),
           ],
         ),

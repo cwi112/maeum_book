@@ -3,4 +3,5 @@ library;
 
 export 'app_define.dart';
 export 'app_routes.dart';
+export 'test_ids.dart';
 export 'typedefs.dart';

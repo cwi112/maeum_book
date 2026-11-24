@@ -26,10 +26,11 @@
 - [x] 공통 디자인(색상, 글꼴, 간격)과 공통 컴포넌트
 - [x] 로컬 DB 저장 (Drift) — 보낸·받은 합계, 사람별 합계 쿼리까지
 - [x] 보낸 마음, 받은 마음 입력 (필수: 구분·날짜·종류·상대방·금액 / 선택: 관계·메모)
-- [ ] 기록 수정, 삭제
+- [x] 기록 수정, 삭제 (왼쪽으로 밀어서 수정·삭제, 삭제 후 되돌리기)
 - [ ] **엑셀 파일로 내보내기** — 기록한 데이터를 그대로 .xlsx로 추출
 - [ ] 사람별로 주고받은 합계 화면
-- [ ] 월별, 종류별 통계
+- [x] 통계 그래프 (보낸·받은 비율, 종류별 비율)
+- [ ] 월별 통계
 - [ ] 다가오는 경조사 알림
 
 엑셀 내보내기는 이 앱에서 제일 중요하게 생각하는 기능입니다. 부모님 세대처럼 엑셀로 정리해 두는 경우가 많아서, 앱에 쌓인 기록을 언제든 파일로 꺼내 볼 수 있어야 한다고 생각했습니다. 그래서 DB 테이블도 처음부터 엑셀 열(날짜, 종류, 상대방, 금액, 보냄/받음, 관계, 메모)과 똑같이 잡았습니다.
@@ -41,6 +42,7 @@
 - Flutter 3.50 / Dart 3.14 (FVM으로 버전 고정)
 - 상태관리: flutter_riverpod 3.5
 - 로컬 DB: drift 2.35 (SQLite)
+- 그래프: fl_chart, 밀어서 삭제: flutter_slidable
 - 화면 이동: go_router 18 (하단 탭은 StatefulShellRoute)
 - 글꼴: Pretendard(본문), 고운바탕(제목, 금액)
 
@@ -127,6 +129,27 @@ lib/
    ├─ stats/             # 통계
    └─ settings/          # 설정
 ```
+
+## 자동화 테스트 (Appium)
+
+나중에 Appium으로 UI 자동화 테스트를 돌릴 수 있도록, 누르거나 확인해야 하는 화면 요소에는 고정된 이름을 붙여 두었습니다. 이름은 `lib/core/define/test_ids.dart`에 모여 있습니다.
+
+Flutter의 `Semantics.identifier`를 쓰기 때문에 Android에서는 `resource-id`, iOS에서는 `accessibilityIdentifier`로 그대로 보입니다. 화면 문구가 바뀌어도 테스트가 깨지지 않고, 사용자의 화면 낭독(TalkBack)에는 영향이 없습니다.
+
+```
+Android (UiAutomator2):  driver.findElement(By.id("tab_stats"))
+iOS (XCUITest):          driver.findElement(AppiumBy.accessibilityId("tab_stats"))
+```
+
+| 이름 | 요소 |
+|---|---|
+| `tab_sent`, `tab_received`, `tab_stats`, `tab_settings` | 하단 탭 |
+| `ledger_add_sent`, `ledger_summary_sent` | 기록 버튼, 합계 카드 |
+| `entry_tile_{id}`, `entry_edit_{id}`, `entry_delete_{id}` | 기록 한 줄, 밀어서 나오는 버튼 |
+| `form_event_type_wedding`, `form_person_name`, `form_amount`, `form_amount_add_50000`, `form_save` 등 | 입력 화면 |
+| `toast` | 토스트 |
+
+같은 이름을 위젯 테스트에서도 `find.bySemanticsIdentifier(...)`로 쓰고 있어서, 이름이 빠지면 위젯 테스트에서 먼저 걸립니다. 테스트 전에 데이터를 비우려면 `adb shell pm clear com.maeumbook.maeum_book`을 쓰면 됩니다.
 
 ## 실행 방법
 

@@ -20,19 +20,27 @@ class MainView extends StatelessWidget {
       bottomNavigationBar: NavigationBar(
         selectedIndex: navigationShell.currentIndex,
         onDestinationSelected: _onTap,
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.outbox_outlined), selectedIcon: Icon(Icons.outbox), label: '보내요'),
-          NavigationDestination(
+        destinations: [
+          const NavigationDestination(
+            icon: Icon(Icons.outbox_outlined),
+            selectedIcon: Icon(Icons.outbox),
+            label: '보내요',
+          ).testId(TestIds.tabSent),
+          const NavigationDestination(
             icon: Icon(Icons.move_to_inbox_outlined),
             selectedIcon: Icon(Icons.move_to_inbox),
             label: '받아요',
-          ),
-          NavigationDestination(
+          ).testId(TestIds.tabReceived),
+          const NavigationDestination(
             icon: Icon(Icons.insert_chart_outlined),
             selectedIcon: Icon(Icons.insert_chart),
             label: '통계',
-          ),
-          NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: '설정'),
+          ).testId(TestIds.tabStats),
+          const NavigationDestination(
+            icon: Icon(Icons.settings_outlined),
+            selectedIcon: Icon(Icons.settings),
+            label: '설정',
+          ).testId(TestIds.tabSettings),
         ],
       ),
     );

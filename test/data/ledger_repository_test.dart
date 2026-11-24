@@ -108,4 +108,71 @@ void main() {
     final all = await repository.fetchAllForExport();
     expect(all.map((e) => e.personName), ['먼저', '나중']);
   });
+
+  test('id로 기록을 찾고, 없으면 null을 돌려준다', () async {
+    final id = await add(RecordDirection.sent, '김철수', 50000);
+    expect((await repository.findById(id))?.personName, '김철수');
+    expect(await repository.findById(9999), isNull);
+  });
+
+  test('삭제한 기록을 되돌리면 id까지 그대로 돌아온다', () async {
+    final id = await add(RecordDirection.sent, '김철수', 50000);
+    final entry = (await repository.findById(id))!;
+
+    await repository.remove(id);
+    expect(await repository.findById(id), isNull);
+
+    await repository.restore(entry);
+    final restored = await repository.findById(id);
+    expect(restored?.personName, '김철수');
+    expect(restored?.createdAt, entry.createdAt);
+  });
+
+  test('edit은 바꾼 값을 저장하고, 관계·메모를 비울 수 있다', () async {
+    final id = await repository.add(
+      direction: RecordDirection.sent,
+      eventType: EventType.wedding,
+      personName: '김철수',
+      amount: 50000,
+      date: DateTime(2026, 11, 24),
+      relation: Relation.friend,
+      memo: '메모',
+    );
+    final original = (await repository.findById(id))!;
+
+    await repository.edit(
+      original,
+      direction: RecordDirection.received,
+      eventType: EventType.funeral,
+      personName: '김철수',
+      amount: 100000,
+      date: DateTime(2026, 12, 1),
+    );
+    final edited = (await repository.findById(id))!;
+
+    expect(edited.direction, RecordDirection.received);
+    expect(edited.eventType, EventType.funeral);
+    expect(edited.amount, 100000);
+    expect(edited.relation, isNull);
+    expect(edited.memo, isNull);
+    expect(edited.createdAt, original.createdAt);
+  });
+
+  test('방향·종류별 합계를 묶어서 계산한다', () async {
+    await add(RecordDirection.sent, '김철수', 50000);
+    await add(RecordDirection.sent, '이영희', 30000);
+    await repository.add(
+      direction: RecordDirection.sent,
+      eventType: EventType.funeral,
+      personName: '박민수',
+      amount: 100000,
+      date: DateTime(2026, 11, 24),
+    );
+
+    final byType = await repository.watchTypeSummaries().first;
+    expect(byType[RecordDirection.sent]![EventType.wedding]!.total, 80000);
+    expect(byType[RecordDirection.sent]![EventType.wedding]!.count, 2);
+    expect(byType[RecordDirection.sent]![EventType.funeral]!.total, 100000);
+    expect(byType[RecordDirection.received], isEmpty);
+  });
 }
