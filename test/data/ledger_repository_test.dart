@@ -197,4 +197,46 @@ void main() {
     expect(await repository.clearAll(), 2);
     expect(await repository.fetchAllForExport(), isEmpty);
   });
+
+  test('월별 합계는 항상 12칸이고, 월초 새벽 기록도 그 달로 들어간다 (한국 시간 기준)', () async {
+    final now = DateTime(2026, 11, 24);
+    await add(RecordDirection.sent, '김철수', 50000, date: DateTime(2026, 11, 1, 0, 30)); // 11월 1일 새벽
+    await add(RecordDirection.received, '이영희', 30000, date: DateTime(2026, 3, 15));
+    await add(RecordDirection.sent, '박민수', 100000, date: DateTime(2025, 6, 1)); // 12개월 밖
+
+    final months = await repository.fetchMonthlyTotals(now: now);
+    expect(months.length, 12);
+    expect(months.first.month, DateTime(2025, 12));
+    expect(months.last.month, DateTime(2026, 11));
+    expect(months.last.sent, 50000);
+    expect(months.firstWhere((m) => m.month == DateTime(2026, 3)).received, 30000);
+    expect(months.fold(0, (sum, m) => sum + m.sent), 50000); // 12개월 밖 기록은 제외
+  });
+
+  test('관계별 합계는 방향별로 나뉘고, 관계를 비운 기록은 null 칸에 모인다', () async {
+    await repository.add(
+      direction: RecordDirection.sent,
+      eventTypeId: 1,
+      personName: '김철수',
+      amount: 50000,
+      date: DateTime(2026, 11, 24),
+      relation: Relation.friend,
+    );
+    await add(RecordDirection.sent, '이영희', 30000);
+
+    final totals = await repository.fetchRelationTotals();
+    expect(totals[RecordDirection.sent]![Relation.friend], 50000);
+    expect(totals[RecordDirection.sent]![null], 30000);
+    expect(totals[RecordDirection.received], isNull);
+  });
+
+  test('사람별 TOP은 주고받은 금액이 큰 순서로 정해진 수만큼', () async {
+    await add(RecordDirection.sent, '김철수', 50000);
+    await add(RecordDirection.received, '김철수', 100000);
+    await add(RecordDirection.sent, '이영희', 30000);
+    await add(RecordDirection.sent, '박민수', 10000);
+
+    final top = await repository.fetchTopPeople(limit: 2);
+    expect(top.map((p) => p.name), ['김철수', '이영희']);
+  });
 }

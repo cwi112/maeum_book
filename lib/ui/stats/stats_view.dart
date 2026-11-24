@@ -4,8 +4,10 @@ import 'package:maeum_book/ui/stats/stats_view_model.dart';
 
 /// 통계 탭.
 ///
-/// 1. 보낸 마음 vs 받은 마음: 도넛 그래프, 가운데에 차액(받은 - 보낸)
-/// 2. 종류별: 보낸/받은을 골라서 경조사 종류별 비율을 도넛 그래프로
+/// 1. 보낸 마음과 받은 마음: 도넛, 가운데에 차액(받은 - 보낸)
+/// 2. 월별 흐름: 최근 12개월 보냄·받음 막대그래프
+/// 3. 보낸/받은 선택 → 종류별 도넛, 관계별 도넛
+/// 4. 사람별 TOP 5: 많이 주고받은 사람과 차액
 class StatsView extends BaseAsyncView<StatsViewModel, StatsState> {
   const StatsView({super.key});
 
@@ -26,15 +28,21 @@ class StatsView extends BaseAsyncView<StatsViewModel, StatsState> {
     }
 
     final balance = data.balance;
-    final ranking = data.typeRanking;
     final typeNames = ref.watch(eventTypeNamesProvider);
     // 종류 색은 종류 목록 순서로 정한다. (보낸/받은을 바꿔도 같은 종류는 같은 색)
     final typeOrder = typeNames.keys.toList();
+    Color typeColor(int id) =>
+        AppColors.chartPalette[typeOrder.indexOf(id).clamp(0, 999) % AppColors.chartPalette.length];
+    Color relationColor(Relation? relation) =>
+        relation == null ? AppColors.textHint : AppColors.chartPalette[relation.index % AppColors.chartPalette.length];
+    final direction = data.breakdownDirection;
+
     return Scaffold(
       appBar: AppBar(title: const Text('통계')),
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.screen),
         children: [
+          // 1. 보낸 vs 받은
           _StatsCard(
             title: '보낸 마음과 받은 마음',
             child: DonutChart(
@@ -47,39 +55,83 @@ class StatsView extends BaseAsyncView<StatsViewModel, StatsState> {
             ).testId(TestIds.statsBalanceChart),
           ),
           const SizedBox(height: AppSpacing.md),
+
+          // 2. 월별 흐름
+          _StatsCard(
+            title: '월별 흐름',
+            subtitle: '최근 12개월',
+            child: GroupedBarChart(
+              series: const [
+                BarSeries(label: '보낸 마음', color: AppColors.sent),
+                BarSeries(label: '받은 마음', color: AppColors.received),
+              ],
+              groups: [
+                for (final month in data.monthly)
+                  BarGroup(label: '${month.month.month}월', values: [month.sent, month.received]),
+              ],
+            ).testId(TestIds.statsMonthlyChart),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+
+          // 3. 보낸/받은 선택 → 종류별·관계별
+          Row(
+            children: [
+              const AppText.title('나눠 보기').expanded(),
+              SegmentedButton<RecordDirection>(
+                segments: [
+                  for (final value in RecordDirection.values)
+                    ButtonSegment(value: value, label: Text(value.label).testId(TestIds.statsTypeDirection(value))),
+                ],
+                selected: {direction},
+                showSelectedIcon: false,
+                style: const ButtonStyle(visualDensity: VisualDensity.compact),
+                onSelectionChanged: (values) => viewModel.setBreakdownDirection(values.first),
+              ),
+            ],
+          ).paddingSymmetric(horizontal: AppSpacing.xs),
+          const SizedBox(height: AppSpacing.md),
           _StatsCard(
             title: '종류별',
-            trailing: SegmentedButton<RecordDirection>(
-              segments: [
-                for (final direction in RecordDirection.values)
-                  ButtonSegment(
-                    value: direction,
-                    label: Text(direction.label).testId(TestIds.statsTypeDirection(direction)),
-                  ),
-              ],
-              selected: {data.typeDirection},
-              showSelectedIcon: false,
-              style: const ButtonStyle(visualDensity: VisualDensity.compact),
-              onSelectionChanged: (values) => viewModel.setTypeDirection(values.first),
-            ),
-            child: ranking.isEmpty
-                ? AppText.body(
-                    '아직 ${data.typeDirection.label} 기록이 없어요',
-                    color: AppColors.textSecondary,
-                  ).paddingSymmetric(vertical: AppSpacing.xl).center()
+            child: data.typeRanking.isEmpty
+                ? _NoData(direction: direction)
                 : DonutChart(
                     slices: [
-                      for (final item in ranking)
+                      for (final item in data.typeRanking)
                         ChartSlice(
                           label: typeNames[item.key] ?? '',
                           value: item.value.total,
-                          // 종류마다 색을 고정해서, 보낸/받은을 바꿔도 같은 종류는 같은 색으로 보이게 한다.
-                          color: AppColors.chartPalette[typeOrder.indexOf(item.key).clamp(0, 999) % AppColors.chartPalette.length],
+                          color: typeColor(item.key),
                         ),
                     ],
-                    centerLabel: '${data.typeDirection.label} 합계',
-                    centerValue: data.summaryOf(data.typeDirection).total.won,
+                    centerLabel: '${direction.label} 합계',
+                    centerValue: data.summaryOf(direction).total.won,
                   ).testId(TestIds.statsTypeChart),
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _StatsCard(
+            title: '관계별',
+            child: data.relationRanking.isEmpty
+                ? _NoData(direction: direction)
+                : DonutChart(
+                    slices: [
+                      for (final item in data.relationRanking)
+                        ChartSlice(label: item.key?.label ?? '미입력', value: item.value, color: relationColor(item.key)),
+                    ],
+                    centerLabel: '${direction.label} 합계',
+                    centerValue: data.summaryOf(direction).total.won,
+                  ).testId(TestIds.statsRelationChart),
+          ),
+          const SizedBox(height: AppSpacing.md),
+
+          // 4. 사람별 TOP 5
+          _StatsCard(
+            title: '많이 주고받은 사람',
+            subtitle: 'TOP ${data.topPeople.length}',
+            child: Column(
+              children: [
+                for (final (index, person) in data.topPeople.indexed) _PersonRankRow(rank: index + 1, person: person),
+              ],
+            ).testId(TestIds.statsTopPeople),
           ),
         ],
       ),
@@ -87,13 +139,13 @@ class StatsView extends BaseAsyncView<StatsViewModel, StatsState> {
   }
 }
 
-/// 통계 카드: 제목(+오른쪽 위젯) + 내용
+/// 통계 카드: 제목(+작은 설명) + 내용
 class _StatsCard extends StatelessWidget {
-  const _StatsCard({required this.title, required this.child, this.trailing});
+  const _StatsCard({required this.title, required this.child, this.subtitle});
 
   final String title;
+  final String? subtitle;
   final Widget child;
-  final Widget? trailing;
 
   @override
   Widget build(BuildContext context) {
@@ -104,15 +156,61 @@ class _StatsCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Expanded(child: AppText.title(title)),
-                ?trailing,
+                AppText.title(title),
+                if (subtitle != null) AppText.caption(subtitle!).paddingOnly(left: AppSpacing.sm, bottom: 3),
               ],
             ),
             const SizedBox(height: AppSpacing.lg),
             child,
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// 고른 방향에 기록이 없을 때
+class _NoData extends StatelessWidget {
+  const _NoData({required this.direction});
+
+  final RecordDirection direction;
+
+  @override
+  Widget build(BuildContext context) => AppText.body(
+    '아직 ${direction.label} 기록이 없어요',
+    color: AppColors.textSecondary,
+  ).paddingSymmetric(vertical: AppSpacing.xl).center();
+}
+
+/// 사람별 순위 한 줄:  1  김민준   보냄 30만원 · 받음 20만원    -10만원
+class _PersonRankRow extends StatelessWidget {
+  const _PersonRankRow({required this.rank, required this.person});
+
+  final int rank;
+  final PersonSummary person;
+
+  @override
+  Widget build(BuildContext context) {
+    final balance = person.balance;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: Row(
+        children: [
+          SizedBox(width: 24, child: AppText.label('$rank', color: rank <= 3 ? AppColors.primary : AppColors.textHint)),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              AppText.subtitle(person.name, maxLines: 1),
+              AppText.caption('보냄 ${person.sentTotal.manWon} · 받음 ${person.receivedTotal.manWon}'),
+            ],
+          ).expanded(),
+          AppText.label(
+            balance == 0 ? '같음' : '${balance > 0 ? '+' : '-'}${balance.abs().manWon}',
+            color: balance > 0 ? AppColors.received : (balance < 0 ? AppColors.sent : AppColors.textSecondary),
+          ),
+        ],
       ),
     );
   }

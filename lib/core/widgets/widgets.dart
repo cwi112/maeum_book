@@ -5,6 +5,7 @@ export 'app_dialog.dart';
 export 'app_text.dart';
 export 'app_toast.dart';
 export 'chart/donut_chart.dart';
+export 'chart/grouped_bar_chart.dart';
 export 'empty_view.dart';
 export 'form/amount_field.dart';
 export 'form/app_text_field.dart';

@@ -98,6 +98,9 @@ abstract final class TestIds {
   // ── 통계 ───────────────────────────────
   static const String statsBalanceChart = 'stats_balance_chart';
   static const String statsTypeChart = 'stats_type_chart';
+  static const String statsMonthlyChart = 'stats_monthly_chart';
+  static const String statsRelationChart = 'stats_relation_chart';
+  static const String statsTopPeople = 'stats_top_people';
 
   /// 종류별 그래프 방향 선택: stats_type_direction_sent
   static String statsTypeDirection(Enum direction) => 'stats_type_direction_${direction.name}';

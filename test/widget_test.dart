@@ -177,7 +177,7 @@ void main() {
     await closeApp(tester);
   });
 
-  testWidgets('통계 탭에서 보낸·받은 그래프와 종류별 그래프를 보여준다', (tester) async {
+  testWidgets('통계 탭: 보낸·받은 비율, 월별, 종류별, 관계별, 사람별 TOP 5를 보여준다', (tester) async {
     await pumpApp(tester);
     await seed(tester);
 
@@ -185,12 +185,26 @@ void main() {
     await settle(tester);
 
     expect(find.bySemanticsIdentifier(TestIds.statsBalanceChart), findsOneWidget);
-    expect(find.bySemanticsIdentifier(TestIds.statsTypeChart), findsOneWidget);
     expect(find.text('-50,000원'), findsOneWidget); // 가운데 차액
+    expect(find.bySemanticsIdentifier(TestIds.statsMonthlyChart), findsOneWidget);
 
+    // 아래쪽 그래프는 스크롤해야 그려진다 (ListView는 보이는 부분만 그림)
+    final scrollable = find.byType(Scrollable).last;
+    for (final id in [TestIds.statsTypeChart, TestIds.statsRelationChart, TestIds.statsTopPeople]) {
+      await tester.scrollUntilVisible(find.bySemanticsIdentifier(id), 300, scrollable: scrollable);
+      expect(find.bySemanticsIdentifier(id), findsOneWidget);
+    }
+    expect(find.text('김철수'), findsOneWidget); // TOP 5에 보임
+
+    // 받은 기준으로 바꾸면 받은 기록이 없으므로 종류별·관계별 모두 안내 문구
+    await tester.scrollUntilVisible(
+      find.bySemanticsIdentifier(TestIds.statsTypeDirection(RecordDirection.received)),
+      -300,
+      scrollable: scrollable,
+    );
     await tester.tap(find.bySemanticsIdentifier(TestIds.statsTypeDirection(RecordDirection.received)));
     await settle(tester);
-    expect(find.text('아직 받음 기록이 없어요'), findsOneWidget);
+    expect(find.text('아직 받음 기록이 없어요'), findsWidgets);
 
     await closeApp(tester);
   });

@@ -87,6 +87,53 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
     );
   }
 
+  /// 사람별 합계를 **한 번** 읽는다. 많이 주고받은 순서로 [limit]명까지. (통계의 사람별 TOP 5)
+  Future<List<PersonSummary>> getTopPeople({required int limit}) async =>
+      (await watchPersonSummaries().first).take(limit).toList();
+
+  /// [from] 이후 기록을 월·방향별로 더한다. (통계의 월별 막대그래프)
+  ///
+  /// 날짜는 DB에 초 단위 숫자로 저장돼 있어서, SQLite의 `strftime`으로 '2026-11' 같은 "연-월" 글자로 바꿔 묶는다.
+  /// 'localtime'을 붙여 한국 시간 기준으로 월을 나눈다. (안 붙이면 UTC라 매월 1일 새벽 기록이 지난달로 들어감)
+  /// 결과: `{'2026-11': {보냄: 150000, 받음: 50000}, ...}`
+  Future<Map<String, Map<RecordDirection, int>>> getMonthlyTotals({required DateTime from}) async {
+    final rows = await customSelect(
+      '''
+      SELECT strftime('%Y-%m', date, 'unixepoch', 'localtime') AS month, direction, SUM(amount) AS total
+      FROM ledger_entries
+      WHERE date >= ?
+      GROUP BY month, direction
+      ''',
+      variables: [Variable.withDateTime(from)],
+      readsFrom: {ledgerEntries},
+    ).get();
+
+    final result = <String, Map<RecordDirection, int>>{};
+    for (final row in rows) {
+      final direction = RecordDirection.values.byName(row.read<String>('direction'));
+      (result[row.read<String>('month')] ??= {})[direction] = row.read<int>('total');
+    }
+    return result;
+  }
+
+  /// 방향·관계별 합계를 읽는다. 관계를 비워 둔 기록은 null 칸에 모인다. (통계의 관계별 그래프)
+  Future<Map<RecordDirection, Map<Relation?, int>>> getRelationTotals() async {
+    final total = ledgerEntries.amount.sum();
+    final rows =
+        await (selectOnly(ledgerEntries)
+              ..addColumns([ledgerEntries.direction, ledgerEntries.relation, total])
+              ..groupBy([ledgerEntries.direction, ledgerEntries.relation]))
+            .get();
+
+    final result = <RecordDirection, Map<Relation?, int>>{};
+    for (final row in rows) {
+      final direction = row.readWithConverter<RecordDirection?, String>(ledgerEntries.direction)!;
+      final relation = row.readWithConverter<Relation?, String>(ledgerEntries.relation);
+      (result[direction] ??= {})[relation] = row.read(total) ?? 0;
+    }
+    return result;
+  }
+
   /// 방향·경조사 종류별 합계와 건수를 구독한다. (통계 화면의 그래프용)
   ///
   /// SQL로 쓰면: `SELECT direction, event_type_id, SUM(amount), COUNT(id) FROM ledger_entries GROUP BY direction, event_type_id`

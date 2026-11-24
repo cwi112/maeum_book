@@ -54,7 +54,7 @@
 - Flutter 3.50 / Dart 3.14 (FVM으로 버전 고정)
 - 상태관리: flutter_riverpod 3.5
 - 로컬 DB: drift 2.35 (SQLite)
-- 그래프: fl_chart, 밀어서 삭제: flutter_slidable
+- 그래프: fl_chart(도넛·막대 차트 컴포넌트로 감쌈), 밀어서 삭제: flutter_slidable
 - 화면 이동: go_router 18 (하단 탭은 StatefulShellRoute)
 - 글꼴: Pretendard(본문), 고운바탕(제목, 금액)
 

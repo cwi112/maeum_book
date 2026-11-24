@@ -37,6 +37,31 @@ class LedgerRepository {
   /// 사람별 주고받은 합계
   Stream<List<PersonSummary>> watchPersonSummaries() => _dao.watchPersonSummaries();
 
+  /// 많이 주고받은 사람 [limit]명
+  Future<List<PersonSummary>> fetchTopPeople({int limit = 5}) => _dao.getTopPeople(limit: limit);
+
+  /// 최근 [months]개월(이번 달 포함)의 월별 보냄·받음 합계. 기록이 없는 달도 0으로 채워 **항상 [months]개**를 돌려준다.
+  /// (그래프 막대 개수가 매번 같아야 보기 편하므로)
+  Future<List<MonthlyTotal>> fetchMonthlyTotals({required DateTime now, int months = 12}) async {
+    final first = DateTime(now.year, now.month - (months - 1));
+    final totals = await _dao.getMonthlyTotals(from: first);
+    return [
+      for (var i = 0; i < months; i++)
+        () {
+          final month = DateTime(first.year, first.month + i);
+          final key = '${month.year}-${month.month.toString().padLeft(2, '0')}';
+          return MonthlyTotal(
+            month: month,
+            sent: totals[key]?[RecordDirection.sent] ?? 0,
+            received: totals[key]?[RecordDirection.received] ?? 0,
+          );
+        }(),
+    ];
+  }
+
+  /// 방향·관계별 합계 (관계 미입력은 null)
+  Future<Map<RecordDirection, Map<Relation?, int>>> fetchRelationTotals() => _dao.getRelationTotals();
+
   /// 엑셀 내보내기용 전체 기록 (오래된 날짜순)
   Future<List<LedgerEntry>> fetchAllForExport() => _dao.getAllOrderByDate();
 

@@ -6,6 +6,7 @@ library;
 
 export 'event_summary.dart';
 export 'ledger_summary.dart';
+export 'monthly_total.dart';
 export 'person_summary.dart';
 export 'record_direction.dart';
 export 'relation.dart';

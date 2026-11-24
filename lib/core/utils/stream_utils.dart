@@ -29,16 +29,24 @@ Stream<R> combineLatest2<A, B, R>(Stream<A> streamA, Stream<B> streamB, R Functi
 
   controller = StreamController<R>(
     onListen: () {
-      subA = streamA.listen((value) {
-        latestA = value;
-        hasA = true;
-        emitIfReady();
-      }, onError: controller.addError, onDone: onDone);
-      subB = streamB.listen((value) {
-        latestB = value;
-        hasB = true;
-        emitIfReady();
-      }, onError: controller.addError, onDone: onDone);
+      subA = streamA.listen(
+        (value) {
+          latestA = value;
+          hasA = true;
+          emitIfReady();
+        },
+        onError: controller.addError,
+        onDone: onDone,
+      );
+      subB = streamB.listen(
+        (value) {
+          latestB = value;
+          hasB = true;
+          emitIfReady();
+        },
+        onError: controller.addError,
+        onDone: onDone,
+      );
     },
     onCancel: () async {
       await subA?.cancel();

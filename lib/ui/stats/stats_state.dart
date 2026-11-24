@@ -2,18 +2,29 @@ part of 'stats_view_model.dart';
 
 /// 통계 탭의 상태. (stats_view_model.dart의 일부 — part of)
 ///
-/// DB에서 "방향 × 경조사 종류"별 합계를 한 번에 받아서(watchTypeSummaries), 방향별 총합도 여기서 더해 쓴다.
-/// 쿼리를 하나로 합쳐서, 기록이 바뀔 때 DB를 두 번 읽지 않게 했다.
+/// | 값 | 쓰는 곳 |
+/// |---|---|
+/// | [byType] 방향×종류별 합계 | 보낸·받은 비율(합쳐서), 종류별 그래프 |
+/// | [monthly] 최근 12개월 | 월별 막대그래프 |
+/// | [byRelation] 방향×관계별 합계 | 관계별 그래프 |
+/// | [topPeople] 많이 주고받은 5명 | 사람별 TOP 5 |
+/// | [breakdownDirection] | 종류별·관계별 그래프가 보낸/받은 중 무엇을 볼지 (화면 선택값) |
 class StatsState {
-  const StatsState({this.byType = const {}, this.typeDirection = RecordDirection.sent});
+  const StatsState({
+    this.byType = const {},
+    this.monthly = const [],
+    this.byRelation = const {},
+    this.topPeople = const [],
+    this.breakdownDirection = RecordDirection.sent,
+  });
 
-  /// 방향별 → 종류별 합계
   final Map<RecordDirection, Map<int, LedgerSummary>> byType;
+  final List<MonthlyTotal> monthly;
+  final Map<RecordDirection, Map<Relation?, int>> byRelation;
+  final List<PersonSummary> topPeople;
+  final RecordDirection breakdownDirection;
 
-  /// 종류별 그래프에서 지금 보고 있는 방향 (보낸 / 받은)
-  final RecordDirection typeDirection;
-
-  /// 한 방향의 총합·건수
+  /// 한 방향의 총합·건수 (종류별 합계를 모두 더함)
   LedgerSummary summaryOf(RecordDirection direction) {
     final types = byType[direction]?.values ?? const <LedgerSummary>[];
     return LedgerSummary(
@@ -31,10 +42,19 @@ class StatsState {
   /// 기록이 하나라도 있는지
   bool get hasData => sent.count > 0 || received.count > 0;
 
-  /// 종류별 그래프에 쓸 합계 (금액 큰 순서)
+  /// 선택한 방향의 종류별 합계 (금액 큰 순)
   List<MapEntry<int, LedgerSummary>> get typeRanking =>
-      (byType[typeDirection]?.entries.toList() ?? [])..sort((a, b) => b.value.total.compareTo(a.value.total));
+      (byType[breakdownDirection]?.entries.toList() ?? [])..sort((a, b) => b.value.total.compareTo(a.value.total));
 
-  StatsState copyWith({Map<RecordDirection, Map<int, LedgerSummary>>? byType, RecordDirection? typeDirection}) =>
-      StatsState(byType: byType ?? this.byType, typeDirection: typeDirection ?? this.typeDirection);
+  /// 선택한 방향의 관계별 합계 (금액 큰 순, 관계 미입력은 null)
+  List<MapEntry<Relation?, int>> get relationRanking =>
+      (byRelation[breakdownDirection]?.entries.toList() ?? [])..sort((a, b) => b.value.compareTo(a.value));
+
+  StatsState copyWith({RecordDirection? breakdownDirection}) => StatsState(
+    byType: byType,
+    monthly: monthly,
+    byRelation: byRelation,
+    topPeople: topPeople,
+    breakdownDirection: breakdownDirection ?? this.breakdownDirection,
+  );
 }
