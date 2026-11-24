@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:maeum_book/data/database/app_database.dart';
 import 'package:maeum_book/data/models/models.dart';
+import 'package:maeum_book/data/seed/sample_data.dart';
 
 /// 경조사 기록을 다루는 Repository(저장소).
 ///
@@ -117,6 +118,16 @@ class LedgerRepository {
 
   /// 삭제한 기록을 되돌린다. id·작성 시각까지 그대로라 목록의 원래 자리로 돌아간다.
   Future<void> restore(LedgerEntry entry) => _dao.restoreEntry(entry);
+
+  /// 샘플 기록을 넣고 넣은 건수를 돌려준다. (설정 → 샘플 데이터 넣기)
+  Future<int> addSamples({DateTime? now}) async {
+    final samples = SampleData.generate(now: now ?? DateTime.now());
+    await _dao.insertAll(samples);
+    return samples.length;
+  }
+
+  /// 모든 기록을 지우고 지운 건수를 돌려준다. 되돌릴 수 없으므로 화면에서 꼭 확인을 받은 뒤 부른다.
+  Future<int> clearAll() => _dao.deleteAll();
 
   // ── 내부 도우미 ───────────────────────
 

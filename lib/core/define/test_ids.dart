@@ -48,6 +48,23 @@ abstract final class TestIds {
   // ── 공통 ───────────────────────────────
   static const String toast = 'toast';
   static const String toastAction = 'toast_action';
+  static const String dialogConfirm = 'dialog_confirm';
+  static const String dialogCancel = 'dialog_cancel';
+
+  // ── 검색·필터 ──────────────────────────
+  /// 검색창·필터 버튼: ledger_search_sent / ledger_filter_sent
+  static String ledgerSearch(Enum direction) => 'ledger_search_${direction.name}';
+  static String ledgerFilter(Enum direction) => 'ledger_filter_${direction.name}';
+  static const String filterApply = 'filter_apply';
+  static const String filterReset = 'filter_reset';
+
+  /// 필터 시트 칩 접두어. 값 이름이 붙는다: filter_period_thisYear, filter_event_type_wedding
+  static const String filterPeriod = 'filter_period';
+  static const String filterEventType = 'filter_event_type';
+
+  // ── 설정 ───────────────────────────────
+  static const String settingsSeed = 'settings_seed';
+  static const String settingsClear = 'settings_clear';
 
   // ── 통계 ───────────────────────────────
   static const String statsBalanceChart = 'stats_balance_chart';

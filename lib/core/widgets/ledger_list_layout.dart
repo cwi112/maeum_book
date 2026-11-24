@@ -41,6 +41,9 @@ class LedgerListLayout extends StatelessWidget {
     required this.onAdd,
     this.addTestId,
     this.summaryTestId,
+    this.header,
+    this.emptyActionLabel,
+    this.onEmptyAction,
   });
 
   /// 상단 제목
@@ -73,6 +76,13 @@ class LedgerListLayout extends StatelessWidget {
   final String? addTestId;
   final String? summaryTestId;
 
+  /// 합계 카드와 목록 사이에 넣을 위젯 (예: 검색창·필터)
+  final Widget? header;
+
+  /// 빈 화면 버튼 (예: 검색 결과가 없을 때 "조건 초기화")
+  final String? emptyActionLabel;
+  final VoidCallback? onEmptyAction;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -82,8 +92,15 @@ class LedgerListLayout extends StatelessWidget {
           SummaryCard(label: summaryLabel, amount: total.won, count: itemCount, color: color)
               .testIdOrSelf(summaryTestId)
               .paddingOnly(left: AppSpacing.screen, top: AppSpacing.sm, right: AppSpacing.screen),
+          ?header,
           (itemCount == 0
-                  ? EmptyView(icon: emptyIcon, title: emptyTitle, message: emptyMessage)
+                  ? EmptyView(
+                      icon: emptyIcon,
+                      title: emptyTitle,
+                      message: emptyMessage,
+                      actionLabel: emptyActionLabel,
+                      onAction: onEmptyAction,
+                    )
                   // ListView.separated: 화면에 보이는 줄만 그려서 기록이 많아도 가볍다. 줄 사이에 구분선을 넣는다.
                   // SlidableAutoCloseBehavior: 한 줄을 밀어 열면 다른 열린 줄은 자동으로 닫히게 한다.
                   : SlidableAutoCloseBehavior(

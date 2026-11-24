@@ -175,4 +175,27 @@ void main() {
     expect(byType[RecordDirection.sent]![EventType.funeral]!.total, 100000);
     expect(byType[RecordDirection.received], isEmpty);
   });
+
+  test('샘플 데이터는 매번 같고, 여러 종류·방향·최근 2년 날짜가 섞여 있다', () async {
+    final now = DateTime(2026, 11, 24);
+    final count = await repository.addSamples(now: now);
+    final all = await repository.fetchAllForExport();
+
+    expect(count, SampleData.defaultCount);
+    expect(all.length, count);
+    expect(all.map((e) => e.eventType).toSet().length, greaterThan(4));
+    expect(all.map((e) => e.direction).toSet(), RecordDirection.values.toSet());
+    expect(all.every((e) => e.date.isAfter(now.subtract(const Duration(days: 731)))), isTrue);
+    expect(
+      SampleData.generate(now: now).first.personName,
+      SampleData.generate(now: now).first.personName,
+    ); // 같은 seed → 같은 결과
+  });
+
+  test('모든 기록 지우기는 지운 건수를 돌려준다', () async {
+    await add(RecordDirection.sent, '김철수', 50000);
+    await add(RecordDirection.received, '이영희', 30000);
+    expect(await repository.clearAll(), 2);
+    expect(await repository.fetchAllForExport(), isEmpty);
+  });
 }

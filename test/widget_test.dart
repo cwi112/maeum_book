@@ -194,4 +194,72 @@ void main() {
 
     await closeApp(tester);
   });
+
+  testWidgets('검색하면 목록과 합계가 바로 걸러지고, 다른 탭에 갔다 와도 검색어가 유지된다', (tester) async {
+    await pumpApp(tester);
+    await seed(tester, name: '김철수', amount: 50000);
+    await seed(tester, name: '이영희', amount: 30000);
+
+    await tester.enterText(find.byType(TextField).first, '영희');
+    await settle(tester);
+    expect(find.text('김철수'), findsNothing);
+    expect(find.text('검색 결과'), findsOneWidget);
+    expect(find.text('30,000원'), findsNWidgets(2)); // 합계 카드 + 목록
+
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabStats));
+    await settle(tester);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabSent));
+    await settle(tester);
+    expect(find.text('김철수'), findsNothing);
+    expect(find.text('이영희'), findsOneWidget);
+
+    await tester.tap(find.text('초기화'));
+    await settle(tester);
+    expect(find.text('김철수'), findsOneWidget);
+
+    await closeApp(tester);
+  });
+
+  testWidgets('필터 시트에서 종류를 고르면 맞는 기록만 남고, 없으면 조건 초기화 버튼이 보인다', (tester) async {
+    await pumpApp(tester);
+    await seed(tester);
+
+    await tester.tap(find.bySemanticsIdentifier(TestIds.ledgerFilter(RecordDirection.sent)));
+    await settle(tester);
+    await tester.tap(find.bySemanticsIdentifier('${TestIds.filterEventType}_${EventType.funeral.name}'));
+    await tester.tap(find.bySemanticsIdentifier(TestIds.filterApply));
+    await settle(tester);
+
+    expect(find.text('조건에 맞는 기록이 없어요'), findsOneWidget);
+    await tester.tap(find.text('조건 초기화'));
+    await settle(tester);
+    expect(find.text('김철수'), findsOneWidget);
+
+    await closeApp(tester);
+  });
+
+  testWidgets('설정에서 샘플 데이터를 넣고, 확인 후 모두 지울 수 있다', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabSettings));
+    await settle(tester);
+
+    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsSeed));
+    await settle(tester);
+    expect(find.text('샘플 기록 ${SampleData.defaultCount}개를 넣었어요'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsClear));
+    await settle(tester);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.dialogCancel));
+    await settle(tester);
+    expect(await tester.runAsync(() => LedgerRepository(database.ledgerDao).fetchAllForExport()), isNotEmpty);
+
+    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsClear));
+    await settle(tester);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.dialogConfirm));
+    await settle(tester);
+    await settle(tester); // 확인 창이 닫히는 애니메이션 + DB 삭제가 끝나길 기다림
+    expect(find.text('기록 ${SampleData.defaultCount}개를 지웠어요'), findsOneWidget);
+
+    await closeApp(tester);
+  });
 }

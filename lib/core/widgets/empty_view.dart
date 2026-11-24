@@ -9,11 +9,15 @@ import 'package:material_ui/material_ui.dart';
 /// EmptyView(icon: Icons.outbox_outlined, title: '아직 보낸 마음이 없어요', message: '첫 마음을 기록해 보세요')
 /// ```
 class EmptyView extends StatelessWidget {
-  const EmptyView({super.key, required this.icon, required this.title, this.message});
+  const EmptyView({super.key, required this.icon, required this.title, this.message, this.actionLabel, this.onAction});
 
   final IconData icon;
   final String title;
   final String? message;
+
+  /// 아래 버튼 (예: "조건 초기화"). 둘 다 있을 때만 보인다.
+  final String? actionLabel;
+  final VoidCallback? onAction;
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +38,10 @@ class EmptyView extends StatelessWidget {
             if (message != null) ...[
               const SizedBox(height: AppSpacing.sm),
               AppText.body(message!, color: AppColors.textSecondary, align: TextAlign.center),
+            ],
+            if (actionLabel != null && onAction != null) ...[
+              const SizedBox(height: AppSpacing.lg),
+              OutlinedButton(onPressed: onAction, child: Text(actionLabel!)),
             ],
           ],
         ),

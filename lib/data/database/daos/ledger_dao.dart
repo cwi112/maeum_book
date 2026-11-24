@@ -133,4 +133,12 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
 
   /// id로 기록을 지우고, 지워진 행 수를 돌려준다. (0이면 해당 id가 없었다는 뜻)
   Future<int> deleteEntry(int id) => (delete(ledgerEntries)..where((t) => t.id.equals(id))).go();
+
+  /// 여러 기록을 한 번에 넣는다. batch는 하나의 트랜잭션으로 처리되어,
+  /// 60건을 넣어도 Stream 갱신이 한 번만 일어나고 중간에 실패하면 전부 취소된다.
+  Future<void> insertAll(List<LedgerEntriesCompanion> entries) =>
+      batch((batch) => batch.insertAll(ledgerEntries, entries));
+
+  /// 모든 기록을 지우고, 지운 행 수를 돌려준다.
+  Future<int> deleteAll() => delete(ledgerEntries).go();
 }

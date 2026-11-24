@@ -21,7 +21,7 @@ import 'package:maeum_book/core/define/typedefs.dart';
 /// final counterViewModelProvider =
 ///     NotifierProvider.autoDispose<CounterViewModel, int>(CounterViewModel.new);
 /// ```
-abstract class BaseViewModel<S> extends Notifier<S> {}
+abstract class BaseViewModel<S> extends Notifier<S> with TaskRunner {}
 
 /// 데이터를 불러와야 하는 화면용 ViewModel의 부모 클래스. (Riverpod `AsyncNotifier`)
 ///
@@ -47,7 +47,7 @@ abstract class BaseViewModel<S> extends Notifier<S> {}
 ///   Stream<List<LedgerEntry>> watch() => ref.watch(ledgerRepositoryProvider).watchEntries(RecordDirection.sent);
 /// }
 /// ```
-abstract class BaseAsyncViewModel<S> extends AsyncNotifier<S> {
+abstract class BaseAsyncViewModel<S> extends AsyncNotifier<S> with TaskRunner {
   /// 데이터를 한 번 불러온다. [watch]를 구현했다면 Stream의 첫 값을 돌려준다.
   Future<S> load() {
     final stream = watch();
@@ -94,18 +94,24 @@ abstract class BaseAsyncViewModel<S> extends AsyncNotifier<S> {
   ///
   /// `invalidateSelf`는 이 ViewModel의 [build]를 새로 실행시킨다. 기존 Stream 구독은 자동으로 정리된다.
   void reload() => ref.invalidateSelf();
+}
 
-  /// 저장·삭제처럼 시간이 걸리는 작업을 실행하고, 실패하면 오류를 [onError]로 알려 준다.
+/// 저장·삭제처럼 시간이 걸리는 작업을 실행하는 도우미. 두 ViewModel 부모 클래스가 함께 쓴다.
+mixin TaskRunner {
+  /// [task]를 실행하고 결과를 돌려준다. 실패하면 [onError]로 알리고 null을 돌려준다.
   ///
-  /// [watch]를 쓰는 화면은 DB가 바뀌면 목록이 알아서 갱신되므로, 여기서는 작업만 실행하면 된다.
-  /// 작업이 끝날 때까지 화면 전체를 로딩으로 바꾸지 않아서, 목록이 깜빡이지 않는다.
-  Future<bool> runTask(Future<void> Function() task, {ErrorCallback? onError}) async {
+  /// ```dart
+  /// final count = await runTask(() => repository.addSamples(), onError: showErrorToast);
+  /// if (count != null) ...   // 성공
+  /// ```
+  /// DB를 Stream으로 구독하는 화면은 데이터가 바뀌면 알아서 갱신되므로, 여기서는 작업만 실행하면 된다.
+  /// 작업 중에 화면 전체를 로딩으로 바꾸지 않아서 목록이 깜빡이지 않는다.
+  Future<T?> runTask<T>(Future<T> Function() task, {ErrorCallback? onError}) async {
     try {
-      await task();
-      return true;
+      return await task();
     } catch (error) {
       onError?.call(error);
-      return false;
+      return null;
     }
   }
 }

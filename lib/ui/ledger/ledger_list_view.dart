@@ -2,6 +2,7 @@ import 'package:maeum_book/core/core.dart';
 import 'package:maeum_book/data/data.dart';
 import 'package:maeum_book/ui/ledger/ledger_list_view_model.dart';
 import 'package:maeum_book/ui/ledger/widgets/ledger_entry_tile.dart';
+import 'package:maeum_book/ui/ledger/widgets/ledger_filter_bar.dart';
 
 /// 보내요·받아요 탭 화면. [direction]에 따라 문구·색·데이터만 바뀌고 구조는 같다.
 ///
@@ -36,9 +37,11 @@ class LedgerListView extends BaseAsyncView<LedgerListViewModel, LedgerListState>
   @override
   Widget buildView(BuildContext context, WidgetRef ref, LedgerListState state, LedgerListViewModel viewModel) {
     final texts = _LedgerTexts.of(direction);
+    final filtered = state.filter.isActive;
     return LedgerListLayout(
       title: texts.title,
-      summaryLabel: texts.summaryLabel,
+      // 조건이 걸려 있으면 합계 카드도 "걸러진 결과"의 합계라는 걸 문구로 알려 준다.
+      summaryLabel: filtered ? '검색 결과' : texts.summaryLabel,
       total: state.total,
       color: direction == RecordDirection.sent ? AppColors.sent : AppColors.received,
       itemCount: state.count,
@@ -57,9 +60,15 @@ class LedgerListView extends BaseAsyncView<LedgerListViewModel, LedgerListState>
           child: LedgerEntryTile(entry: entry, onTap: openEdit).testId(TestIds.entryTile(entry.id)),
         );
       },
-      emptyIcon: texts.emptyIcon,
-      emptyTitle: texts.emptyTitle,
-      emptyMessage: texts.emptyMessage,
+      // 기록이 아예 없을 때는 검색창을 숨긴다. (찾을 게 없으므로)
+      header: state.hasNoRecords
+          ? null
+          : LedgerFilterBar(direction: direction, filter: state.filter, viewModel: viewModel),
+      emptyIcon: filtered ? Icons.search_off_rounded : texts.emptyIcon,
+      emptyTitle: filtered ? '조건에 맞는 기록이 없어요' : texts.emptyTitle,
+      emptyMessage: filtered ? '검색어나 필터를 바꿔 보세요' : texts.emptyMessage,
+      emptyActionLabel: filtered ? '조건 초기화' : null,
+      onEmptyAction: filtered ? viewModel.resetFilter : null,
       addLabel: texts.addLabel,
       addTestId: TestIds.ledgerAdd(direction),
       summaryTestId: TestIds.ledgerSummary(direction),
