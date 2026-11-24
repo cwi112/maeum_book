@@ -1,19 +1,23 @@
 import 'package:maeum_book/core/extensions/extensions.dart';
+import 'package:maeum_book/core/theme/app_colors.dart';
 import 'package:maeum_book/core/theme/app_dimens.dart';
-import 'package:maeum_book/core/widgets/app_text.dart';
 import 'package:maeum_book/core/widgets/empty_view.dart';
 import 'package:maeum_book/core/widgets/summary_card.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// 보내요·받아요처럼 "합계 카드 + 목록 + 기록 버튼" 구조의 화면 레이아웃.
+/// "합계 카드 + 목록 + 기록 버튼" 구조의 화면 레이아웃. (보내요·받아요 화면)
+///
+/// 목록 한 줄을 어떻게 그릴지는 [itemBuilder]로 받는다. 그래서 이 레이아웃은 데이터 종류를 몰라도 되고,
+/// 다른 목록 화면에서도 그대로 재사용할 수 있다.
 ///
 /// ```dart
 /// LedgerListLayout(
 ///   title: '보내요',
 ///   summaryLabel: '지금까지 보낸 마음',
-///   total: 0,
+///   total: 150000,
 ///   color: AppColors.sent,
-///   items: data,
+///   itemCount: entries.length,
+///   itemBuilder: (context, index) => LedgerEntryTile(entry: entries[index]),
 ///   emptyIcon: Icons.outbox_outlined,
 ///   emptyTitle: '아직 보낸 마음이 없어요',
 ///   addLabel: '보낸 마음 기록',
@@ -27,7 +31,8 @@ class LedgerListLayout extends StatelessWidget {
     required this.summaryLabel,
     required this.total,
     required this.color,
-    required this.items,
+    required this.itemCount,
+    required this.itemBuilder,
     required this.emptyIcon,
     required this.emptyTitle,
     this.emptyMessage,
@@ -47,8 +52,11 @@ class LedgerListLayout extends StatelessWidget {
   /// 금액 강조 색 (보냄: AppColors.sent, 받음: AppColors.received)
   final Color color;
 
-  // TODO: 내역 모델이 생기면 List<String> 대신 모델 목록으로 바꾼다.
-  final List<String> items;
+  /// 목록 개수. 0이면 빈 화면([EmptyView])을 보여준다.
+  final int itemCount;
+
+  /// 목록 한 줄을 그리는 함수
+  final IndexedWidgetBuilder itemBuilder;
 
   final IconData emptyIcon;
   final String emptyTitle;
@@ -67,12 +75,23 @@ class LedgerListLayout extends StatelessWidget {
           SummaryCard(
             label: summaryLabel,
             amount: total.won,
-            count: items.length,
+            count: itemCount,
             color: color,
           ).paddingOnly(left: AppSpacing.screen, top: AppSpacing.sm, right: AppSpacing.screen),
-          (items.isEmpty
+          (itemCount == 0
                   ? EmptyView(icon: emptyIcon, title: emptyTitle, message: emptyMessage)
-                  : ListView(children: [for (final item in items) ListTile(title: AppText.subtitle(item))]))
+                  // ListView.separated: 화면에 보이는 줄만 그려서 기록이 많아도 가볍다. 줄 사이에 구분선을 넣는다.
+                  : ListView.separated(
+                      // 아래쪽 여백: 마지막 줄이 기록 버튼에 가려지지 않게 한다.
+                      padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: 96),
+                      itemCount: itemCount,
+                      itemBuilder: itemBuilder,
+                      separatorBuilder: (_, _) => const Divider(
+                        indent: AppSpacing.screen,
+                        endIndent: AppSpacing.screen,
+                        color: AppColors.divider,
+                      ),
+                    ))
               .expanded(),
         ],
       ),

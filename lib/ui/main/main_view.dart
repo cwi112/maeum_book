@@ -1,7 +1,7 @@
 import 'package:maeum_book/core/core.dart';
+import 'package:maeum_book/data/data.dart';
+import 'package:maeum_book/ui/ledger/ledger.dart';
 import 'package:maeum_book/ui/main/main_view_model.dart';
-import 'package:maeum_book/ui/received/received.dart';
-import 'package:maeum_book/ui/sent/sent.dart';
 import 'package:maeum_book/ui/settings/settings.dart';
 import 'package:maeum_book/ui/stats/stats.dart';
 
@@ -16,7 +16,15 @@ class MainView extends BaseView<MainViewModel, int> {
   Widget buildView(BuildContext context, WidgetRef ref, int state, MainViewModel viewModel) {
     return Scaffold(
       // IndexedStack: 탭을 바꿔도 각 탭 화면의 상태(스크롤 위치 등)가 유지된다.
-      body: IndexedStack(index: state, children: const [SentView(), ReceivedView(), StatsView(), SettingsView()]),
+      body: IndexedStack(
+        index: state,
+        children: const [
+          LedgerListView(direction: RecordDirection.sent),
+          LedgerListView(direction: RecordDirection.received),
+          StatsView(),
+          SettingsView(),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: state,
         onDestinationSelected: viewModel.changeTab,

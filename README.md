@@ -22,32 +22,38 @@
 
 - [x] 보내요 / 받아요 / 통계 / 설정 탭 구성
 - [x] 공통 디자인(색상, 글꼴, 간격)과 공통 컴포넌트
-- [ ] 보낸 내역, 받은 내역 기록 (날짜, 경조사 종류, 상대방, 금액, 메모)
+- [x] 로컬 DB 저장 (Drift) — 보낸·받은 합계, 사람별 합계 쿼리까지
+- [ ] 보낸 내역, 받은 내역 입력 화면 (날짜, 경조사 종류, 상대방, 금액, 메모)
 - [ ] **엑셀 파일로 내보내기** — 기록한 데이터를 그대로 .xlsx로 추출
-- [ ] 사람별로 주고받은 합계 보기
+- [ ] 사람별로 주고받은 합계 화면
 - [ ] 월별, 종류별 통계
 - [ ] 다가오는 경조사 알림
 
-엑셀 내보내기는 이 앱에서 제일 중요하게 생각하는 기능입니다. 부모님 세대처럼 엑셀로 정리해 두는 경우가 많아서, 앱에 쌓인 기록을 언제든 파일로 꺼내 볼 수 있어야 한다고 생각했습니다.
+엑셀 내보내기는 이 앱에서 제일 중요하게 생각하는 기능입니다. 부모님 세대처럼 엑셀로 정리해 두는 경우가 많아서, 앱에 쌓인 기록을 언제든 파일로 꺼내 볼 수 있어야 한다고 생각했습니다. 그래서 DB 테이블도 처음부터 엑셀 열(날짜, 종류, 상대방, 금액, 보냄/받음, 메모)과 똑같이 잡았습니다.
 
 ## 사용 기술
 
 - Flutter 3.50 / Dart 3.14 (FVM으로 버전 고정)
 - 상태관리: flutter_riverpod 3.5
+- 로컬 DB: drift 2.35 (SQLite)
 - 글꼴: Pretendard(본문), 고운바탕(제목, 금액)
 
 상태관리는 GetX, Provider, Bloc, Riverpod을 놓고 고민했습니다. GetX가 시작하기는 제일 쉬웠지만 최근 1년 동안 업데이트가 없었고, Provider는 만든 사람이 Riverpod 쪽을 권하고 있었습니다. Bloc은 이 정도 규모의 앱에는 코드가 너무 많아질 것 같았습니다. Riverpod은 지금도 꾸준히 업데이트되고 있고, `Notifier`가 MVVM의 ViewModel 역할과 잘 맞아서 최종적으로 골랐습니다.
 
+DB는 개인용 앱이라 서버 없이 휴대폰 안에 저장하기로 했습니다. 처음엔 Hive를 생각했는데 원래 패키지는 2022년 이후로 업데이트가 멈춰 있었습니다. 그리고 이 앱은 "사람별 합계", "월별 합계"처럼 묶어서 더하는 일이 많아서 키-값 저장소보다 SQL이 낫다고 판단했고, 타입 안전하게 SQL을 쓸 수 있는 Drift를 골랐습니다. Drift는 테이블이 바뀌면 Stream으로 새 결과를 보내주기 때문에, 기록을 저장하면 목록과 합계가 따로 새로고침하지 않아도 바로 바뀝니다.
+
 ## 구조
 
-MVVM 패턴으로 나눴습니다. View는 화면을 그리는 일만 하고, 상태와 로직은 ViewModel이 맡습니다.
+MVVM 패턴으로 나눴습니다. View는 화면을 그리는 일만 하고, 상태와 로직은 ViewModel이 맡습니다. ViewModel은 DB를 직접 모르고 Repository만 통해서 데이터를 가져옵니다.
 
 ```mermaid
 flowchart LR
     View -- "버튼 클릭 등" --> ViewModel
     ViewModel -- "state 변경 시 다시 그림" --> View
-    ViewModel --> Repository["Repository (예정)"]
-    Repository --> DB[("로컬 DB (예정)")]
+    ViewModel --> Repository
+    Repository --> DAO
+    DAO --> DB[("SQLite")]
+    DB -. "데이터가 바뀌면 Stream으로 알림" .-> ViewModel
 ```
 
 화면마다 같은 코드를 반복하지 않도록 기본 클래스를 먼저 만들어 두었습니다.
@@ -57,31 +63,31 @@ flowchart LR
 | `BaseViewModel` / `BaseView` | 일반 화면 |
 | `BaseAsyncViewModel` / `BaseAsyncView` | 데이터를 불러오는 화면. 로딩 표시와 오류 화면(다시 시도 버튼)이 자동으로 붙습니다 |
 
-새 화면은 ViewModel에서 `load()`를, View에서 `buildView()`를 구현하면 됩니다.
+`BaseAsyncViewModel`은 한 번만 읽으면 되는 데이터는 `load()`, DB처럼 계속 바뀌는 데이터는 `watch()`를 구현하면 됩니다. `watch()`를 쓰면 구독과 해제까지 기본 클래스가 처리합니다.
+
+보내요와 받아요는 데이터 방향만 다르고 나머지는 같아서 ViewModel과 View를 하나씩만 만들고 방향만 바꿔 끼웁니다(Riverpod family).
 
 ```dart
-class SentViewModel extends BaseAsyncViewModel<List<String>> {
-  @override
-  Future<List<String>> load() async => repository.fetchSent();
-}
-
-class SentView extends BaseAsyncView<SentViewModel, List<String>> {
-  @override
-  AsyncNotifierProvider<SentViewModel, List<String>> get provider => sentViewModelProvider;
+class LedgerListViewModel extends BaseAsyncViewModel<LedgerListState> {
+  LedgerListViewModel(this.direction);
+  final RecordDirection direction;
 
   @override
-  Widget buildView(BuildContext context, WidgetRef ref, List<String> data, SentViewModel viewModel) {
-    return LedgerListLayout(title: '보내요', items: data, ...);
-  }
+  Stream<LedgerListState> watch() =>
+      ref.watch(ledgerRepositoryProvider).watchEntries(direction).map((entries) => LedgerListState(entries: entries));
 }
+
+// 탭에서는 이렇게 씁니다
+const LedgerListView(direction: RecordDirection.sent)
+const LedgerListView(direction: RecordDirection.received)
 ```
 
 ### 코드 작성 규칙
 
-- 공통으로 쓰는 UI는 `core/widgets`에 컴포넌트로 만들어 두고 가져다 씁니다. 보내요와 받아요 화면은 `LedgerListLayout` 하나를 같이 씁니다.
+- 공통으로 쓰는 UI는 `core/widgets`에 컴포넌트로 만들어 두고 가져다 씁니다. 목록 화면 틀은 `LedgerListLayout`, 기록 한 줄은 `LedgerEntryTile`입니다.
 - 색, 글자 크기, 여백은 숫자를 직접 쓰지 않고 `AppColors`, `AppText`, `AppSpacing`에 정의된 값을 씁니다.
 - 자주 쓰는 코드는 extension으로 만들었습니다. 예를 들어 `50000.won`은 `50,000원`, `55000.manWon`은 `5만 5,000원`, `date.toKoreanDate`는 `11월 24일 (화)`가 됩니다.
-- 화면 파일은 `import 'package:maeum_book/core/core.dart';` 한 줄로 공통 코드를 모두 가져옵니다(barrel export).
+- 화면 파일은 `core/core.dart`, `data/data.dart` 두 줄로 필요한 코드를 모두 가져옵니다(barrel export).
 - State 클래스는 `part` / `part of`로 ViewModel 파일과 나눠 둡니다.
 - lint 규칙을 꽤 엄격하게 켜 두었습니다(`analysis_options.yaml`).
 
@@ -97,10 +103,15 @@ lib/
 │  ├─ theme/             # 색상, 글자 스타일, 간격, 테마
 │  ├─ widgets/           # AppText, EmptyView, SummaryCard, LedgerListLayout
 │  └─ extensions/        # int, String, DateTime, BuildContext, Widget 확장
+├─ data/
+│  ├─ data.dart
+│  ├─ models/            # 보냄/받음, 경조사 종류, 합계 모델
+│  ├─ database/          # Drift DB, 테이블, DAO(쿼리)
+│  ├─ repositories/      # ViewModel이 쓰는 저장소
+│  └─ providers.dart     # DB, Repository provider
 └─ ui/
    ├─ main/              # 하단 탭
-   ├─ sent/              # 보내요
-   ├─ received/          # 받아요
+   ├─ ledger/            # 보내요, 받아요 (같은 화면을 방향만 바꿔서 사용)
    ├─ stats/             # 통계
    └─ settings/          # 설정
 ```
@@ -118,7 +129,13 @@ fvm flutter run
 
 FVM이 없다면 `fvm flutter` 대신 `flutter`로 실행해도 됩니다. (Flutter 3.50 이상)
 
-테스트는 `fvm flutter test`로 돌릴 수 있습니다.
+테스트는 `fvm flutter test`로 돌릴 수 있습니다. DB 테스트는 메모리 DB를 써서 실제 데이터를 건드리지 않습니다.
+
+DB 테이블이나 쿼리(`lib/data/database`)를 고쳤다면 Drift 코드를 다시 생성해야 합니다.
+
+```bash
+fvm dart run build_runner build
+```
 
 ## 디자인
 
