@@ -22,9 +22,9 @@ class EventListView extends BaseAsyncView<EventListViewModel, EventListState> {
     final events = state.events;
     final hasNoEvents = state.allEvents.isEmpty;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('받아요')),
-      body: Column(
+    return AppListScaffold(
+      title: '받아요',
+      top: Column(
         children: [
           SummaryCard(
             label: state.isSearching ? '검색 결과' : '지금까지 받은 마음',
@@ -37,33 +37,32 @@ class EventListView extends BaseAsyncView<EventListViewModel, EventListState> {
             SearchField(value: state.query, hint: '행사, 이름 검색', onChanged: viewModel.setQuery)
                 .testId(TestIds.eventSearch)
                 .paddingOnly(left: AppSpacing.screen, top: AppSpacing.md, right: AppSpacing.screen),
-          (events.isEmpty
-                  ? EmptyView(
-                      icon: hasNoEvents ? Icons.celebration_outlined : Icons.search_off_rounded,
-                      title: hasNoEvents ? '아직 만든 행사가 없어요' : '찾는 행사가 없어요',
-                      message: hasNoEvents ? '결혼식·돌잔치처럼 내 행사를 만들고\n마음을 준 분들을 기록해 보세요' : '행사 이름이나 이름을 바꿔 보세요',
-                      actionLabel: hasNoEvents ? null : '검색 지우기',
-                      onAction: hasNoEvents ? null : () => viewModel.setQuery(''),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.md, AppSpacing.screen, 96),
-                      itemCount: events.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
-                      itemBuilder: (context, index) => EventCard(
-                        key: ValueKey(events[index].event.id),
-                        summary: events[index],
-                        onTap: () => context.push(AppRoutes.eventDetail(events[index].event.id)),
-                      ),
-                    ))
-              .expanded(),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'event_add',
+      body: events.isEmpty
+          ? EmptyView(
+              icon: hasNoEvents ? Icons.celebration_outlined : Icons.search_off_rounded,
+              title: hasNoEvents ? '아직 만든 행사가 없어요' : '찾는 행사가 없어요',
+              message: hasNoEvents ? '결혼식·돌잔치처럼 내 행사를 만들고\n마음을 준 분들을 기록해 보세요' : '행사 이름이나 이름을 바꿔 보세요',
+              actionLabel: hasNoEvents ? null : '검색 지우기',
+              onAction: hasNoEvents ? null : () => viewModel.setQuery(''),
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.sm, AppSpacing.screen, AppSpacing.md),
+              itemCount: events.length,
+              separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.sm),
+              itemBuilder: (context, index) => EventCard(
+                key: ValueKey(events[index].event.id),
+                summary: events[index],
+                onTap: () => context.push(AppRoutes.eventDetail(events[index].event.id)),
+              ),
+            ),
+      fab: AppListFab(
+        label: '행사 만들기',
+        icon: Icons.add_rounded,
         onPressed: () => context.push(AppRoutes.eventNew),
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('행사 만들기'),
-      ).testId(TestIds.eventAdd),
+        testId: TestIds.eventAdd,
+      ),
     );
   }
 }

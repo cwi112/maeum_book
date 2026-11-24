@@ -3,6 +3,7 @@ import 'package:maeum_book/core/extensions/extensions.dart';
 import 'package:maeum_book/core/theme/app_colors.dart';
 import 'package:maeum_book/core/theme/app_dimens.dart';
 import 'package:maeum_book/core/widgets/empty_view.dart';
+import 'package:maeum_book/core/widgets/layout/app_list_scaffold.dart';
 import 'package:maeum_book/core/widgets/summary_card.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -85,46 +86,38 @@ class LedgerListLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text(title)),
-      body: Column(
+    // 스크롤 그림자·버튼 접힘은 AppListScaffold가 처리한다. 여기서는 내용만 채운다.
+    return AppListScaffold(
+      title: title,
+      top: Column(
         children: [
           SummaryCard(label: summaryLabel, amount: total.won, count: itemCount, color: color)
               .testIdOrSelf(summaryTestId)
               .paddingOnly(left: AppSpacing.screen, top: AppSpacing.sm, right: AppSpacing.screen),
           ?header,
-          (itemCount == 0
-                  ? EmptyView(
-                      icon: emptyIcon,
-                      title: emptyTitle,
-                      message: emptyMessage,
-                      actionLabel: emptyActionLabel,
-                      onAction: onEmptyAction,
-                    )
-                  // ListView.separated: 화면에 보이는 줄만 그려서 기록이 많아도 가볍다. 줄 사이에 구분선을 넣는다.
-                  // SlidableAutoCloseBehavior: 한 줄을 밀어 열면 다른 열린 줄은 자동으로 닫히게 한다.
-                  : SlidableAutoCloseBehavior(
-                      child: ListView.separated(
-                        // 아래쪽 여백: 마지막 줄이 기록 버튼에 가려지지 않게 한다.
-                        padding: const EdgeInsets.only(top: AppSpacing.sm, bottom: 96),
-                        itemCount: itemCount,
-                        itemBuilder: itemBuilder,
-                        separatorBuilder: (_, _) => const Divider(
-                          indent: AppSpacing.screen,
-                          endIndent: AppSpacing.screen,
-                          color: AppColors.divider,
-                        ),
-                      ),
-                    ))
-              .expanded(),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: title,
-        onPressed: onAdd,
-        icon: const Icon(Icons.edit_outlined),
-        label: Text(addLabel),
-      ).testIdOrSelf(addTestId),
+      body: itemCount == 0
+          ? EmptyView(
+              icon: emptyIcon,
+              title: emptyTitle,
+              message: emptyMessage,
+              actionLabel: emptyActionLabel,
+              onAction: onEmptyAction,
+            )
+          // ListView.separated: 화면에 보이는 줄만 그려서 기록이 많아도 가볍다. 줄 사이에 구분선을 넣는다.
+          // SlidableAutoCloseBehavior: 한 줄을 밀어 열면 다른 열린 줄은 자동으로 닫히게 한다.
+          : SlidableAutoCloseBehavior(
+              child: ListView.separated(
+                // 기록 버튼은 목록 끝에 닿으면 숨겨지므로, 아래 여백은 작게만 둔다.
+                padding: const EdgeInsets.only(top: AppSpacing.xs, bottom: AppSpacing.md),
+                itemCount: itemCount,
+                itemBuilder: itemBuilder,
+                separatorBuilder: (_, _) =>
+                    const Divider(indent: AppSpacing.screen, endIndent: AppSpacing.screen, color: AppColors.divider),
+              ),
+            ),
+      fab: AppListFab(label: addLabel, icon: Icons.edit_outlined, onPressed: onAdd, testId: addTestId),
     );
   }
 }

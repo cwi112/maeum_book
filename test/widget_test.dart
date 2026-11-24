@@ -338,4 +338,35 @@ void main() {
 
     await closeApp(tester);
   });
+
+  testWidgets('목록을 내리면 위쪽에 그림자가 생기고 기록 버튼이 동그라미로 접히며, 끝에 닿으면 숨고, 맨 위로 오면 다시 펼쳐진다', (tester) async {
+    await pumpApp(tester);
+    for (var i = 0; i < 25; i++) {
+      await seed(tester, name: '사람$i', amount: 10000 + i);
+    }
+    final list = find.byType(ListView);
+    bool hasShadow() => tester
+        .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
+        .any((c) => ((c.decoration as BoxDecoration?)?.boxShadow ?? const []).isNotEmpty);
+
+    expect(find.text('보낸 마음 기록'), findsOneWidget); // 처음: 글자 버튼
+    expect(hasShadow(), isFalse);
+
+    await tester.drag(list, const Offset(0, -300)); // 아래로 내림
+    await tester.pumpAndSettle();
+    expect(find.text('보낸 마음 기록'), findsNothing); // 동그라미로 접힘
+    expect(find.bySemanticsIdentifier(TestIds.ledgerAdd(RecordDirection.sent)), findsOneWidget);
+    expect(hasShadow(), isTrue);
+
+    await tester.fling(list, const Offset(0, -5000), 3000); // 끝까지
+    await tester.pumpAndSettle();
+    expect(tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity).last).opacity, 0); // 숨김
+
+    await tester.fling(list, const Offset(0, 5000), 3000); // 맨 위로
+    await tester.pumpAndSettle();
+    expect(find.text('보낸 마음 기록'), findsOneWidget); // 다시 펼쳐짐
+    expect(hasShadow(), isFalse);
+
+    await closeApp(tester);
+  });
 }

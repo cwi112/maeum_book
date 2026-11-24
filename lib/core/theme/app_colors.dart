@@ -37,6 +37,9 @@ class AppColors {
   // ── 선·구분 ────────────────────────────
   static const Color divider = Color(0xFFEFE6DD);
 
+  /// 그림자 색: 검정 대신 고동색을 아주 옅게 써서 따뜻한 톤을 유지한다.
+  static const Color shadow = Color(0x2E3B2F2A);
+
   // ── 상태 ───────────────────────────────
   static const Color error = Color(0xFFC9503F);
   static const Color success = Color(0xFF5E9466);

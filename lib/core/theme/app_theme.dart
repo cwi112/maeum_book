@@ -37,7 +37,9 @@ class AppTheme {
         foregroundColor: AppColors.textPrimary,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
-        scrolledUnderElevation: 0,
+        // 목록을 내리면(앱바 아래로 내용이 지나가면) 아주 옅은 그림자가 생겨 앱바와 내용이 구분된다.
+        scrolledUnderElevation: 1.5,
+        shadowColor: AppColors.shadow,
         centerTitle: false,
         titleTextStyle: textTheme.headlineSmall,
       ),

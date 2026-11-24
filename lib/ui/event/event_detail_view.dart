@@ -46,25 +46,23 @@ class EventDetailView extends BaseAsyncView<EventDetailViewModel, EventDetailSta
     }
     final typeName = ref.watch(eventTypeNamesProvider)[event.eventTypeId] ?? '';
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(event.title),
-        actions: [
-          IconButton(
-            onPressed: () => context.push(AppRoutes.eventEdit(event.id)),
-            icon: const Icon(Icons.edit_outlined),
-            tooltip: '행사 수정',
-          ).testId(TestIds.eventEditButton),
-          IconButton(
-            onPressed: () => _delete(context, viewModel, state),
-            icon: const Icon(Icons.delete_outline_rounded),
-            tooltip: '행사 삭제',
-          ).testId(TestIds.eventDeleteButton),
-        ],
-      ),
+    return AppListScaffold(
+      title: event.title,
+      actions: [
+        IconButton(
+          onPressed: () => context.push(AppRoutes.eventEdit(event.id)),
+          icon: const Icon(Icons.edit_outlined),
+          tooltip: '행사 수정',
+        ).testId(TestIds.eventEditButton),
+        IconButton(
+          onPressed: () => _delete(context, viewModel, state),
+          icon: const Icon(Icons.delete_outline_rounded),
+          tooltip: '행사 삭제',
+        ).testId(TestIds.eventDeleteButton),
+      ],
       body: SlidableAutoCloseBehavior(
         child: ListView(
-          padding: const EdgeInsets.only(bottom: 96),
+          padding: const EdgeInsets.only(bottom: AppSpacing.md),
           children: [
             Card(
               child: Padding(
@@ -107,12 +105,12 @@ class EventDetailView extends BaseAsyncView<EventDetailViewModel, EventDetailSta
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'event_add_entry',
+      fab: AppListFab(
+        label: '받은 마음 기록',
+        icon: Icons.edit_outlined,
         onPressed: () => context.push(AppRoutes.entryNewForEvent(event.id)),
-        icon: const Icon(Icons.edit_outlined),
-        label: const Text('받은 마음 기록'),
-      ).testId(TestIds.eventAddEntry),
+        testId: TestIds.eventAddEntry,
+      ),
     );
   }
 }
