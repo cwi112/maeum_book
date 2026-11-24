@@ -1,8 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:maeum_book/core/base/base_view_model.dart';
+import 'package:maeum_book/core/theme/app_colors.dart';
 import 'package:material_ui/material_ui.dart';
-
-import '../theme/app_colors.dart';
-import 'base_view_model.dart';
 
 /// 일반 화면(View)의 부모 클래스. [BaseViewModel]과 짝을 이룬다.
 ///

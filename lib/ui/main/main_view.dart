@@ -1,13 +1,11 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:material_ui/material_ui.dart';
+import 'package:maeum_book/core/core.dart';
+import 'package:maeum_book/ui/main/main_view_model.dart';
+import 'package:maeum_book/ui/received/received.dart';
+import 'package:maeum_book/ui/sent/sent.dart';
+import 'package:maeum_book/ui/settings/settings.dart';
+import 'package:maeum_book/ui/stats/stats.dart';
 
-import '../../core/base/base_view.dart';
-import '../history/history_view.dart';
-import '../people/people_view.dart';
-import '../settings/settings_view.dart';
-import 'main_view_model.dart';
-
-/// 하단 탭(내역 / 사람 / 설정)을 가진 메인 화면.
+/// 하단 탭(보내요 / 받아요 / 통계 / 설정)을 가진 메인 화면.
 class MainView extends BaseView<MainViewModel, int> {
   const MainView({super.key});
 
@@ -18,16 +16,22 @@ class MainView extends BaseView<MainViewModel, int> {
   Widget buildView(BuildContext context, WidgetRef ref, int state, MainViewModel viewModel) {
     return Scaffold(
       // IndexedStack: 탭을 바꿔도 각 탭 화면의 상태(스크롤 위치 등)가 유지된다.
-      body: IndexedStack(
-        index: state,
-        children: const [HistoryView(), PeopleView(), SettingsView()],
-      ),
+      body: IndexedStack(index: state, children: const [SentView(), ReceivedView(), StatsView(), SettingsView()]),
       bottomNavigationBar: NavigationBar(
         selectedIndex: state,
         onDestinationSelected: viewModel.changeTab,
         destinations: const [
-          NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: '내역'),
-          NavigationDestination(icon: Icon(Icons.people_outline), selectedIcon: Icon(Icons.people), label: '사람'),
+          NavigationDestination(icon: Icon(Icons.outbox_outlined), selectedIcon: Icon(Icons.outbox), label: '보내요'),
+          NavigationDestination(
+            icon: Icon(Icons.move_to_inbox_outlined),
+            selectedIcon: Icon(Icons.move_to_inbox),
+            label: '받아요',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.insert_chart_outlined),
+            selectedIcon: Icon(Icons.insert_chart),
+            label: '통계',
+          ),
           NavigationDestination(icon: Icon(Icons.settings_outlined), selectedIcon: Icon(Icons.settings), label: '설정'),
         ],
       ),
