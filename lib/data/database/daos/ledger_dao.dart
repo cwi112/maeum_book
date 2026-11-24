@@ -89,20 +89,20 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
 
   /// 방향·경조사 종류별 합계와 건수를 구독한다. (통계 화면의 그래프용)
   ///
-  /// SQL로 쓰면: `SELECT direction, event_type, SUM(amount), COUNT(id) FROM ledger_entries GROUP BY direction, event_type`
-  /// 결과는 `{보냄: {결혼: 합계, ...}, 받음: {...}}` 형태다. 기록이 없는 조합은 들어 있지 않다.
-  Stream<Map<RecordDirection, Map<EventType, LedgerSummary>>> watchTypeSummaries() {
+  /// SQL로 쓰면: `SELECT direction, event_type_id, SUM(amount), COUNT(id) FROM ledger_entries GROUP BY direction, event_type_id`
+  /// 결과는 `{보냄: {종류id: 합계, ...}, 받음: {...}}` 형태다. 기록이 없는 조합은 들어 있지 않다.
+  Stream<Map<RecordDirection, Map<int, LedgerSummary>>> watchTypeSummaries() {
     final total = ledgerEntries.amount.sum();
     final count = ledgerEntries.id.count();
     final query = selectOnly(ledgerEntries)
-      ..addColumns([ledgerEntries.direction, ledgerEntries.eventType, total, count])
-      ..groupBy([ledgerEntries.direction, ledgerEntries.eventType]);
+      ..addColumns([ledgerEntries.direction, ledgerEntries.eventTypeId, total, count])
+      ..groupBy([ledgerEntries.direction, ledgerEntries.eventTypeId]);
 
     return query.watch().map((rows) {
-      final result = <RecordDirection, Map<EventType, LedgerSummary>>{};
+      final result = <RecordDirection, Map<int, LedgerSummary>>{};
       for (final row in rows) {
         final direction = row.readWithConverter<RecordDirection?, String>(ledgerEntries.direction)!;
-        final type = row.readWithConverter<EventType?, String>(ledgerEntries.eventType)!;
+        final type = row.read(ledgerEntries.eventTypeId)!;
         (result[direction] ??= {})[type] = LedgerSummary(total: row.read(total) ?? 0, count: row.read(count) ?? 0);
       }
       return result;

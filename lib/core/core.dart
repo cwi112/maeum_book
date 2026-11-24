@@ -6,6 +6,7 @@
 library;
 
 export 'package:flutter_riverpod/flutter_riverpod.dart';
+export 'package:flutter_slidable/flutter_slidable.dart' show SlidableAutoCloseBehavior;
 export 'package:go_router/go_router.dart';
 export 'package:material_ui/material_ui.dart';
 
@@ -13,4 +14,5 @@ export 'base/base.dart';
 export 'define/define.dart';
 export 'extensions/extensions.dart';
 export 'theme/theme.dart';
+export 'utils/stream_utils.dart';
 export 'widgets/widgets.dart';

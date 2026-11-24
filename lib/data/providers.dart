@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maeum_book/data/database/app_database.dart';
+import 'package:maeum_book/data/repositories/event_repository.dart';
+import 'package:maeum_book/data/repositories/event_type_repository.dart';
 import 'package:maeum_book/data/repositories/ledger_repository.dart';
 
 /// 데이터 계층의 Riverpod provider 모음.
@@ -25,4 +27,24 @@ final appDatabaseProvider = Provider<AppDatabase>((ref) {
 /// 경조사 기록 Repository.
 final ledgerRepositoryProvider = Provider<LedgerRepository>(
   (ref) => LedgerRepository(ref.watch(appDatabaseProvider).ledgerDao),
+);
+
+/// 경조사 종류 Repository.
+final eventTypeRepositoryProvider = Provider<EventTypeRepository>(
+  (ref) => EventTypeRepository(ref.watch(appDatabaseProvider).eventTypeDao),
+);
+
+/// 행사 Repository.
+final eventRepositoryProvider = Provider<EventRepository>(
+  (ref) => EventRepository(ref.watch(appDatabaseProvider).eventDao),
+);
+
+/// 모든 경조사 종류 (여러 화면이 함께 씀: 입력 칩, 목록의 종류 이름, 필터, 통계).
+///
+/// StreamProvider라 종류를 추가·이름 변경·삭제하면 이 값을 쓰는 모든 화면이 자동으로 다시 그려진다.
+final eventTypesProvider = StreamProvider<List<EventType>>((ref) => ref.watch(eventTypeRepositoryProvider).watchAll());
+
+/// 종류 id → 종류 이름. 목록 한 줄에 "결혼" 같은 이름을 보여줄 때 쓴다. 아직 못 읽었으면 빈 Map.
+final eventTypeNamesProvider = Provider<Map<int, String>>(
+  (ref) => {for (final type in ref.watch(eventTypesProvider).value ?? const <EventType>[]) type.id: type.name},
 );

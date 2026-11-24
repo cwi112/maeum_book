@@ -3,17 +3,19 @@ part of 'entry_form_view_model.dart';
 /// 기록 입력·수정 화면의 상태. (entry_form_view_model.dart의 일부 — part of)
 ///
 /// ## 입력 항목
-/// | 항목 | 필수 | 기본값 |
-/// |---|:---:|---|
-/// | 보냄/받음 [direction] | 필수 | 들어온 탭에 따라 |
-/// | 날짜 [date] | 필수 | 오늘 |
-/// | 경조사 종류 [eventType] | 필수 | 없음 (직접 골라야 함) |
-/// | 상대방 이름 [personName] | 필수 | 빈칸 |
-/// | 금액 [amount] | 필수 | 0 |
-/// | 관계 [relation] | 선택 | 없음 |
-/// | 메모 [memo] | 선택 | 빈칸 |
+/// | 항목 | 보냈어요 | 받았어요 | 기본값 |
+/// |---|:---:|:---:|---|
+/// | 구분 [direction] | 필수 | 필수 | 들어온 탭에 따라 |
+/// | 행사 [eventId] | - | 필수 | 행사 화면에서 들어오면 그 행사 |
+/// | 날짜 [date] | 필수 | (행사 날짜) | 오늘 |
+/// | 경조사 종류 [eventTypeId] | 필수 | (행사 종류) | 없음 (직접 골라야 함) |
+/// | 상대방 이름 [personName] | 필수 | 필수 | 빈칸 |
+/// | 금액 [amount] | 필수 | 필수 | 0 |
+/// | 관계 [relation] | 선택 | 선택 | 없음 |
+/// | 메모 [memo] | 선택 | 선택 | 빈칸 |
 ///
-/// 종류는 일부러 기본값을 두지 않았다. "결혼"이 미리 골라져 있으면 장례인데도 그대로 저장되는 실수가 생기기 쉽다.
+/// - 받은 기록은 "내 행사"에 속하므로, 날짜·종류를 따로 고르지 않고 행사 값을 그대로 쓴다.
+/// - 종류는 일부러 기본값을 두지 않았다. "결혼"이 미리 골라져 있으면 장례인데도 그대로 저장되는 실수가 생기기 쉽다.
 ///
 /// ## 오류 문구 표시 시점
 /// 화면을 열자마자 빨간 글씨가 보이면 불편하므로, **저장 버튼을 한 번 누른 뒤([showErrors])부터** 오류를 보여준다.
@@ -21,7 +23,9 @@ class EntryFormState {
   const EntryFormState({
     required this.direction,
     required this.date,
-    this.eventType,
+    this.events = const [],
+    this.eventId,
+    this.eventTypeId,
     this.personName = '',
     this.amount = 0,
     this.relation,
@@ -32,10 +36,12 @@ class EntryFormState {
   });
 
   /// 수정할 기록으로 모든 칸을 채운 상태를 만든다.
-  factory EntryFormState.fromEntry(LedgerEntry entry) => EntryFormState(
+  factory EntryFormState.fromEntry(LedgerEntry entry, List<LedgerEvent> events) => EntryFormState(
     direction: entry.direction,
     date: entry.date,
-    eventType: entry.eventType,
+    events: events,
+    eventId: entry.eventId,
+    eventTypeId: entry.eventTypeId,
     personName: entry.personName,
     amount: entry.amount,
     relation: entry.relation,
@@ -45,7 +51,13 @@ class EntryFormState {
 
   final RecordDirection direction;
   final DateTime date;
-  final EventType? eventType;
+
+  /// 고를 수 있는 내 행사들 (최신순)
+  final List<LedgerEvent> events;
+
+  /// 받은 기록이 속할 행사
+  final int? eventId;
+  final int? eventTypeId;
   final String personName;
   final int amount;
   final Relation? relation;
@@ -63,8 +75,16 @@ class EntryFormState {
   /// 수정 화면인지 (화면 제목·완료 문구가 달라진다)
   bool get isEditing => original != null;
 
+  /// 받은 기록인지 (행사를 고르는 화면으로 바뀐다)
+  bool get isReceived => direction == RecordDirection.received;
+
+  /// 고른 행사 (없으면 null)
+  LedgerEvent? get selectedEvent => events.where((event) => event.id == eventId).firstOrNull;
+
   // ── 항목별 오류 (없으면 null) ──────────────
-  String? get eventTypeError => showErrors && eventType == null ? '경조사 종류를 골라 주세요' : null;
+  String? get eventError => showErrors && isReceived && selectedEvent == null ? '어느 행사에서 받았는지 골라 주세요' : null;
+
+  String? get eventTypeError => showErrors && !isReceived && eventTypeId == null ? '경조사 종류를 골라 주세요' : null;
 
   String? get personNameError => showErrors && personName.isBlank ? '이름을 입력해 주세요' : null;
 
@@ -76,16 +96,21 @@ class EntryFormState {
   }
 
   /// 필수 항목이 모두 올바르게 채워졌는지
-  bool get isValid => eventType != null && personName.isNotBlank && amount > 0 && amount <= AppDefine.amountMax;
+  bool get isValid =>
+      (isReceived ? selectedEvent != null : eventTypeId != null) &&
+      personName.isNotBlank &&
+      amount > 0 &&
+      amount <= AppDefine.amountMax;
 
   /// 일부 값만 바꾼 새 상태를 만든다.
   ///
-  /// 비울 수 있는 값(종류·관계)은 `null`을 넣어 "지우기"를 할 수 있어야 해서 함수로 받는다.
+  /// 비울 수 있는 값(행사·종류·관계)은 `null`을 넣어 "지우기"를 할 수 있어야 해서 함수로 받는다.
   /// 예) `copyWith(relation: () => null)` → 관계 선택 해제
   EntryFormState copyWith({
     RecordDirection? direction,
     DateTime? date,
-    ValueGetter<EventType?>? eventType,
+    ValueGetter<int?>? eventId,
+    ValueGetter<int?>? eventTypeId,
     String? personName,
     int? amount,
     ValueGetter<Relation?>? relation,
@@ -95,7 +120,9 @@ class EntryFormState {
   }) => EntryFormState(
     direction: direction ?? this.direction,
     date: date ?? this.date,
-    eventType: eventType != null ? eventType() : this.eventType,
+    events: events,
+    eventId: eventId != null ? eventId() : this.eventId,
+    eventTypeId: eventTypeId != null ? eventTypeId() : this.eventTypeId,
     personName: personName ?? this.personName,
     amount: amount ?? this.amount,
     relation: relation != null ? relation() : this.relation,

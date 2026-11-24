@@ -4,7 +4,7 @@
 /// `app_database.dart`에서 함께 export 한다.
 library;
 
-export 'event_type.dart';
+export 'event_summary.dart';
 export 'ledger_summary.dart';
 export 'person_summary.dart';
 export 'record_direction.dart';

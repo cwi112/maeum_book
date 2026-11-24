@@ -24,35 +24,35 @@ enum LedgerPeriod {
 ///
 /// - [query]: 이름·메모에 이 글자가 들어간 기록만 (대소문자 구분 없음)
 /// - [period]: 기간
-/// - [eventType]: 경조사 종류 (null이면 전체)
+/// - [eventTypeId]: 경조사 종류 id (null이면 전체)
 class LedgerFilter {
-  const LedgerFilter({this.query = '', this.period = LedgerPeriod.all, this.eventType});
+  const LedgerFilter({this.query = '', this.period = LedgerPeriod.all, this.eventTypeId});
 
   final String query;
   final LedgerPeriod period;
-  final EventType? eventType;
+  final int? eventTypeId;
 
   /// 아무 조건도 없는 상태
   static const LedgerFilter none = LedgerFilter();
 
   /// 검색어를 뺀 조건(기간·종류)이 걸려 있는지. 필터 버튼에 표시(점)를 띄울 때 쓴다.
-  bool get hasSheetFilter => period != LedgerPeriod.all || eventType != null;
+  bool get hasSheetFilter => period != LedgerPeriod.all || eventTypeId != null;
 
   /// 검색어 포함, 조건이 하나라도 걸려 있는지
   bool get isActive => query.isNotBlank || hasSheetFilter;
 
   /// 기록 한 건이 조건에 맞는지
   bool matches(LedgerEntry entry, DateTime now) {
-    if (eventType != null && entry.eventType != eventType) return false;
+    if (eventTypeId != null && entry.eventTypeId != eventTypeId) return false;
     if (!period.contains(entry.date, now)) return false;
     final keyword = query.trim().toLowerCase();
     if (keyword.isEmpty) return true;
     return entry.personName.toLowerCase().contains(keyword) || (entry.memo?.toLowerCase().contains(keyword) ?? false);
   }
 
-  LedgerFilter copyWith({String? query, LedgerPeriod? period, ValueGetter<EventType?>? eventType}) => LedgerFilter(
+  LedgerFilter copyWith({String? query, LedgerPeriod? period, ValueGetter<int?>? eventTypeId}) => LedgerFilter(
     query: query ?? this.query,
     period: period ?? this.period,
-    eventType: eventType != null ? eventType() : this.eventType,
+    eventTypeId: eventTypeId != null ? eventTypeId() : this.eventTypeId,
   );
 }

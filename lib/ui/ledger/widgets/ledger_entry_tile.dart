@@ -9,9 +9,12 @@ import 'package:maeum_book/data/data.dart';
 /// ```
 /// 금액 색은 보냄(장밋빛) / 받음(청록)으로 자동으로 정해진다.
 class LedgerEntryTile extends StatelessWidget {
-  const LedgerEntryTile({super.key, required this.entry, this.onTap, this.onLongPress});
+  const LedgerEntryTile({super.key, required this.entry, required this.typeName, this.onTap, this.onLongPress});
 
   final LedgerEntry entry;
+
+  /// 경조사 종류 이름 (eventTypeNamesProvider에서 찾아 넘긴다)
+  final String typeName;
 
   /// 눌렀을 때 (예: 수정 화면 열기)
   final VoidCallback? onTap;
@@ -28,7 +31,7 @@ class LedgerEntryTile extends StatelessWidget {
     return ListTile(
       onTap: onTap,
       onLongPress: onLongPress,
-      leading: _EventTypeBadge(label: entry.eventType.label),
+      leading: _EventTypeBadge(label: typeName),
       title: AppText.subtitle(entry.personName, maxLines: 1),
       subtitle: AppText.caption(subtitle, maxLines: 1),
       trailing: AppText.amount(entry.amount.won, color: amountColor),

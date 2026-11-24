@@ -12,7 +12,7 @@ import 'package:maeum_book/ui/ledger/ledger_list_view_model.dart';
 /// - 필터 버튼: 기간·종류를 고르는 시트를 연다. 조건이 걸려 있으면 버튼 위에 점이 찍힌다.
 /// - 아래 칩: 지금 걸린 조건. ✕로 하나씩 지우거나 "초기화"로 모두 지운다.
 ///   (다른 탭에 갔다 와도 조건이 유지되므로, 걸러진 목록이라는 걸 놓치지 않게 항상 보여준다)
-class LedgerFilterBar extends StatelessWidget {
+class LedgerFilterBar extends ConsumerWidget {
   const LedgerFilterBar({super.key, required this.direction, required this.filter, required this.viewModel});
 
   final RecordDirection direction;
@@ -26,11 +26,12 @@ class LedgerFilterBar extends StatelessWidget {
       showDragHandle: true,
       builder: (_) => _FilterSheet(initial: filter),
     );
-    if (result != null) viewModel.setSheetFilter(period: result.period, eventType: result.eventType);
+    if (result != null) viewModel.setSheetFilter(period: result.period, eventTypeId: result.eventTypeId);
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final typeNames = ref.watch(eventTypeNamesProvider);
     return Padding(
       padding: const EdgeInsets.fromLTRB(AppSpacing.screen, AppSpacing.md, AppSpacing.screen, 0),
       child: Column(
@@ -63,8 +64,8 @@ class LedgerFilterBar extends StatelessWidget {
               children: [
                 if (filter.period != LedgerPeriod.all)
                   InputChip(label: Text(filter.period.label), onDeleted: viewModel.clearPeriod),
-                if (filter.eventType != null)
-                  InputChip(label: Text(filter.eventType!.label), onDeleted: viewModel.clearEventType),
+                if (filter.eventTypeId != null)
+                  InputChip(label: Text(typeNames[filter.eventTypeId] ?? ''), onDeleted: viewModel.clearEventType),
                 TextButton(onPressed: viewModel.resetFilter, child: const Text('초기화')),
               ],
             ).paddingOnly(top: AppSpacing.sm),
@@ -77,21 +78,22 @@ class LedgerFilterBar extends StatelessWidget {
 /// 기간·종류를 고르는 아래 시트. "적용"을 눌러야 반영된다. (고르는 도중에는 목록이 바뀌지 않음)
 ///
 /// 시트 안에서만 쓰는 임시 선택값이라 ViewModel이 아닌 이 위젯의 State에 둔다.
-class _FilterSheet extends StatefulWidget {
+class _FilterSheet extends ConsumerStatefulWidget {
   const _FilterSheet({required this.initial});
 
   final LedgerFilter initial;
 
   @override
-  State<_FilterSheet> createState() => _FilterSheetState();
+  ConsumerState<_FilterSheet> createState() => _FilterSheetState();
 }
 
-class _FilterSheetState extends State<_FilterSheet> {
+class _FilterSheetState extends ConsumerState<_FilterSheet> {
   late LedgerPeriod _period = widget.initial.period;
-  late EventType? _eventType = widget.initial.eventType;
+  late int? _eventTypeId = widget.initial.eventTypeId;
 
   @override
   Widget build(BuildContext context) {
+    final types = ref.watch(eventTypesProvider).value ?? const <EventType>[];
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.fromLTRB(AppSpacing.screen, 0, AppSpacing.screen, AppSpacing.md),
@@ -114,11 +116,11 @@ class _FilterSheetState extends State<_FilterSheet> {
             const SizedBox(height: AppSpacing.lg),
             FormSection(
               label: '경조사 종류',
-              child: ChoiceChipGroup<EventType>(
-                values: EventType.values,
-                selected: _eventType,
-                labelOf: (type) => type.label,
-                onSelected: (type) => setState(() => _eventType = type),
+              child: ChoiceChipGroup<int>(
+                values: [for (final type in types) type.id],
+                selected: _eventTypeId,
+                labelOf: (id) => types.firstWhere((type) => type.id == id).name,
+                onSelected: (id) => setState(() => _eventTypeId = id),
                 allowDeselect: true,
                 testIdPrefix: TestIds.filterEventType,
               ),
@@ -129,13 +131,13 @@ class _FilterSheetState extends State<_FilterSheet> {
                 OutlinedButton(
                   onPressed: () => setState(() {
                     _period = LedgerPeriod.all;
-                    _eventType = null;
+                    _eventTypeId = null;
                   }),
                   child: const Text('초기화'),
                 ).testId(TestIds.filterReset).expanded(),
                 const SizedBox(width: AppSpacing.sm),
                 FilledButton(
-                  onPressed: () => Navigator.of(context).pop(LedgerFilter(period: _period, eventType: _eventType)),
+                  onPressed: () => Navigator.of(context).pop(LedgerFilter(period: _period, eventTypeId: _eventTypeId)),
                   child: const Text('적용'),
                 ).testId(TestIds.filterApply).expanded(flex: 2),
               ],

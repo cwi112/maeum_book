@@ -21,7 +21,7 @@ void main() {
 
   Future<int> add(RecordDirection direction, String name, int amount, {DateTime? date, String? memo}) => repository.add(
     direction: direction,
-    eventType: EventType.wedding,
+    eventTypeId: 1,
     personName: name,
     amount: amount,
     date: date ?? DateTime(2026, 11, 24),
@@ -131,7 +131,7 @@ void main() {
   test('edit은 바꾼 값을 저장하고, 관계·메모를 비울 수 있다', () async {
     final id = await repository.add(
       direction: RecordDirection.sent,
-      eventType: EventType.wedding,
+      eventTypeId: 1,
       personName: '김철수',
       amount: 50000,
       date: DateTime(2026, 11, 24),
@@ -143,7 +143,7 @@ void main() {
     await repository.edit(
       original,
       direction: RecordDirection.received,
-      eventType: EventType.funeral,
+      eventTypeId: 2,
       personName: '김철수',
       amount: 100000,
       date: DateTime(2026, 12, 1),
@@ -151,7 +151,7 @@ void main() {
     final edited = (await repository.findById(id))!;
 
     expect(edited.direction, RecordDirection.received);
-    expect(edited.eventType, EventType.funeral);
+    expect(edited.eventTypeId, 2);
     expect(edited.amount, 100000);
     expect(edited.relation, isNull);
     expect(edited.memo, isNull);
@@ -163,16 +163,16 @@ void main() {
     await add(RecordDirection.sent, '이영희', 30000);
     await repository.add(
       direction: RecordDirection.sent,
-      eventType: EventType.funeral,
+      eventTypeId: 2,
       personName: '박민수',
       amount: 100000,
       date: DateTime(2026, 11, 24),
     );
 
     final byType = await repository.watchTypeSummaries().first;
-    expect(byType[RecordDirection.sent]![EventType.wedding]!.total, 80000);
-    expect(byType[RecordDirection.sent]![EventType.wedding]!.count, 2);
-    expect(byType[RecordDirection.sent]![EventType.funeral]!.total, 100000);
+    expect(byType[RecordDirection.sent]![1]!.total, 80000);
+    expect(byType[RecordDirection.sent]![1]!.count, 2);
+    expect(byType[RecordDirection.sent]![2]!.total, 100000);
     expect(byType[RecordDirection.received], isEmpty);
   });
 
@@ -181,15 +181,14 @@ void main() {
     final count = await repository.addSamples(now: now);
     final all = await repository.fetchAllForExport();
 
-    expect(count, SampleData.defaultCount);
+    expect(count, SampleData.totalCount);
     expect(all.length, count);
-    expect(all.map((e) => e.eventType).toSet().length, greaterThan(4));
+    expect(all.map((e) => e.eventTypeId).toSet().length, greaterThan(4));
     expect(all.map((e) => e.direction).toSet(), RecordDirection.values.toSet());
     expect(all.every((e) => e.date.isAfter(now.subtract(const Duration(days: 731)))), isTrue);
-    expect(
-      SampleData.generate(now: now).first.personName,
-      SampleData.generate(now: now).first.personName,
-    ); // 같은 seed → 같은 결과
+    final events = await EventRepository(database.eventDao).watchSummaries().first;
+    expect(events.length, 5); // 내 행사 5개
+    expect(all.where((e) => e.direction == RecordDirection.received).every((e) => e.eventId != null), isTrue);
   });
 
   test('모든 기록 지우기는 지운 건수를 돌려준다', () async {

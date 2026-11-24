@@ -5,10 +5,10 @@ import 'package:maeum_book/ui/ledger/ledger_list_view_model.dart';
 void main() {
   final now = DateTime(2026, 11, 24);
 
-  LedgerEntry entry(String name, DateTime date, {EventType type = EventType.wedding, String? memo}) => LedgerEntry(
+  LedgerEntry entry(String name, DateTime date, {int typeId = 1, String? memo}) => LedgerEntry(
     id: 1,
     direction: RecordDirection.sent,
-    eventType: type,
+    eventTypeId: typeId,
     personName: name,
     amount: 50000,
     date: date,
@@ -33,10 +33,10 @@ void main() {
   });
 
   test('여러 조건은 모두 만족해야 한다(AND)', () {
-    const filter = LedgerFilter(query: '김', eventType: EventType.funeral, period: LedgerPeriod.thisYear);
-    expect(filter.matches(entry('김철수', now, type: EventType.funeral), now), isTrue);
+    const filter = LedgerFilter(query: '김', eventTypeId: 2, period: LedgerPeriod.thisYear);
+    expect(filter.matches(entry('김철수', now, typeId: 2), now), isTrue);
     expect(filter.matches(entry('김철수', now), now), isFalse);
-    expect(filter.matches(entry('김철수', DateTime(2025), type: EventType.funeral), now), isFalse);
+    expect(filter.matches(entry('김철수', DateTime(2025), typeId: 2), now), isFalse);
   });
 
   test('필터 결과에 맞춰 합계와 건수가 바뀐다', () {

@@ -76,11 +76,14 @@ class SwipeActionTile extends StatelessWidget {
     return Slidable(
       // 이 묶음(group) 안에서는 한 번에 한 줄만 열린다.
       groupTag: 'swipe_action_tile',
-      endActionPane: ActionPane(
-        motion: const DrawerMotion(), // 버튼이 서랍처럼 함께 밀려 나오는 효과
-        extentRatio: 0.18 * actions.length, // 버튼 하나당 화면 너비의 18%
-        children: [for (final action in actions) _SwipeActionButton(action: action)],
-      ),
+      // 버튼이 하나도 없으면(예: 지울 수 없는 항목) 밀리지 않게 한다.
+      endActionPane: actions.isEmpty
+          ? null
+          : ActionPane(
+              motion: const DrawerMotion(), // 버튼이 서랍처럼 함께 밀려 나오는 효과
+              extentRatio: 0.18 * actions.length, // 버튼 하나당 화면 너비의 18%
+              children: [for (final action in actions) _SwipeActionButton(action: action)],
+            ),
       child: child,
     );
   }

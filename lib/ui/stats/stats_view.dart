@@ -27,6 +27,9 @@ class StatsView extends BaseAsyncView<StatsViewModel, StatsState> {
 
     final balance = data.balance;
     final ranking = data.typeRanking;
+    final typeNames = ref.watch(eventTypeNamesProvider);
+    // 종류 색은 종류 목록 순서로 정한다. (보낸/받은을 바꿔도 같은 종류는 같은 색)
+    final typeOrder = typeNames.keys.toList();
     return Scaffold(
       appBar: AppBar(title: const Text('통계')),
       body: ListView(
@@ -68,10 +71,10 @@ class StatsView extends BaseAsyncView<StatsViewModel, StatsState> {
                     slices: [
                       for (final item in ranking)
                         ChartSlice(
-                          label: item.key.label,
+                          label: typeNames[item.key] ?? '',
                           value: item.value.total,
                           // 종류마다 색을 고정해서, 보낸/받은을 바꿔도 같은 종류는 같은 색으로 보이게 한다.
-                          color: AppColors.chartPalette[item.key.index % AppColors.chartPalette.length],
+                          color: AppColors.chartPalette[typeOrder.indexOf(item.key).clamp(0, 999) % AppColors.chartPalette.length],
                         ),
                     ],
                     centerLabel: '${data.typeDirection.label} 합계',

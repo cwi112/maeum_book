@@ -41,7 +41,7 @@ class LedgerRepository {
   Future<List<LedgerEntry>> fetchAllForExport() => _dao.getAllOrderByDate();
 
   /// 방향·종류별 합계 (통계 그래프용). 기록이 없는 방향도 빈 Map으로 채워서 돌려준다.
-  Stream<Map<RecordDirection, Map<EventType, LedgerSummary>>> watchTypeSummaries() => _dao.watchTypeSummaries().map(
+  Stream<Map<RecordDirection, Map<int, LedgerSummary>>> watchTypeSummaries() => _dao.watchTypeSummaries().map(
     (summaries) => {for (final direction in RecordDirection.values) direction: summaries[direction] ?? const {}},
   );
 
@@ -55,10 +55,11 @@ class LedgerRepository {
   /// 관계·메모는 선택 입력이다. 이름은 앞뒤 공백을 지우고, 메모가 공백뿐이면 비운다(null). 금액이 음수면 [ArgumentError]를 던진다.
   Future<int> add({
     required RecordDirection direction,
-    required EventType eventType,
+    required int eventTypeId,
     required String personName,
     required int amount,
     required DateTime date,
+    int? eventId,
     Relation? relation,
     String? memo,
   }) {
@@ -66,7 +67,8 @@ class LedgerRepository {
     return _dao.insertEntry(
       LedgerEntriesCompanion.insert(
         direction: direction,
-        eventType: eventType,
+        eventTypeId: eventTypeId,
+        eventId: Value(eventId),
         personName: personName.trim(),
         amount: amount,
         date: date,
@@ -95,16 +97,18 @@ class LedgerRepository {
   Future<bool> edit(
     LedgerEntry original, {
     required RecordDirection direction,
-    required EventType eventType,
+    required int eventTypeId,
     required String personName,
     required int amount,
     required DateTime date,
+    int? eventId,
     Relation? relation,
     String? memo,
   }) => update(
     original.copyWith(
       direction: direction,
-      eventType: eventType,
+      eventTypeId: eventTypeId,
+      eventId: Value(eventId),
       personName: personName,
       amount: amount,
       date: date,
@@ -120,14 +124,15 @@ class LedgerRepository {
   Future<void> restore(LedgerEntry entry) => _dao.restoreEntry(entry);
 
   /// 샘플 기록을 넣고 넣은 건수를 돌려준다. (설정 → 샘플 데이터 넣기)
-  Future<int> addSamples({DateTime? now}) async {
-    final samples = SampleData.generate(now: now ?? DateTime.now());
-    await _dao.insertAll(samples);
-    return samples.length;
-  }
+  Future<int> addSamples({DateTime? now}) => SampleData.insertInto(_dao.attachedDatabase, now: now ?? DateTime.now());
 
-  /// 모든 기록을 지우고 지운 건수를 돌려준다. 되돌릴 수 없으므로 화면에서 꼭 확인을 받은 뒤 부른다.
-  Future<int> clearAll() => _dao.deleteAll();
+  /// 모든 기록과 행사를 지우고 지운 기록 수를 돌려준다. 되돌릴 수 없으므로 화면에서 꼭 확인을 받은 뒤 부른다.
+  /// (경조사 종류는 사용자 설정이라 남겨 둔다)
+  Future<int> clearAll() => _dao.attachedDatabase.transaction(() async {
+    final count = await _dao.deleteAll();
+    await _dao.attachedDatabase.delete(_dao.attachedDatabase.events).go();
+    return count;
+  });
 
   // ── 내부 도우미 ───────────────────────
 

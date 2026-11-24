@@ -8,7 +8,7 @@ class StatsState {
   const StatsState({this.byType = const {}, this.typeDirection = RecordDirection.sent});
 
   /// 방향별 → 종류별 합계
-  final Map<RecordDirection, Map<EventType, LedgerSummary>> byType;
+  final Map<RecordDirection, Map<int, LedgerSummary>> byType;
 
   /// 종류별 그래프에서 지금 보고 있는 방향 (보낸 / 받은)
   final RecordDirection typeDirection;
@@ -32,9 +32,9 @@ class StatsState {
   bool get hasData => sent.count > 0 || received.count > 0;
 
   /// 종류별 그래프에 쓸 합계 (금액 큰 순서)
-  List<MapEntry<EventType, LedgerSummary>> get typeRanking =>
+  List<MapEntry<int, LedgerSummary>> get typeRanking =>
       (byType[typeDirection]?.entries.toList() ?? [])..sort((a, b) => b.value.total.compareTo(a.value.total));
 
-  StatsState copyWith({Map<RecordDirection, Map<EventType, LedgerSummary>>? byType, RecordDirection? typeDirection}) =>
+  StatsState copyWith({Map<RecordDirection, Map<int, LedgerSummary>>? byType, RecordDirection? typeDirection}) =>
       StatsState(byType: byType ?? this.byType, typeDirection: typeDirection ?? this.typeDirection);
 }

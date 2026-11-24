@@ -25,6 +25,12 @@ abstract final class AppDefine {
   /// 메모 최대 글자 수
   static const int memoMaxLength = 200;
 
+  /// 경조사 종류 이름 최대 글자 수
+  static const int eventTypeNameMaxLength = 10;
+
+  /// 행사 이름 최대 글자 수
+  static const int eventTitleMaxLength = 30;
+
   /// 한 번에 입력할 수 있는 최대 금액 (1억 원)
   static const int amountMax = 100000000;
 

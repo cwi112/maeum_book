@@ -1,6 +1,8 @@
 import 'package:maeum_book/core/core.dart';
 import 'package:maeum_book/data/data.dart';
 import 'package:maeum_book/ui/entry/entry.dart';
+import 'package:maeum_book/ui/event/event.dart';
+import 'package:maeum_book/ui/event_type/event_type.dart';
 import 'package:maeum_book/ui/ledger/ledger.dart';
 import 'package:maeum_book/ui/main/main.dart';
 import 'package:maeum_book/ui/settings/settings.dart';
@@ -32,18 +34,36 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (context, state, navigationShell) => MainView(navigationShell: navigationShell),
         branches: [
           _tab(AppRoutes.sent, const LedgerListView(direction: RecordDirection.sent)),
-          _tab(AppRoutes.received, const LedgerListView(direction: RecordDirection.received)),
+          // 받아요는 기록 목록이 아니라 "내 행사" 목록이다. 행사를 누르면 준 사람들이 나온다.
+          _tab(AppRoutes.received, const EventListView()),
           _tab(AppRoutes.stats, const StatsView()),
           _tab(AppRoutes.settings, const SettingsView()),
         ],
       ),
 
       // 기록 입력: 경로의 :direction 값('sent'/'received')을 enum으로 바꿔 화면에 넘긴다.
+      // 행사 화면에서 오면 ?eventId=3 이 붙어서 그 행사가 미리 골라진다.
       GoRoute(
         path: AppRoutes.entryNewPattern,
-        builder: (context, state) =>
-            EntryFormView.create(direction: RecordDirection.values.byName(state.pathParameters['direction']!)),
+        builder: (context, state) => EntryFormView.create(
+          direction: RecordDirection.values.byName(state.pathParameters['direction']!),
+          eventId: int.tryParse(state.uri.queryParameters['eventId'] ?? ''),
+        ),
       ),
+
+      // 행사. 주의: '/event/new'가 '/event/:id'보다 먼저 있어야 "new"를 id로 읽지 않는다.
+      GoRoute(path: AppRoutes.eventNew, builder: (_, _) => const EventFormView()),
+      GoRoute(
+        path: AppRoutes.eventDetailPattern,
+        builder: (context, state) => EventDetailView(eventId: int.tryParse(state.pathParameters['id']!) ?? -1),
+      ),
+      GoRoute(
+        path: AppRoutes.eventEditPattern,
+        builder: (context, state) => EventFormView(eventId: int.tryParse(state.pathParameters['id']!) ?? -1),
+      ),
+
+      // 설정 → 경조사 종류 관리
+      GoRoute(path: AppRoutes.eventTypes, builder: (_, _) => const EventTypeView()),
 
       // 기록 수정: 경로의 :id를 숫자로 바꿔 넘긴다. 숫자가 아니면 -1(없는 기록) → "기록을 찾을 수 없어요" 화면.
       GoRoute(

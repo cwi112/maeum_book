@@ -23,6 +23,23 @@ abstract final class AppRoutes {
   /// 기록 입력 화면으로 갈 실제 경로를 만든다. 예) `/entry/new/sent`
   static String entryNew(Enum direction) => '/entry/new/${direction.name}';
 
+  /// 행사 화면에서 "받은 마음 기록"을 눌렀을 때: 그 행사가 미리 골라진 입력 화면. 예) `/entry/new/received?eventId=3`
+  static String entryNewForEvent(int eventId) => '/entry/new/received?eventId=$eventId';
+
+  // ── 행사 (받아요) ───────────────────────
+  static const String eventNew = '/event/new';
+  static const String eventDetailPattern = '/event/:id';
+  static const String eventEditPattern = '/event/:id/edit';
+
+  /// 행사 상세(준 사람들) 예) `/event/3`
+  static String eventDetail(int id) => '/event/$id';
+
+  /// 행사 수정 예) `/event/3/edit`
+  static String eventEdit(int id) => '/event/$id/edit';
+
+  // ── 설정 하위 ──────────────────────────
+  static const String eventTypes = '/settings/event-types';
+
   /// 기록 수정 화면 경로 패턴. `:id` 자리에 기록 번호가 들어간다.
   static const String entryEditPattern = '/entry/:id/edit';
 

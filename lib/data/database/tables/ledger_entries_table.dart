@@ -1,5 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:maeum_book/core/define/app_define.dart';
+import 'package:maeum_book/data/database/tables/event_types_table.dart';
+import 'package:maeum_book/data/database/tables/events_table.dart';
 import 'package:maeum_book/data/models/models.dart';
 
 /// 경조사 기록 테이블. 보낸 것과 받은 것을 **한 테이블**에 담고 [direction]으로 구분한다.
@@ -12,7 +14,7 @@ import 'package:maeum_book/data/models/models.dart';
 /// | 엑셀 열 | 컬럼 |
 /// |---|---|
 /// | 날짜 | [date] |
-/// | 종류 | [eventType] |
+/// | 종류 | [eventTypeId] → event_types.name |
 /// | 상대방 | [personName] |
 /// | 금액 | [amount] |
 /// | 보냄/받음 | [direction] |
@@ -39,8 +41,12 @@ class LedgerEntries extends Table {
   /// 보냄 / 받음. DB에는 'sent' / 'received' 글자로 저장된다.
   TextColumn get direction => textEnum<RecordDirection>()();
 
-  /// 경조사 종류 (결혼, 조의 등)
-  TextColumn get eventType => textEnum<EventType>()();
+  /// 경조사 종류 (event_types 테이블의 id). v3부터 글자 대신 번호로 저장한다.
+  IntColumn get eventTypeId => integer().references(EventTypes, #id)();
+
+  /// 이 받은 기록이 속한 행사 (받은 기록만, 보낸 기록은 null). v3에서 추가.
+  /// 행사를 지우면 안의 기록도 함께 지워진다(cascade).
+  IntColumn get eventId => integer().nullable().references(Events, #id, onDelete: KeyAction.cascade)();
 
   /// 상대방 이름. 빈 이름은 저장하지 못하게 1글자 이상, 최대 50글자로 제한한다.
   TextColumn get personName => text().withLength(min: 1, max: AppDefine.personNameMaxLength)();

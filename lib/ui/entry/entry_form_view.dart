@@ -13,12 +13,13 @@ import 'package:maeum_book/ui/entry/entry_form_view_model.dart';
 /// - 입력 누락: 토스트 없이 해당 칸 아래에 빨간 문구로 알려 준다. (어디를 고쳐야 하는지 바로 보이게)
 /// - 저장 실패(DB 오류): 오류 토스트를 띄우고, 입력한 내용은 그대로 둔다.
 class EntryFormView extends BaseAsyncView<EntryFormViewModel, EntryFormState> {
-  const EntryFormView.create({super.key, required RecordDirection direction})
-    : args = (direction: direction, entryId: null);
+  /// 새 기록. 행사 상세에서 들어오면 [eventId]로 그 행사가 미리 골라진다.
+  const EntryFormView.create({super.key, required RecordDirection direction, int? eventId})
+    : args = (direction: direction, entryId: null, eventId: eventId);
 
   /// 수정 화면. 방향은 불러온 기록 값으로 바뀌므로 아무 값이나 넣어도 된다.
   const EntryFormView.edit({super.key, required int entryId})
-    : args = (direction: RecordDirection.sent, entryId: entryId);
+    : args = (direction: RecordDirection.sent, entryId: entryId, eventId: null);
 
   final EntryFormArgs args;
 
@@ -46,6 +47,9 @@ class EntryFormView extends BaseAsyncView<EntryFormViewModel, EntryFormState> {
 
   @override
   Widget buildView(BuildContext context, WidgetRef ref, EntryFormState state, EntryFormViewModel viewModel) {
+    // 경조사 종류는 설정에서 추가·삭제할 수 있어서 DB에서 읽은 목록으로 칩을 만든다.
+    final types = ref.watch(eventTypesProvider).value ?? const <EventType>[];
+    final typeNames = ref.watch(eventTypeNamesProvider);
     return Scaffold(
       appBar: AppBar(title: Text(state.isEditing ? '기록 수정' : '마음 기록')),
       body: ListView(
@@ -66,24 +70,35 @@ class EntryFormView extends BaseAsyncView<EntryFormViewModel, EntryFormState> {
             ),
           ),
           const _Gap(),
-          FormSection(
-            label: '날짜',
-            isRequired: true,
-            child: DateField(value: state.date, onChanged: viewModel.setDate).testId(TestIds.formDate),
-          ),
-          const _Gap(),
-          FormSection(
-            label: '경조사 종류',
-            isRequired: true,
-            errorText: state.eventTypeError,
-            child: ChoiceChipGroup<EventType>(
-              values: EventType.values,
-              selected: state.eventType,
-              labelOf: (type) => type.label,
-              onSelected: viewModel.setEventType,
-              testIdPrefix: TestIds.formEventType,
+          // 받은 기록: 어느 행사에서 받았는지만 고른다. (날짜·종류는 행사를 따름)
+          // 보낸 기록: 날짜와 종류를 직접 고른다.
+          if (state.isReceived)
+            FormSection(
+              label: '행사',
+              isRequired: true,
+              errorText: state.eventError,
+              child: _EventPicker(state: state, viewModel: viewModel),
+            )
+          else ...[
+            FormSection(
+              label: '날짜',
+              isRequired: true,
+              child: DateField(value: state.date, onChanged: viewModel.setDate).testId(TestIds.formDate),
             ),
-          ),
+            const _Gap(),
+            FormSection(
+              label: '경조사 종류',
+              isRequired: true,
+              errorText: state.eventTypeError,
+              child: ChoiceChipGroup<int>(
+                values: [for (final type in types) type.id],
+                selected: state.eventTypeId,
+                labelOf: (id) => typeNames[id] ?? '',
+                onSelected: viewModel.setEventType,
+                testIdPrefix: TestIds.formEventType,
+              ),
+            ),
+          ],
           const _Gap(),
           FormSection(
             label: state.direction == RecordDirection.sent ? '누구에게' : '누구에게서',
@@ -156,4 +171,47 @@ class _Gap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const SizedBox(height: AppSpacing.lg);
+}
+
+/// 받은 기록의 행사 선택. 행사가 없으면 "행사 만들기" 버튼을 보여준다.
+///
+/// 행사를 만들고 돌아오면 목록을 다시 읽고, 방금 만든 행사를 자동으로 고른다.
+class _EventPicker extends StatelessWidget {
+  const _EventPicker({required this.state, required this.viewModel});
+
+  final EntryFormState state;
+  final EntryFormViewModel viewModel;
+
+  Future<void> _createEvent(BuildContext context) async {
+    await context.push(AppRoutes.eventNew);
+    await viewModel.refreshEvents();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (state.events.isEmpty)
+          const AppText.body('아직 만든 행사가 없어요. 먼저 행사를 만들어 주세요.', color: AppColors.textSecondary)
+        else
+          ChoiceChipGroup<int>(
+            values: [for (final event in state.events) event.id],
+            selected: state.eventId,
+            labelOf: (id) {
+              final event = state.events.firstWhere((e) => e.id == id);
+              return '${event.title} · ${event.date.toDotDate}';
+            },
+            onSelected: viewModel.setEvent,
+            testIdPrefix: TestIds.formEvent,
+          ),
+        const SizedBox(height: AppSpacing.sm),
+        TextButton.icon(
+          onPressed: () => _createEvent(context),
+          icon: const Icon(Icons.add_rounded, size: 18),
+          label: const Text('새 행사 만들기'),
+        ).testId(TestIds.formEventCreate),
+      ],
+    );
+  }
 }

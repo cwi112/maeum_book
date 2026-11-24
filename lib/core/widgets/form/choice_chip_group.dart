@@ -23,6 +23,7 @@ class ChoiceChipGroup<T> extends StatelessWidget {
     required this.onSelected,
     this.allowDeselect = false,
     this.testIdPrefix,
+    this.testKeyOf,
   });
 
   final List<T> values;
@@ -34,7 +35,14 @@ class ChoiceChipGroup<T> extends StatelessWidget {
   /// 자동화 테스트용 이름 접두어. 칩마다 `접두어_값이름`이 붙는다. (예: form_event_type_wedding)
   final String? testIdPrefix;
 
-  String? _testIdOf(T value) => testIdPrefix == null ? null : '${testIdPrefix}_${value is Enum ? value.name : value}';
+  /// 칩 이름표에 붙일 값. enum이면 이름(wedding), 아니면 이 함수로 정한다. (예: 종류 id)
+  final String Function(T value)? testKeyOf;
+
+  String? _testIdOf(T value) {
+    if (testIdPrefix == null) return null;
+    final key = testKeyOf?.call(value) ?? (value is Enum ? value.name : '$value');
+    return '${testIdPrefix}_$key';
+  }
 
   @override
   Widget build(BuildContext context) {

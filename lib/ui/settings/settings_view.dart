@@ -39,6 +39,16 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.screen),
         children: [
+          const _SectionLabel('기록 설정'),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.category_outlined),
+              title: const Text('경조사 종류 관리'),
+              subtitle: const Text('환갑·졸업처럼 필요한 종류를 추가하거나 지워요'),
+              trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+              onTap: () => context.push(AppRoutes.eventTypes),
+            ).testId(TestIds.settingsEventTypes),
+          ),
           const _SectionLabel('데이터'),
           Card(
             child: Column(

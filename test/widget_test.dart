@@ -50,7 +50,7 @@ void main() {
 
     await tester.tap(find.text('받아요').last);
     await settle(tester);
-    expect(find.text('아직 받은 마음이 없어요'), findsOneWidget);
+    expect(find.text('아직 만든 행사가 없어요'), findsOneWidget);
 
     await tester.tap(find.text('통계').last);
     await settle(tester);
@@ -70,7 +70,7 @@ void main() {
     await tester.runAsync(
       () => LedgerRepository(database.ledgerDao).add(
         direction: RecordDirection.sent,
-        eventType: EventType.wedding,
+        eventTypeId: 1,
         personName: '김철수',
         amount: 50000,
         date: DateTime(2026, 11, 24),
@@ -127,7 +127,7 @@ void main() {
     final id = await tester.runAsync(
       () => LedgerRepository(database.ledgerDao).add(
         direction: RecordDirection.sent,
-        eventType: EventType.wedding,
+        eventTypeId: 1,
         personName: name,
         amount: amount,
         date: DateTime(2026, 11, 24),
@@ -226,7 +226,7 @@ void main() {
 
     await tester.tap(find.bySemanticsIdentifier(TestIds.ledgerFilter(RecordDirection.sent)));
     await settle(tester);
-    await tester.tap(find.bySemanticsIdentifier('${TestIds.filterEventType}_${EventType.funeral.name}'));
+    await tester.tap(find.bySemanticsIdentifier('${TestIds.filterEventType}_2'));
     await tester.tap(find.bySemanticsIdentifier(TestIds.filterApply));
     await settle(tester);
 
@@ -245,7 +245,7 @@ void main() {
 
     await tester.tap(find.bySemanticsIdentifier(TestIds.settingsSeed));
     await settle(tester);
-    expect(find.text('샘플 기록 ${SampleData.defaultCount}개를 넣었어요'), findsOneWidget);
+    expect(find.text('샘플 기록 ${SampleData.totalCount}개를 넣었어요'), findsOneWidget);
 
     await tester.tap(find.bySemanticsIdentifier(TestIds.settingsClear));
     await settle(tester);
@@ -258,7 +258,69 @@ void main() {
     await tester.tap(find.bySemanticsIdentifier(TestIds.dialogConfirm));
     await settle(tester);
     await settle(tester); // 확인 창이 닫히는 애니메이션 + DB 삭제가 끝나길 기다림
-    expect(find.text('기록 ${SampleData.defaultCount}개를 지웠어요'), findsOneWidget);
+    expect(find.text('기록 ${SampleData.totalCount}개를 지웠어요'), findsOneWidget);
+
+    await closeApp(tester);
+  });
+
+  testWidgets('받아요: 행사를 만들고, 행사 안에서 받은 마음을 기록하면 바로 보인다', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabReceived));
+    await settle(tester);
+
+    // 행사 만들기
+    await tester.tap(find.bySemanticsIdentifier(TestIds.eventAdd));
+    await settle(tester);
+    await tester.enterText(find.widgetWithText(TextFormField, '예) 우리 결혼식, 아버지 칠순'), '우리 결혼식');
+    await tester.tap(find.bySemanticsIdentifier('${TestIds.eventFormType}_1'));
+    await tester.tap(find.bySemanticsIdentifier(TestIds.eventFormSave));
+    await settle(tester);
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('우리 결혼식'), findsOneWidget);
+
+    // 행사 상세 → 받은 마음 기록 (행사가 미리 골라져 있음)
+    await tester.tap(find.text('우리 결혼식'));
+    await settle(tester);
+    expect(find.text('아직 기록된 마음이 없어요'), findsOneWidget);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.eventAddEntry));
+    await settle(tester);
+    expect(find.text('경조사 종류'), findsNothing); // 받은 기록은 행사의 종류·날짜를 따름
+    await tester.enterText(find.widgetWithText(TextFormField, '이름'), '김철수');
+    await tester.tap(find.bySemanticsIdentifier(TestIds.formAmountAdd(100000)));
+    await tester.tap(find.bySemanticsIdentifier(TestIds.formSave));
+    await settle(tester);
+    await tester.pump(const Duration(seconds: 1));
+
+    expect(find.text('김철수'), findsOneWidget); // 행사 상세에 바로 나타남
+    expect(find.text('100,000원'), findsNWidgets(2)); // 상단 합계 + 목록
+
+    await closeApp(tester);
+  });
+
+  testWidgets('경조사 종류 관리: 추가한 종류가 입력 화면 칩에 바로 나타난다', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabSettings));
+    await settle(tester);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsEventTypes));
+    await settle(tester);
+
+    await tester.tap(find.bySemanticsIdentifier(TestIds.eventTypeAdd));
+    await settle(tester);
+    await tester.enterText(find.byType(TextField).last, '환갑');
+    await tester.pump();
+    await tester.tap(find.bySemanticsIdentifier(TestIds.dialogConfirm));
+    await settle(tester);
+    await settle(tester);
+    expect(find.text('환갑'), findsOneWidget);
+
+    // 보내요 → 기록 입력 화면의 종류 칩에도 보인다
+    await tester.tap(find.byTooltip('뒤로')); // material_ui 뒤로 버튼은 pageBack()이 찾지 못해 툴팁으로 누른다
+    await settle(tester);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabSent));
+    await settle(tester);
+    await tester.tap(find.text('보낸 마음 기록'));
+    await settle(tester);
+    expect(find.text('환갑'), findsOneWidget);
 
     await closeApp(tester);
   });

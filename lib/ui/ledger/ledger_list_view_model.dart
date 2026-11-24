@@ -40,11 +40,11 @@ class LedgerListViewModel extends BaseAsyncViewModel<LedgerListState> {
   void setQuery(String query) => _applyFilter(_filter.copyWith(query: query));
 
   /// 필터 시트에서 고른 기간·종류를 한 번에 적용한다. (검색어는 그대로 둠)
-  void setSheetFilter({required LedgerPeriod period, required EventType? eventType}) =>
-      _applyFilter(_filter.copyWith(period: period, eventType: () => eventType));
+  void setSheetFilter({required LedgerPeriod period, required int? eventTypeId}) =>
+      _applyFilter(_filter.copyWith(period: period, eventTypeId: () => eventTypeId));
 
   void clearPeriod() => _applyFilter(_filter.copyWith(period: LedgerPeriod.all));
-  void clearEventType() => _applyFilter(_filter.copyWith(eventType: () => null));
+  void clearEventType() => _applyFilter(_filter.copyWith(eventTypeId: () => null));
 
   /// 검색어까지 모든 조건을 지운다.
   void resetFilter() => _applyFilter(LedgerFilter.none);

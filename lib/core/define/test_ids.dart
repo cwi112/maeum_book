@@ -45,11 +45,40 @@ abstract final class TestIds {
   static const String formMemo = 'form_memo';
   static const String formSave = 'form_save';
 
+  /// 받은 기록의 행사 칩: form_event_3 / 새 행사 만들기 버튼
+  static const String formEvent = 'form_event';
+  static const String formEventCreate = 'form_event_create';
+
+  // ── 행사 (받아요) ───────────────────────
+  static const String eventAdd = 'event_add';
+  static const String eventSearch = 'event_search';
+
+  /// 행사 카드: event_card_3
+  static String eventCard(int id) => 'event_card_$id';
+  static const String eventAddEntry = 'event_add_entry';
+  static const String eventEditButton = 'event_edit';
+  static const String eventDeleteButton = 'event_delete';
+  static const String eventFormTitle = 'event_form_title';
+  static const String eventFormType = 'event_form_type';
+  static const String eventFormDate = 'event_form_date';
+  static const String eventFormMemo = 'event_form_memo';
+  static const String eventFormSave = 'event_form_save';
+
+  // ── 경조사 종류 관리 ─────────────────────
+  static const String settingsEventTypes = 'settings_event_types';
+  static const String eventTypeAdd = 'event_type_add';
+  static const String eventTypeNameField = 'event_type_name_field';
+
+  /// 종류 한 줄 / 이름 변경 / 삭제 버튼: event_type_3, event_type_delete_3
+  static String eventTypeTile(int id) => 'event_type_$id';
+  static String eventTypeDelete(int id) => 'event_type_delete_$id';
+
   // ── 공통 ───────────────────────────────
   static const String toast = 'toast';
   static const String toastAction = 'toast_action';
   static const String dialogConfirm = 'dialog_confirm';
   static const String dialogCancel = 'dialog_cancel';
+  static const String dialogInput = 'dialog_input';
 
   // ── 검색·필터 ──────────────────────────
   /// 검색창·필터 버튼: ledger_search_sent / ledger_filter_sent
