@@ -38,11 +38,14 @@
 - Flutter 3.50 / Dart 3.14 (FVM으로 버전 고정)
 - 상태관리: flutter_riverpod 3.5
 - 로컬 DB: drift 2.35 (SQLite)
+- 화면 이동: go_router 18 (하단 탭은 StatefulShellRoute)
 - 글꼴: Pretendard(본문), 고운바탕(제목, 금액)
 
 상태관리는 GetX, Provider, Bloc, Riverpod을 놓고 고민했습니다. GetX가 시작하기는 제일 쉬웠지만 최근 1년 동안 업데이트가 없었고, Provider는 만든 사람이 Riverpod 쪽을 권하고 있었습니다. Bloc은 이 정도 규모의 앱에는 코드가 너무 많아질 것 같았습니다. Riverpod은 지금도 꾸준히 업데이트되고 있고, `Notifier`가 MVVM의 ViewModel 역할과 잘 맞아서 최종적으로 골랐습니다.
 
 DB는 개인용 앱이라 서버 없이 휴대폰 안에 저장하기로 했습니다. 처음엔 Hive를 생각했는데 원래 패키지는 2022년 이후로 업데이트가 멈춰 있었습니다. 그리고 이 앱은 "사람별 합계", "월별 합계"처럼 묶어서 더하는 일이 많아서 키-값 저장소보다 SQL이 낫다고 판단했고, 타입 안전하게 SQL을 쓸 수 있는 Drift를 골랐습니다. Drift는 테이블이 바뀌면 Stream으로 새 결과를 보내주기 때문에, 기록을 저장하면 목록과 합계가 따로 새로고침하지 않아도 바로 바뀝니다.
+
+화면 이동은 go_router를 썼습니다. 탭 화면 위에 입력·상세 화면이 쌓이는 구조라 경로로 화면을 관리하는 편이 깔끔했고, Flutter 팀이 직접 관리하는 패키지라 오래 쓰기에도 안심이 됐습니다.
 
 ## 구조
 
@@ -89,6 +92,7 @@ const LedgerListView(direction: RecordDirection.received)
 - 공통으로 쓰는 UI는 `core/widgets`에 컴포넌트로 만들어 두고 가져다 씁니다. 목록 화면 틀은 `LedgerListLayout`, 기록 한 줄은 `LedgerEntryTile`입니다.
 - 색, 글자 크기, 여백은 숫자를 직접 쓰지 않고 `AppColors`, `AppText`, `AppSpacing`에 정의된 값을 씁니다.
 - 자주 쓰는 코드는 extension으로 만들었습니다. 예를 들어 `50000.won`은 `50,000원`, `55000.manWon`은 `5만 5,000원`, `date.toKoreanDate`는 `11월 24일 (화)`가 됩니다.
+- 고정값(앱 이름, DB 이름, 입력 제한 등)은 `AppDefine`, 화면 경로는 `AppRoutes`, 콜백 타입(`IntCallback`, `ErrorCallback` 등)은 `typedefs.dart`에 모아 두었습니다.
 - 화면 파일은 `core/core.dart`, `data/data.dart` 두 줄로 필요한 코드를 모두 가져옵니다(barrel export).
 - State 클래스는 `part` / `part of`로 ViewModel 파일과 나눠 둡니다.
 - lint 규칙을 꽤 엄격하게 켜 두었습니다(`analysis_options.yaml`).
@@ -102,9 +106,11 @@ lib/
 ├─ core/
 │  ├─ core.dart          # 공통 코드를 한 번에 export
 │  ├─ base/              # BaseView, BaseViewModel
+│  ├─ define/            # 고정값, 화면 경로, 콜백 타입
 │  ├─ theme/             # 색상, 글자 스타일, 간격, 테마
 │  ├─ widgets/           # AppText, EmptyView, SummaryCard, LedgerListLayout
 │  └─ extensions/        # int, String, DateTime, BuildContext, Widget 확장
+├─ router/              # go_router 설정 (화면 이동 지도)
 ├─ data/
 │  ├─ data.dart
 │  ├─ models/            # 보냄/받음, 경조사 종류, 합계 모델
@@ -114,6 +120,7 @@ lib/
 └─ ui/
    ├─ main/              # 하단 탭
    ├─ ledger/            # 보내요, 받아요 (같은 화면을 방향만 바꿔서 사용)
+   ├─ entry/             # 기록 입력 (준비 중)
    ├─ stats/             # 통계
    └─ settings/          # 설정
 ```

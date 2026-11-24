@@ -32,8 +32,7 @@ class LedgerListView extends BaseAsyncView<LedgerListViewModel, LedgerListState>
       emptyTitle: texts.emptyTitle,
       emptyMessage: texts.emptyMessage,
       addLabel: texts.addLabel,
-      // TODO: 기록 입력 화면을 만들면 여기서 연다.
-      onAdd: () => context.showSnackBar('곧 추가될 기능이에요'),
+      onAdd: () => context.push(AppRoutes.entryNew(direction)),
     );
   }
 }

@@ -1,4 +1,5 @@
 import 'package:drift/drift.dart';
+import 'package:maeum_book/core/define/app_define.dart';
 import 'package:maeum_book/data/models/models.dart';
 
 /// 경조사 기록 테이블. 보낸 것과 받은 것을 **한 테이블**에 담고 [direction]으로 구분한다.
@@ -41,7 +42,7 @@ class LedgerEntries extends Table {
   TextColumn get eventType => textEnum<EventType>()();
 
   /// 상대방 이름. 빈 이름은 저장하지 못하게 1글자 이상, 최대 50글자로 제한한다.
-  TextColumn get personName => text().withLength(min: 1, max: 50)();
+  TextColumn get personName => text().withLength(min: 1, max: AppDefine.personNameMaxLength)();
 
   /// 금액 (원 단위 정수). 음수는 DB 단계에서 막는다. (SQL의 CHECK 제약 조건)
   ///

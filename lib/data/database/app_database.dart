@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:maeum_book/core/define/app_define.dart';
 import 'package:maeum_book/data/database/daos/ledger_dao.dart';
 import 'package:maeum_book/data/database/tables/ledger_entries_table.dart';
 import 'package:maeum_book/data/models/models.dart';
@@ -42,5 +43,5 @@ class AppDatabase extends _$AppDatabase {
 
   /// 기기별로 알맞은 SQLite 연결을 연다.
   /// Android·iOS에서는 앱 문서 폴더에 `maeum_book.sqlite` 파일을 만든다.
-  static QueryExecutor _openConnection() => driftDatabase(name: 'maeum_book');
+  static QueryExecutor _openConnection() => driftDatabase(name: AppDefine.databaseName);
 }

@@ -2,7 +2,7 @@ part of 'settings_view_model.dart';
 
 /// 설정 탭의 상태. (settings_view_model.dart의 일부 — part of)
 class SettingsState {
-  const SettingsState({this.appVersion = '1.0.0'});
+  const SettingsState({this.appVersion = AppDefine.appVersion});
 
   /// 앱 버전 표시용
   final String appVersion;

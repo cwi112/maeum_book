@@ -79,4 +79,18 @@ void main() {
 
     await closeApp(tester);
   });
+
+  testWidgets('기록 버튼을 누르면 입력 화면이 위에 쌓이고, 뒤로 가면 돌아온다', (tester) async {
+    await pumpApp(tester);
+
+    await tester.tap(find.text('보낸 마음 기록'));
+    await settle(tester);
+    expect(find.text('입력 화면 준비 중이에요'), findsOneWidget);
+
+    await tester.pageBack();
+    await settle(tester);
+    expect(find.text('아직 보낸 마음이 없어요'), findsOneWidget);
+
+    await closeApp(tester);
+  });
 }

@@ -41,7 +41,7 @@ class $LedgerEntriesTable extends LedgerEntries with TableInfo<$LedgerEntriesTab
     'person_name',
     aliasedName,
     false,
-    additionalChecks: GeneratedColumn.checkTextLength(minTextLength: 1, maxTextLength: 50),
+    additionalChecks: GeneratedColumn.checkTextLength(minTextLength: 1),
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );

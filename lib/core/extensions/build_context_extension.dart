@@ -6,7 +6,8 @@ import 'package:material_ui/material_ui.dart';
 /// context.textTheme.titleLarge
 /// context.screenSize.width
 /// context.showSnackBar('저장했어요');
-/// context.push(const DetailView());
+///
+/// 화면 이동은 go_router의 `context.push(AppRoutes...)`, `context.pop()`을 쓴다.
 /// ```
 extension BuildContextX on BuildContext {
   // ── 테마 ───────────────────────────────
@@ -21,11 +22,6 @@ extension BuildContextX on BuildContext {
 
   /// 상태바·홈 인디케이터 등이 차지하는 영역
   EdgeInsets get safePadding => MediaQuery.paddingOf(this);
-
-  // ── 화면 이동 ──────────────────────────
-  Future<T?> push<T>(Widget page) => Navigator.of(this).push<T>(MaterialPageRoute(builder: (_) => page));
-
-  void pop<T>([T? result]) => Navigator.of(this).pop<T>(result);
 
   // ── 알림·키보드 ────────────────────────
   void showSnackBar(String message) {

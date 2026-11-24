@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:maeum_book/core/define/typedefs.dart';
 
 /// 일반 화면용 ViewModel의 부모 클래스. (Riverpod `Notifier`)
 ///
@@ -98,7 +99,7 @@ abstract class BaseAsyncViewModel<S> extends AsyncNotifier<S> {
   ///
   /// [watch]를 쓰는 화면은 DB가 바뀌면 목록이 알아서 갱신되므로, 여기서는 작업만 실행하면 된다.
   /// 작업이 끝날 때까지 화면 전체를 로딩으로 바꾸지 않아서, 목록이 깜빡이지 않는다.
-  Future<bool> runTask(Future<void> Function() task, {void Function(Object error)? onError}) async {
+  Future<bool> runTask(Future<void> Function() task, {ErrorCallback? onError}) async {
     try {
       await task();
       return true;
