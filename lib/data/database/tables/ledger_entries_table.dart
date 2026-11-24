@@ -16,6 +16,7 @@ import 'package:maeum_book/data/models/models.dart';
 /// | 상대방 | [personName] |
 /// | 금액 | [amount] |
 /// | 보냄/받음 | [direction] |
+/// | 관계 | [relation] |
 /// | 메모 | [memo] |
 ///
 /// ## 동작 방식
@@ -52,6 +53,9 @@ class LedgerEntries extends Table {
 
   /// 경조사 날짜 (언제 주고받았는지)
   DateTimeColumn get date => dateTime()();
+
+  /// 상대방과의 관계 (선택). 스키마 버전 2에서 추가됐다.
+  TextColumn get relation => textEnum<Relation>().nullable()();
 
   /// 메모 (선택). 비워 둘 수 있다.
   TextColumn get memo => text().nullable()();

@@ -14,6 +14,10 @@ class App extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       routerConfig: ref.watch(appRouterProvider),
+      // 한국어 고정: 날짜 선택 달력, 복사·붙여넣기 메뉴 등 기본 위젯 문구가 한국어로 나온다.
+      locale: const Locale('ko'),
+      supportedLocales: const [Locale('ko')],
+      localizationsDelegates: GlobalMaterialLocalizations.delegates,
     );
   }
 }

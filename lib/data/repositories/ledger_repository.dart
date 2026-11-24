@@ -43,13 +43,14 @@ class LedgerRepository {
 
   /// 새 기록을 저장하고 id를 돌려준다.
   ///
-  /// 이름은 앞뒤 공백을 지우고, 메모가 공백뿐이면 비운다(null). 금액이 음수면 [ArgumentError]를 던진다.
+  /// 관계·메모는 선택 입력이다. 이름은 앞뒤 공백을 지우고, 메모가 공백뿐이면 비운다(null). 금액이 음수면 [ArgumentError]를 던진다.
   Future<int> add({
     required RecordDirection direction,
     required EventType eventType,
     required String personName,
     required int amount,
     required DateTime date,
+    Relation? relation,
     String? memo,
   }) {
     _validate(personName: personName, amount: amount);
@@ -60,6 +61,7 @@ class LedgerRepository {
         personName: personName.trim(),
         amount: amount,
         date: date,
+        relation: Value(relation),
         memo: Value(_cleanMemo(memo)),
       ),
     );

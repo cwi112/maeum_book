@@ -64,6 +64,14 @@ class $LedgerEntriesTable extends LedgerEntries with TableInfo<$LedgerEntriesTab
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  @override
+  late final GeneratedColumnWithTypeConverter<Relation?, String> relation = GeneratedColumn<String>(
+    'relation',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  ).withConverter<Relation?>($LedgerEntriesTable.$converterrelationn);
   static const VerificationMeta _memoMeta = const VerificationMeta('memo');
   @override
   late final GeneratedColumn<String> memo = GeneratedColumn<String>(
@@ -101,6 +109,7 @@ class $LedgerEntriesTable extends LedgerEntries with TableInfo<$LedgerEntriesTab
     personName,
     amount,
     date,
+    relation,
     memo,
     createdAt,
     updatedAt,
@@ -160,6 +169,9 @@ class $LedgerEntriesTable extends LedgerEntries with TableInfo<$LedgerEntriesTab
       personName: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}person_name'])!,
       amount: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}amount'])!,
       date: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}date'])!,
+      relation: $LedgerEntriesTable.$converterrelationn.fromSql(
+        attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}relation']),
+      ),
       memo: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}memo']),
       createdAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
       updatedAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}updated_at'])!,
@@ -175,6 +187,12 @@ class $LedgerEntriesTable extends LedgerEntries with TableInfo<$LedgerEntriesTab
       const EnumNameConverter<RecordDirection>(RecordDirection.values);
   static JsonTypeConverter2<EventType, String, String> $convertereventType = const EnumNameConverter<EventType>(
     EventType.values,
+  );
+  static JsonTypeConverter2<Relation, String, String> $converterrelation = const EnumNameConverter<Relation>(
+    Relation.values,
+  );
+  static JsonTypeConverter2<Relation?, String?, String?> $converterrelationn = JsonTypeConverter2.asNullable(
+    $converterrelation,
   );
 }
 
@@ -199,6 +217,9 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
   /// 경조사 날짜 (언제 주고받았는지)
   final DateTime date;
 
+  /// 상대방과의 관계 (선택). 스키마 버전 2에서 추가됐다.
+  final Relation? relation;
+
   /// 메모 (선택). 비워 둘 수 있다.
   final String? memo;
 
@@ -214,6 +235,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     required this.personName,
     required this.amount,
     required this.date,
+    this.relation,
     this.memo,
     required this.createdAt,
     required this.updatedAt,
@@ -231,6 +253,9 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     map['person_name'] = Variable<String>(personName);
     map['amount'] = Variable<int>(amount);
     map['date'] = Variable<DateTime>(date);
+    if (!nullToAbsent || relation != null) {
+      map['relation'] = Variable<String>($LedgerEntriesTable.$converterrelationn.toSql(relation));
+    }
     if (!nullToAbsent || memo != null) {
       map['memo'] = Variable<String>(memo);
     }
@@ -247,6 +272,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
       personName: Value(personName),
       amount: Value(amount),
       date: Value(date),
+      relation: relation == null && nullToAbsent ? const Value.absent() : Value(relation),
       memo: memo == null && nullToAbsent ? const Value.absent() : Value(memo),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
@@ -262,6 +288,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
       personName: serializer.fromJson<String>(json['personName']),
       amount: serializer.fromJson<int>(json['amount']),
       date: serializer.fromJson<DateTime>(json['date']),
+      relation: $LedgerEntriesTable.$converterrelationn.fromJson(serializer.fromJson<String?>(json['relation'])),
       memo: serializer.fromJson<String?>(json['memo']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -277,6 +304,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
       'personName': serializer.toJson<String>(personName),
       'amount': serializer.toJson<int>(amount),
       'date': serializer.toJson<DateTime>(date),
+      'relation': serializer.toJson<String?>($LedgerEntriesTable.$converterrelationn.toJson(relation)),
       'memo': serializer.toJson<String?>(memo),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
@@ -290,6 +318,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     String? personName,
     int? amount,
     DateTime? date,
+    Value<Relation?> relation = const Value.absent(),
     Value<String?> memo = const Value.absent(),
     DateTime? createdAt,
     DateTime? updatedAt,
@@ -300,6 +329,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
     personName: personName ?? this.personName,
     amount: amount ?? this.amount,
     date: date ?? this.date,
+    relation: relation.present ? relation.value : this.relation,
     memo: memo.present ? memo.value : this.memo,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
@@ -312,6 +342,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
       personName: data.personName.present ? data.personName.value : this.personName,
       amount: data.amount.present ? data.amount.value : this.amount,
       date: data.date.present ? data.date.value : this.date,
+      relation: data.relation.present ? data.relation.value : this.relation,
       memo: data.memo.present ? data.memo.value : this.memo,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
@@ -327,6 +358,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
           ..write('personName: $personName, ')
           ..write('amount: $amount, ')
           ..write('date: $date, ')
+          ..write('relation: $relation, ')
           ..write('memo: $memo, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -335,7 +367,8 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
   }
 
   @override
-  int get hashCode => Object.hash(id, direction, eventType, personName, amount, date, memo, createdAt, updatedAt);
+  int get hashCode =>
+      Object.hash(id, direction, eventType, personName, amount, date, relation, memo, createdAt, updatedAt);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -346,6 +379,7 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
           other.personName == this.personName &&
           other.amount == this.amount &&
           other.date == this.date &&
+          other.relation == this.relation &&
           other.memo == this.memo &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
@@ -358,6 +392,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
   final Value<String> personName;
   final Value<int> amount;
   final Value<DateTime> date;
+  final Value<Relation?> relation;
   final Value<String?> memo;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
@@ -368,6 +403,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     this.personName = const Value.absent(),
     this.amount = const Value.absent(),
     this.date = const Value.absent(),
+    this.relation = const Value.absent(),
     this.memo = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -379,6 +415,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     required String personName,
     required int amount,
     required DateTime date,
+    this.relation = const Value.absent(),
     this.memo = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
@@ -394,6 +431,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     Expression<String>? personName,
     Expression<int>? amount,
     Expression<DateTime>? date,
+    Expression<String>? relation,
     Expression<String>? memo,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
@@ -405,6 +443,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
       if (personName != null) 'person_name': personName,
       if (amount != null) 'amount': amount,
       if (date != null) 'date': date,
+      if (relation != null) 'relation': relation,
       if (memo != null) 'memo': memo,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
@@ -418,6 +457,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     Value<String>? personName,
     Value<int>? amount,
     Value<DateTime>? date,
+    Value<Relation?>? relation,
     Value<String?>? memo,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
@@ -429,6 +469,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
       personName: personName ?? this.personName,
       amount: amount ?? this.amount,
       date: date ?? this.date,
+      relation: relation ?? this.relation,
       memo: memo ?? this.memo,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
@@ -456,6 +497,9 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
     if (date.present) {
       map['date'] = Variable<DateTime>(date.value);
     }
+    if (relation.present) {
+      map['relation'] = Variable<String>($LedgerEntriesTable.$converterrelationn.toSql(relation.value));
+    }
     if (memo.present) {
       map['memo'] = Variable<String>(memo.value);
     }
@@ -477,6 +521,7 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
           ..write('personName: $personName, ')
           ..write('amount: $amount, ')
           ..write('date: $date, ')
+          ..write('relation: $relation, ')
           ..write('memo: $memo, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
@@ -507,6 +552,7 @@ typedef $$LedgerEntriesTableCreateCompanionBuilder = LedgerEntriesCompanion Func
   required String personName,
   required int amount,
   required DateTime date,
+  Value<Relation?> relation,
   Value<String?> memo,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
@@ -518,6 +564,7 @@ typedef $$LedgerEntriesTableUpdateCompanionBuilder = LedgerEntriesCompanion Func
   Value<String> personName,
   Value<int> amount,
   Value<DateTime> date,
+  Value<Relation?> relation,
   Value<String?> memo,
   Value<DateTime> createdAt,
   Value<DateTime> updatedAt,
@@ -547,6 +594,9 @@ class $$LedgerEntriesTableFilterComposer extends Composer<_$AppDatabase, $Ledger
 
   ColumnFilters<DateTime> get date =>
       $composableBuilder(column: $table.date, builder: (column) => ColumnFilters(column));
+
+  ColumnWithTypeConverterFilters<Relation?, Relation, String> get relation =>
+      $composableBuilder(column: $table.relation, builder: (column) => ColumnWithTypeConverterFilters(column));
 
   ColumnFilters<String> get memo => $composableBuilder(column: $table.memo, builder: (column) => ColumnFilters(column));
 
@@ -582,6 +632,9 @@ class $$LedgerEntriesTableOrderingComposer extends Composer<_$AppDatabase, $Ledg
   ColumnOrderings<DateTime> get date =>
       $composableBuilder(column: $table.date, builder: (column) => ColumnOrderings(column));
 
+  ColumnOrderings<String> get relation =>
+      $composableBuilder(column: $table.relation, builder: (column) => ColumnOrderings(column));
+
   ColumnOrderings<String> get memo =>
       $composableBuilder(column: $table.memo, builder: (column) => ColumnOrderings(column));
 
@@ -613,6 +666,9 @@ class $$LedgerEntriesTableAnnotationComposer extends Composer<_$AppDatabase, $Le
   GeneratedColumn<int> get amount => $composableBuilder(column: $table.amount, builder: (column) => column);
 
   GeneratedColumn<DateTime> get date => $composableBuilder(column: $table.date, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<Relation?, String> get relation =>
+      $composableBuilder(column: $table.relation, builder: (column) => column);
 
   GeneratedColumn<String> get memo => $composableBuilder(column: $table.memo, builder: (column) => column);
 
@@ -652,6 +708,7 @@ class $$LedgerEntriesTableTableManager
                 Value<String> personName = const Value.absent(),
                 Value<int> amount = const Value.absent(),
                 Value<DateTime> date = const Value.absent(),
+                Value<Relation?> relation = const Value.absent(),
                 Value<String?> memo = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -662,6 +719,7 @@ class $$LedgerEntriesTableTableManager
                 personName: personName,
                 amount: amount,
                 date: date,
+                relation: relation,
                 memo: memo,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
@@ -674,6 +732,7 @@ class $$LedgerEntriesTableTableManager
                 required String personName,
                 required int amount,
                 required DateTime date,
+                Value<Relation?> relation = const Value.absent(),
                 Value<String?> memo = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
@@ -684,6 +743,7 @@ class $$LedgerEntriesTableTableManager
                 personName: personName,
                 amount: amount,
                 date: date,
+                relation: relation,
                 memo: memo,
                 createdAt: createdAt,
                 updatedAt: updatedAt,

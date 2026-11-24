@@ -1,3 +1,4 @@
+import 'package:maeum_book/core/widgets/app_toast.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// [BuildContext]에서 자주 쓰는 기능을 짧게 부르기 위한 확장.
@@ -5,7 +6,8 @@ import 'package:material_ui/material_ui.dart';
 /// ```dart
 /// context.textTheme.titleLarge
 /// context.screenSize.width
-/// context.showSnackBar('저장했어요');
+/// context.showToast('기록했어요');
+/// context.showToast('저장하지 못했어요', type: ToastType.error);
 ///
 /// 화면 이동은 go_router의 `context.push(AppRoutes...)`, `context.pop()`을 쓴다.
 /// ```
@@ -24,11 +26,8 @@ extension BuildContextX on BuildContext {
   EdgeInsets get safePadding => MediaQuery.paddingOf(this);
 
   // ── 알림·키보드 ────────────────────────
-  void showSnackBar(String message) {
-    ScaffoldMessenger.of(this)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
-  }
+  /// 화면 아래에 토스트를 띄운다. 기본은 성공(초록 체크). 자세한 동작은 [AppToast] 참고.
+  void showToast(String message, {ToastType type = ToastType.success}) => AppToast.show(this, message, type: type);
 
   void hideKeyboard() => FocusScope.of(this).unfocus();
 }

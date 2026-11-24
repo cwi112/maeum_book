@@ -8,3 +8,4 @@ export 'event_type.dart';
 export 'ledger_summary.dart';
 export 'person_summary.dart';
 export 'record_direction.dart';
+export 'relation.dart';

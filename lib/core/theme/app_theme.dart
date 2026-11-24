@@ -126,7 +126,19 @@ class AppTheme {
         selectedColor: AppColors.primaryLight,
         side: const BorderSide(color: AppColors.divider),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadius.sm)),
-        labelStyle: textTheme.labelMedium,
+        // 칩 글자는 색을 꼭 지정해야 한다. 지정하지 않으면 기본 색 계산 때문에 흰 배경에 흰 글자가 될 수 있다.
+        labelStyle: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w500),
+        secondaryLabelStyle: AppTextStyles.bodySmall.copyWith(fontWeight: FontWeight.w600, color: AppColors.primary),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs, vertical: AppSpacing.xs),
+      ),
+      segmentedButtonTheme: SegmentedButtonThemeData(
+        style: SegmentedButton.styleFrom(
+          selectedBackgroundColor: AppColors.primaryLight,
+          selectedForegroundColor: AppColors.primary,
+          foregroundColor: AppColors.textSecondary,
+          side: const BorderSide(color: AppColors.divider),
+          textStyle: AppTextStyles.label,
+        ),
       ),
       listTileTheme: ListTileThemeData(
         contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.screen),

@@ -27,18 +27,24 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
   /// DB 구조(스키마) 버전.
+  /// - v1: 최초 (기록 테이블)
+  /// - v2: 관계(relation) 컬럼 추가
   ///
   /// 출시 후에 테이블·컬럼을 바꾸면 이 숫자를 1 올리고 [migration]의 `onUpgrade`에 변경 방법을 적어야 한다.
   /// 그래야 이미 앱을 쓰던 사람의 기존 데이터가 지워지지 않고 새 구조로 옮겨진다.
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
     // 앱을 처음 설치해서 DB 파일이 없을 때: 모든 테이블·인덱스를 만든다.
     onCreate: (m) => m.createAll(),
-    // TODO: schemaVersion을 올릴 때 여기에 단계별 변경을 추가한다. 예) if (from < 2) await m.addColumn(...);
-    onUpgrade: (m, from, to) async {},
+    // 이미 설치된 앱이 새 버전으로 업데이트될 때: 버전 차이만큼 단계별로 구조를 바꾼다.
+    // 단계를 if로 나눠 두면 1→3처럼 여러 버전을 건너뛰어 업데이트해도 순서대로 모두 적용된다.
+    onUpgrade: (m, from, to) async {
+      // v2: 관계(relation) 컬럼 추가. 기존 기록의 관계는 비어 있음(null)으로 남는다.
+      if (from < 2) await m.addColumn(ledgerEntries, ledgerEntries.relation);
+    },
   );
 
   /// 기기별로 알맞은 SQLite 연결을 연다.

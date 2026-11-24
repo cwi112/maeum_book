@@ -27,6 +27,10 @@ void main() {
   }
 
   Future<void> pumpApp(WidgetTester tester) async {
+    // 기본 테스트 화면(800x600)은 폼이 잘려서, 실제 휴대폰 크기(1080x2400)로 맞춘다.
+    tester.view.physicalSize = const Size(1080, 2400);
+    tester.view.devicePixelRatio = 2.625;
+    addTearDown(tester.view.reset);
     await tester.pumpWidget(
       ProviderScope(overrides: [appDatabaseProvider.overrideWithValue(database)], child: const App()),
     );
@@ -80,16 +84,39 @@ void main() {
     await closeApp(tester);
   });
 
-  testWidgets('기록 버튼을 누르면 입력 화면이 위에 쌓이고, 뒤로 가면 돌아온다', (tester) async {
+  testWidgets('필수 항목을 비우고 저장하면 칸 아래에 오류가 보이고 화면이 닫히지 않는다', (tester) async {
     await pumpApp(tester);
-
     await tester.tap(find.text('보낸 마음 기록'));
     await settle(tester);
-    expect(find.text('입력 화면 준비 중이에요'), findsOneWidget);
 
-    await tester.pageBack();
+    await tester.tap(find.text('기록하기'));
     await settle(tester);
-    expect(find.text('아직 보낸 마음이 없어요'), findsOneWidget);
+
+    expect(find.text('경조사 종류를 골라 주세요'), findsOneWidget);
+    expect(find.text('이름을 입력해 주세요'), findsOneWidget);
+    expect(find.text('금액을 입력해 주세요'), findsOneWidget);
+    expect(find.text('마음 기록'), findsOneWidget); // 입력 화면 그대로
+
+    await closeApp(tester);
+  });
+
+  testWidgets('입력 후 저장하면 화면이 닫히고, 토스트와 함께 목록에 바로 나타난다', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.text('보낸 마음 기록'));
+    await settle(tester);
+
+    await tester.tap(find.text('결혼'));
+    await tester.enterText(find.widgetWithText(TextFormField, '이름'), '김철수');
+    await tester.ensureVisible(find.text('+5만'));
+    await tester.tap(find.text('+5만'));
+    await settle(tester);
+    await tester.tap(find.text('기록하기'));
+    await settle(tester);
+
+    expect(find.text('기록했어요'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 1)); // 화면 닫힘 애니메이션이 끝나길 기다림
+    expect(find.text('김철수'), findsOneWidget);
+    expect(find.text('50,000원'), findsNWidgets(2)); // 합계 카드 + 목록
 
     await closeApp(tester);
   });

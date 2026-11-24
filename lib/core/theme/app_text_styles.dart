@@ -114,7 +114,17 @@ class AppTextStyles {
     bodyMedium: body,
     bodySmall: caption,
     labelLarge: label,
-    labelMedium: TextStyle(fontFamily: bodyFont, fontSize: 12, fontWeight: FontWeight.w500),
-    labelSmall: TextStyle(fontFamily: bodyFont, fontSize: 11, fontWeight: FontWeight.w500),
+    labelMedium: TextStyle(
+      fontFamily: bodyFont,
+      fontSize: 12,
+      fontWeight: FontWeight.w500,
+      color: AppColors.textPrimary,
+    ),
+    labelSmall: TextStyle(
+      fontFamily: bodyFont,
+      fontSize: 11,
+      fontWeight: FontWeight.w500,
+      color: AppColors.textPrimary,
+    ),
   );
 }
