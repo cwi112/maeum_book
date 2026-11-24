@@ -191,7 +191,9 @@ class LedgerEntry extends DataClass implements Insertable<LedgerEntry> {
   /// 상대방 이름. 빈 이름은 저장하지 못하게 1글자 이상, 최대 50글자로 제한한다.
   final String personName;
 
-  /// 금액 (원 단위 정수). 음수는 DB 단계에서 막는다.
+  /// 금액 (원 단위 정수). 음수는 DB 단계에서 막는다. (SQL의 CHECK 제약 조건)
+  ///
+  /// 자기 자신(amount)을 참조하는 것은 Drift 공식 문법이라 실제로 재귀 호출되지 않는다. 그래서 경고를 끈다.
   final int amount;
 
   /// 경조사 날짜 (언제 주고받았는지)

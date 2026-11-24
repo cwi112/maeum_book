@@ -1,3 +1,5 @@
+<img src="assets/icon/app_icon.png" width="96" align="right"/>
+
 # 마음장부
 
 경조사 때 주고받은 돈을 기록하는 앱입니다.
@@ -140,6 +142,8 @@ fvm dart run build_runner build
 ## 디자인
 
 손편지나 봉투 같은 느낌을 내고 싶어서 크림색 배경에 테라코타 색을 메인으로 잡았습니다. 보낸 금액은 붉은 계열, 받은 금액은 청록 계열로 구분했습니다. 제목과 금액에는 고운바탕을 써서 조금 더 따뜻하게 보이도록 했습니다.
+
+앱 아이콘도 같은 느낌으로 테라코타 배경에 하트로 봉한 편지 봉투를 그렸습니다. 원본은 `assets/icon`에 있고, `fvm dart run flutter_launcher_icons`로 Android(적응형 아이콘 포함), iOS, 웹 아이콘을 한 번에 만듭니다.
 
 ## 라이선스
 
