@@ -76,6 +76,14 @@ main에 원하는 변경이 모두 병합된 상태에서:
 2. App Store Connect: 신규 앱 생성, 사용자 및 액세스 → 통합 → App Store Connect API → 팀 키 생성(App Manager)
 3. Codemagic: GitHub로 가입 → 저장소 추가 → Personal Account → Settings → Integrations → Developer Portal에
    키 이름 **`maeum_book_asc`** 로 Issuer ID / Key ID / `.p8` 등록
-4. App Store Connect → TestFlight → 내부 테스트 그룹을 만들고 본인을 테스터로 추가
+4. 배포 인증서: Codemagic → Code signing identities → **iOS certificates** → Generate certificate
+   (API 키 `maeum_book_asc`, 종류 **Apple Distribution**). 인증서 파일·비밀번호는 키 폴더에 백업
+5. 프로비저닝 프로파일: Apple Developer → Profiles → + → Distribution **App Store Connect** →
+   App ID `com.maeumbook.maeumBook` → 4번 인증서 선택 → 이름 `MaeumBook AppStore` → Generate
+6. Codemagic → Code signing identities → **iOS provisioning profiles** → Fetch profiles →
+   `MaeumBook AppStore` 선택, reference name `maeum_appstore`로 저장
+7. App Store Connect → TestFlight → 내부 테스트 그룹을 만들고 본인을 테스터로 추가
 
-인증서·프로비저닝 프로파일은 Codemagic이 자동으로 만든다.
+`codemagic.yaml`의 `ios_signing`은 6번에서 가져온 프로파일을 번들 ID·배포 종류로 찾아 쓴다.
+4~6번을 빠뜨리면 빌드가 `No matching profiles found for bundle identifier ...`로 실패한다.
+인증서는 1년마다 만료되므로, 만료되면 4~6번을 다시 한다.

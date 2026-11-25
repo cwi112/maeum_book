@@ -22,7 +22,7 @@ workflows:
       app_store_connect: maeum_book_asc
 
     environment:
-      # 인증서·프로비저닝 프로파일을 Codemagic이 자동으로 만들고 내려받는다.
+      # Code signing identities에 올려 둔 App Store 인증서·프로파일을 번들 ID로 찾아 쓴다. (docs/DEPLOY.md 4~6번)
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.maeumbook.maeumBook
