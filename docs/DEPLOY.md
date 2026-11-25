@@ -42,6 +42,7 @@ main에 원하는 변경이 모두 병합된 상태에서:
 
 - **CI 실패**: 스크립트가 멈춘다. 고친 뒤 `release/v1.0.1` 브랜치에 push → CI 통과 확인 → 병합 → 태그를 직접 push
   (`git tag -a v1.0.1 -m "릴리스 v1.0.1"; git push origin v1.0.1`)
+- **태그를 push했는데 Codemagic 빌드가 안 생김**: 웹훅이 없는 것. 아래 iOS 설정 8번을 한 뒤, 이미 올린 태그는 수동 실행한다.
 - **Android/iOS 빌드만 실패**: 원인을 고쳐 main에 병합하고 **새 버전**(예: 1.0.2)으로 다시 배포한다.
   같은 태그를 지우고 다시 쓰지 않는다.
 
@@ -83,6 +84,11 @@ main에 원하는 변경이 모두 병합된 상태에서:
 6. Codemagic → Code signing identities → **iOS provisioning profiles** → Fetch profiles →
    `MaeumBook AppStore` 선택, reference name `maeum_appstore`로 저장
 7. App Store Connect → TestFlight → 내부 테스트 그룹을 만들고 본인을 테스터로 추가
+8. Codemagic → 앱 `maeum_book` → 설정(톱니바퀴) → **Webhooks** → **Update webhook**
+   → GitHub 저장소 Settings → Webhooks에 `api.codemagic.io/hooks/...`가 생긴다.
+   이게 없으면 태그를 push해도 Codemagic이 알지 못해 빌드가 자동으로 시작되지 않는다.
+   (확인: `gh api repos/cwi112/maeum_book/hooks --jq '.[].config.url'`)
+   웹훅이 없을 때 이미 push한 태그는 Codemagic → Start new build → **Build tag**에서 태그를 골라 수동 실행한다.
 
 `codemagic.yaml`의 `ios_signing`은 6번에서 가져온 프로파일을 번들 ID·배포 종류로 찾아 쓴다.
 4~6번을 빠뜨리면 빌드가 `No matching profiles found for bundle identifier ...`로 실패한다.
