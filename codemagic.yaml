@@ -1,0 +1,44 @@
+# Codemagic CI 설정: Mac 없이 iOS 앱을 빌드해 TestFlight에 업로드한다.
+# 사전 준비 (Codemagic 웹에서 한 번만):
+#   Team settings → Integrations → Developer Portal 에 App Store Connect API 키를 등록하고
+#   키 이름을 아래 integrations.app_store_connect 값(maeum_book_asc)과 똑같이 맞춘다.
+workflows:
+  ios-testflight:
+    name: iOS TestFlight
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    # 시작 방법: Codemagic 화면에서 수동 실행 (main 푸시 때 자동 실행하려면 triggering 블록을 추가)
+
+    integrations:
+      app_store_connect: maeum_book_asc
+
+    environment:
+      # 인증서·프로비저닝 프로파일을 Codemagic이 자동으로 만들고 내려받는다.
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.maeumbook.maeumBook
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+
+    scripts:
+      - name: 패키지 설치
+        script: flutter pub get
+      - name: Xcode 프로젝트에 서명 프로파일 적용
+        script: xcode-project use-profiles
+      - name: IPA 빌드
+        # TestFlight는 같은 빌드 번호를 다시 받지 않으므로 Codemagic 빌드 횟수를 빌드 번호로 쓴다.
+        script: |
+          flutter build ipa --release \
+            --build-number=$BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
