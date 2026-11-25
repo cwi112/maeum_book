@@ -93,3 +93,14 @@ main에 원하는 변경이 모두 병합된 상태에서:
 `codemagic.yaml`의 `ios_signing`은 6번에서 가져온 프로파일을 번들 ID·배포 종류로 찾아 쓴다.
 4~6번을 빠뜨리면 빌드가 `No matching profiles found for bundle identifier ...`로 실패한다.
 인증서는 1년마다 만료되므로, 만료되면 4~6번을 다시 한다.
+
+### 외부 테스터에게 배포하려면
+
+지금은 `codemagic.yaml`의 `submit_to_testflight: false`라서 **내부 테스터(7번 그룹)만** 새 빌드를 받는다.
+외부 테스터(이메일·공개 링크로 초대한 사람)가 필요해지면:
+
+1. App Store Connect → TestFlight → **테스트 정보**에서 피드백 이메일, 심사 담당자 이름·전화번호·이메일 입력
+2. `codemagic.yaml`의 `submit_to_testflight`를 `true`로 바꿔 main에 병합
+3. 이후 배포부터 빌드가 외부 테스트 심사에 자동 제출된다 (첫 심사는 보통 하루 안팎)
+
+1번을 빼먹으면 업로드는 되지만 Codemagic 빌드가 `post-processing failed`로 끝난다.
