@@ -31,7 +31,7 @@ if (git tag -l $tag) { throw "$tag 태그가 이미 있습니다. 다른 버전 
 # pubspec.yaml 버전 올리기 (빌드 번호는 항상 +1: TestFlight·Android 모두 이전보다 커야 업데이트됨)
 $pubspecPath = Join-Path (Get-Location) 'pubspec.yaml'
 $pubspec = [IO.File]::ReadAllText($pubspecPath)
-$m = [regex]::Match($pubspec, '(?m)^version:\s*(\d+\.\d+\.\d+)\+(\d+)\s*$')
+$m = [regex]::Match($pubspec, '(?m)^version:[ \t]*(\d+\.\d+\.\d+)\+(\d+)[ \t]*(?=\r?$)')
 if (-not $m.Success) { throw "pubspec.yaml에서 version: x.y.z+n 줄을 찾지 못했습니다." }
 $oldVersion = $m.Groups[1].Value
 $build = [int]$m.Groups[2].Value + 1
