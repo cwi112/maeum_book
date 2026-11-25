@@ -3,6 +3,7 @@ description: "경조사 기록 앱 마음장부"
 publish_to: 'none'
 
 version: 1.0.0+2
+
 environment:
   sdk: ^3.14.0
 
