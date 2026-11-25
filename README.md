@@ -56,7 +56,7 @@
 - 그래프: fl_chart(도넛·막대 차트 컴포넌트로 감쌈), 밀어서 삭제: flutter_slidable
 - 화면 이동: go_router 18 (하단 탭은 StatefulShellRoute)
 - 글꼴: Pretendard(본문), 고운바탕(제목, 금액)
-- iOS 배포: Codemagic(클라우드 Mac 빌드) → TestFlight
+- 배포: Codemagic(iOS → TestFlight), GitHub Actions(PR 검사, Android APK 릴리스 — 준비 중)
 
 상태관리는 GetX, Provider, Bloc, Riverpod을 놓고 고민했습니다. GetX가 시작하기는 제일 쉬웠지만 최근 1년 동안 업데이트가 없었고, Provider는 만든 사람이 Riverpod 쪽을 권하고 있었습니다. Bloc은 이 정도 규모의 앱에는 코드가 너무 많아질 것 같았습니다. Riverpod은 지금도 꾸준히 업데이트되고 있고, `Notifier`가 MVVM의 ViewModel 역할과 잘 맞아서 최종적으로 골랐습니다.
 
@@ -180,8 +180,6 @@ FVM이 없다면 `fvm flutter` 대신 `flutter`로 실행해도 됩니다. (Flut
 
 APK로 설치해 보려면 `fvm flutter build apk --release`로 만들면 `build/app/outputs/flutter-apk/app-release.apk`가 생깁니다. 설정 탭의 "샘플 데이터 넣기"를 누르면 여러 종류의 예시 기록 60개가 들어가서 통계와 검색을 바로 확인해 볼 수 있습니다.
 
-iPhone에서는 TestFlight로 설치합니다. Windows에서 개발하고 있어 iOS를 직접 빌드할 수 없기 때문에, [Codemagic](https://codemagic.io)의 클라우드 Mac에서 빌드해 TestFlight에 올립니다. 설정은 `codemagic.yaml`에 있고, App Store Connect API 키만 등록해 두면 인증서와 프로비저닝 프로파일은 Codemagic이 자동으로 만들어 줍니다. 빌드 번호는 Codemagic 빌드 횟수를 써서 매번 겹치지 않게 했습니다.
-
 테스트는 `fvm flutter test`로 돌릴 수 있습니다. DB 테스트는 메모리 DB를 써서 실제 데이터를 건드리지 않습니다.
 
 DB 테이블이나 쿼리(`lib/data/database`)를 고쳤다면 Drift 코드를 다시 생성해야 합니다.
@@ -189,6 +187,19 @@ DB 테이블이나 쿼리(`lib/data/database`)를 고쳤다면 Drift 코드를 �
 ```bash
 fvm dart run build_runner build
 ```
+
+## 배포
+
+배포는 명령 하나로 Android와 iOS에 함께 나갑니다. 자세한 흐름과 처음 설정은 [docs/DEPLOY.md](docs/DEPLOY.md)에 정리했습니다.
+
+```powershell
+.\scripts\release.ps1 1.0.1
+```
+
+- 스크립트가 `pubspec.yaml`의 버전과 빌드 번호를 올리고 `v1.0.1` 태그를 붙이면, 두 곳에서 동시에 배포가 시작됩니다.
+  - **Android** (준비 중): GitHub Actions가 서명된 APK를 만들어 GitHub Releases에 올립니다. 폰에서 링크를 눌러 바로 설치할 수 있습니다. (카카오톡은 APK 전송을 막아서 이 방식을 택했습니다.)
+  - **iOS**: Windows에서 개발하고 있어 iOS를 직접 빌드할 수 없기 때문에, [Codemagic](https://codemagic.io)의 클라우드 Mac에서 빌드해 TestFlight에 올립니다. 인증서와 프로비저닝 프로파일은 App Store Connect API 키로 자동 관리됩니다.
+- 빌드 번호를 스크립트가 한 곳(pubspec)에서만 올리기 때문에, 두 플랫폼의 버전이 항상 같고 스토어에서 번호가 겹치는 일이 없습니다.
 
 ## 디자인
 

@@ -1,6 +1,8 @@
-# Codemagic CI 설정: Mac 없이 iOS 앱을 빌드해 TestFlight에 업로드한다.
+# Codemagic: Mac 없이 iOS 앱을 빌드해 TestFlight에 업로드한다.
+# 배포 흐름 전체는 docs/DEPLOY.md 참고.
+#
 # 사전 준비 (Codemagic 웹에서 한 번만):
-#   Team settings → Integrations → Developer Portal 에 App Store Connect API 키를 등록하고
+#   Personal Account → Settings → Integrations → Developer Portal 에 App Store Connect API 키를 등록하고
 #   키 이름을 아래 integrations.app_store_connect 값(maeum_book_asc)과 똑같이 맞춘다.
 workflows:
   ios-testflight:
@@ -8,7 +10,13 @@ workflows:
     max_build_duration: 60
     instance_type: mac_mini_m2
 
-    # 시작 방법: Codemagic 화면에서 수동 실행 (main 푸시 때 자동 실행하려면 triggering 블록을 추가)
+    # v로 시작하는 태그(v1.0.1 등)가 push되면 자동 실행. Codemagic 화면에서 수동 실행도 가능.
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'v*'
+          include: true
 
     integrations:
       app_store_connect: maeum_book_asc
@@ -25,13 +33,15 @@ workflows:
     scripts:
       - name: 패키지 설치
         script: flutter pub get
+      - name: 테스트
+        script: flutter test
       - name: Xcode 프로젝트에 서명 프로파일 적용
         script: xcode-project use-profiles
       - name: IPA 빌드
-        # TestFlight는 같은 빌드 번호를 다시 받지 않으므로 Codemagic 빌드 횟수를 빌드 번호로 쓴다.
+        # 버전과 빌드 번호는 pubspec.yaml의 version(예: 1.0.1+3)을 그대로 쓴다.
+        # scripts/release.ps1이 배포할 때마다 빌드 번호를 1씩 올리므로 TestFlight에서 겹치지 않는다.
         script: |
           flutter build ipa --release \
-            --build-number=$BUILD_NUMBER \
             --export-options-plist=/Users/builder/export_options.plist
 
     artifacts:
