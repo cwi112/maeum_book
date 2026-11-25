@@ -18,6 +18,13 @@ class App extends ConsumerWidget {
       locale: const Locale('ko'),
       supportedLocales: const [Locale('ko')],
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      // 모든 화면(다이얼로그 포함)을 감싸서, 빈 공간을 터치하면 키보드를 닫는다.
+      // 입력칸·버튼을 누르면 그 위젯이 터치를 먼저 가져가므로 키보드는 그대로 둔다.
+      builder: (context, child) => GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        child: child,
+      ),
     );
   }
 }
