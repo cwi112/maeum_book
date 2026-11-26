@@ -59,7 +59,10 @@ class _PhotoPagerState extends State<_PhotoPager> {
   Future<void> _editInfo(EventPhoto photo) async {
     final info = await PhotoInfoSheet.show(context, photo: photo, entries: widget.state.entries);
     if (info == null || !mounted) return;
-    final saved = await widget.viewModel.saveInfo(photo, info, onError: _showError);
+    final saved = await context.withLoading(
+      () => widget.viewModel.saveInfo(photo, info, onError: _showError),
+      message: '저장하는 중이에요',
+    );
     if (saved && mounted) context.showToast('사진 정보를 저장했어요');
   }
 
@@ -74,7 +77,10 @@ class _PhotoPagerState extends State<_PhotoPager> {
     if (!confirmed || !mounted) return;
     // 지우는 동안 목록이 먼저 줄어들 수 있어서, 마지막 한 장이었는지는 지우기 전에 알아 둔다.
     final wasLast = _photos.length == 1;
-    final removed = await widget.viewModel.remove(photo, onError: _showError);
+    final removed = await context.withLoading(
+      () => widget.viewModel.remove(photo, onError: _showError),
+      message: '사진을 지우는 중이에요',
+    );
     if (!removed || !mounted) return;
     context.showToast('사진을 지웠어요', type: ToastType.info);
     if (wasLast) context.pop(); // 마지막 사진이었으면 닫는다

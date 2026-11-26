@@ -70,6 +70,10 @@ class AppColors {
   /// 목록 줄을 눌렀을 때 퍼지는 색 (아주 옅은 테라코타)
   static const Color pressedOverlay = Color(0x33C0714A);
 
+  /// 로딩 중 화면을 덮는 어두운 막 (진한 갈색 60%) 과 그 위의 작은 안내 글자 (흰색 80%)
+  static const Color loadingDim = Color(0x993B2F2A);
+  static const Color loadingDimSubtext = Color(0xCCFFFFFF);
+
   // ── 차트 ───────────────────────────────
   /// 그래프 조각 색. 따뜻한 톤 안에서 서로 잘 구분되도록 고른 순서다. (경조사 종류 순서대로 사용)
   static const List<Color> chartPalette = [

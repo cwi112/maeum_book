@@ -119,4 +119,14 @@ class FakeRemoteLedgerStore implements RemoteLedgerStore {
     _check();
     files.clear();
   }
+
+  @override
+  Future<int> deleteOrphanPhotoFiles(Set<int> keep, {Duration minAge = const Duration(hours: 1)}) async {
+    _check();
+    final orphans = files.keys
+        .where((path) => !keep.contains(int.tryParse(path.split(RegExp(r'[_.]')).first)))
+        .toList();
+    orphans.forEach(files.remove);
+    return orphans.length;
+  }
 }

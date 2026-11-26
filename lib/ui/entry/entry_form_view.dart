@@ -29,7 +29,11 @@ class EntryFormView extends BaseAsyncView<EntryFormViewModel, EntryFormState> {
 
   Future<void> _save(BuildContext context, EntryFormViewModel viewModel, {required bool isEditing}) async {
     context.hideKeyboard();
-    final saved = await viewModel.save(onError: (e) => context.showErrorToast(e, '저장하지 못했어요. 잠시 후 다시 시도해 주세요'));
+    // 저장 버튼 안에서 스피너가 돌고, 끝날 때까지 화면의 다른 곳은 눌리지 않는다.
+    final saved = await context.withLoading(
+      () => viewModel.save(onError: (e) => context.showErrorToast(e, '저장하지 못했어요. 잠시 후 다시 시도해 주세요')),
+      style: LoadingStyle.button,
+    );
     // await 사이에 화면이 닫혔을 수 있으므로 확인한 뒤 context를 쓴다.
     if (!context.mounted) return;
     if (saved) {

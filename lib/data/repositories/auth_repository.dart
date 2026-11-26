@@ -11,6 +11,7 @@ import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' as kakao;
 import 'package:maeum_book/core/errors/network_exception.dart';
 import 'package:maeum_book/data/models/app_user.dart';
 import 'package:maeum_book/data/models/auth_failure.dart';
+import 'package:maeum_book/data/remote/timeout_http_client.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -87,7 +88,8 @@ class SupabaseAuthRepository implements AuthRepository {
   GoTrueClient get _auth => _client.auth;
 
   /// 서버 응답을 기다리는 최대 시간. 넘으면 인터넷 문제로 본다.
-  static const _timeout = Duration(seconds: 20);
+  /// (Supabase 요청은 TimeoutHttpClient가 시간이 되면 끊는다. 카카오 SDK 요청은 이 시간까지만 기다린다)
+  static final _timeout = AppTimeouts.auth + const Duration(seconds: 5);
 
   @override
   AppUser? get currentUser => AppUser.fromSupabase(_auth.currentUser);

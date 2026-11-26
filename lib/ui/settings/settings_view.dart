@@ -21,7 +21,10 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
   static void _showError(BuildContext context, Object error) => context.showErrorToast(error, '처리하지 못했어요. 다시 시도해 주세요');
 
   Future<void> _startSampleTour(BuildContext context, SettingsViewModel viewModel) async {
-    final count = await viewModel.startSampleTour(onError: (e) => _showError(context, e));
+    final count = await context.withLoading(
+      () => viewModel.startSampleTour(onError: (e) => _showError(context, e)),
+      message: '샘플을 준비하는 중이에요',
+    );
     if (count != null && context.mounted) {
       context.showToast('샘플 기록 $count개로 둘러보는 중이에요. 앱을 끄면 사라져요', type: ToastType.info);
     }
@@ -36,18 +39,25 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
       isDestructive: true,
     );
     if (!confirmed || !context.mounted) return;
-    final count = await viewModel.clearAll(onError: (e) => _showError(context, e));
+    final count = await context.withLoading(
+      () => viewModel.clearAll(onError: (e) => _showError(context, e)),
+      message: '모든 기록을 지우는 중이에요',
+    );
     if (count != null && context.mounted) context.showToast('기록 $count개를 지웠어요', type: ToastType.info);
   }
 
   /// 엑셀로 내보내기: 파일을 만들고 → "공유하기 / 내 휴대폰에 저장" 창을 띄운다.
   Future<void> _exportExcel(BuildContext context, SettingsViewModel viewModel) async {
     var failed = false;
-    final file = await viewModel.prepareExcel(
-      onError: (e) {
-        failed = true;
-        context.showErrorToast(e, '엑셀 파일을 만들지 못했어요. 다시 시도해 주세요');
-      },
+    // 엑셀 줄 오른쪽에서 스피너가 돌고, 파일을 다 만들 때까지 다른 곳은 눌리지 않는다.
+    final file = await context.withLoading(
+      style: LoadingStyle.button,
+      () => viewModel.prepareExcel(
+        onError: (e) {
+          failed = true;
+          context.showErrorToast(e, '엑셀 파일을 만들지 못했어요. 다시 시도해 주세요');
+        },
+      ),
     );
     if (!context.mounted || failed) return;
     if (file == null) {
@@ -77,7 +87,7 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
 
   /// 앱 정보를 누르면: 최신 버전인지 확인하고, 아니면 업데이트할 곳(지금은 TestFlight)으로 보낸다.
   Future<void> _checkUpdate(BuildContext context, SettingsViewModel viewModel) async {
-    final result = await viewModel.checkUpdate();
+    final result = await context.withLoading(viewModel.checkUpdate, style: LoadingStyle.button);
     if (result == null || !context.mounted) return;
     switch (result) {
       case AppUpToDate():
@@ -237,7 +247,11 @@ class _AccountCard extends ConsumerWidget {
       confirmLabel: '로그아웃',
     );
     if (!confirmed || !context.mounted) return;
-    if (await viewModel.signOut(onFailure: (f) => _showFailure(context, f)) && context.mounted) {
+    final signedOut = await context.withLoading(
+      () => viewModel.signOut(onFailure: (f) => _showFailure(context, f)),
+      message: '로그아웃하는 중이에요',
+    );
+    if (signedOut && context.mounted) {
       context.showToast('로그아웃했어요', type: ToastType.info);
     }
   }
@@ -251,13 +265,20 @@ class _AccountCard extends ConsumerWidget {
       isDestructive: true,
     );
     if (!confirmed || !context.mounted) return;
-    if (await viewModel.deleteAccount(onFailure: (f) => _showFailure(context, f)) && context.mounted) {
+    final deleted = await context.withLoading(
+      () => viewModel.deleteAccount(onFailure: (f) => _showFailure(context, f)),
+      message: '탈퇴하는 중이에요',
+    );
+    if (deleted && context.mounted) {
       context.showToast('탈퇴했어요. 그동안 고마웠어요', type: ToastType.info);
     }
   }
 
   Future<void> _link(BuildContext context, LoginMethod provider) async {
-    final linked = await viewModel.link(provider, onFailure: (f) => _showFailure(context, f));
+    final linked = await context.withLoading(
+      () => viewModel.link(provider, onFailure: (f) => _showFailure(context, f)),
+      style: LoadingStyle.button,
+    );
     if (linked && context.mounted) {
       context.showToast('${provider.label} 계정을 연결했어요. 이제 어느 쪽으로 로그인해도 같은 계정이에요');
     }

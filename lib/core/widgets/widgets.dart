@@ -2,6 +2,7 @@
 library;
 
 export 'app_dialog.dart';
+export 'app_loading.dart';
 export 'app_text.dart';
 export 'app_toast.dart';
 export 'chart/donut_chart.dart';
