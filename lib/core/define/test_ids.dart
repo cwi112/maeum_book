@@ -58,6 +58,17 @@ abstract final class TestIds {
   static const String eventAddEntry = 'event_add_entry';
   static const String eventEditButton = 'event_edit';
   static const String eventDeleteButton = 'event_delete';
+
+  // 행사 사진: 추가 칸 / 사진 한 장(event_photo_12) / 찍기 · 앨범 / 전체 화면의 정보 수정 · 삭제 / 정보 창
+  static const String eventPhotoAdd = 'event_photo_add';
+  static String eventPhoto(int id) => 'event_photo_$id';
+  static const String photoCamera = 'photo_camera';
+  static const String photoAlbum = 'photo_album';
+  static const String photoEdit = 'photo_edit';
+  static const String photoDelete = 'photo_delete';
+  static const String photoSenderField = 'photo_sender_field';
+  static const String photoMemoField = 'photo_memo_field';
+  static const String photoInfoSave = 'photo_info_save';
   static const String eventFormTitle = 'event_form_title';
   static const String eventFormType = 'event_form_type';
   static const String eventFormDate = 'event_form_date';

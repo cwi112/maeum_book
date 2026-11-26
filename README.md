@@ -35,7 +35,7 @@
 - [x] 받아요를 행사 중심으로: 내 행사(결혼식·돌잔치 등)를 만들고, 행사마다 마음을 준 사람들을 기록
 - [x] 경조사 종류 직접 추가·이름 변경·삭제 (설정)
 - [ ] 다가오는 경조사 알림
-- [ ] 행사별 화환 · 꽃 사진 기록 (기획안: [docs/EVENT_PHOTO_PLAN.md](docs/EVENT_PHOTO_PLAN.md))
+- [x] 행사별 화환 · 꽃 사진: 찍기 · 앨범에서 여러 장, 보낸 분을 받은 기록에서 고르면 목록에 꽃 표시, 확대 보기 (비회원은 기기, 회원은 Supabase Storage + 기기 캐시, 기획안: [docs/EVENT_PHOTO_PLAN.md](docs/EVENT_PHOTO_PLAN.md))
 - [x] 스플래시 화면
 - [x] 카카오 · Apple 로그인 (Supabase Auth), 자동 로그인 · 만료 안내, 로그아웃, 회원 탈퇴 — 설정 방법은 [docs/AUTH_SETUP.md](docs/AUTH_SETUP.md)
 - [x] 로그인 없이 시작하기(비회원), 카카오 ↔ Apple 계정 연결

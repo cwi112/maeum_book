@@ -83,8 +83,9 @@ class FakeAuthRepository implements AuthRepository {
   Future<void> signOut() async => _set(null);
 
   @override
-  Future<void> deleteAccount() async {
+  Future<void> deleteAccount({Future<void> Function()? beforeDelete}) async {
     _throwIfFailNext();
+    await beforeDelete?.call();
     deleteCount++;
     _set(null);
   }

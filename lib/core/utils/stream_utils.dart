@@ -55,3 +55,19 @@ Stream<R> combineLatest2<A, B, R>(Stream<A> streamA, Stream<B> streamB, R Functi
   );
   return controller.stream;
 }
+
+/// 세 Stream을 합친다. ([combineLatest2]를 두 번 써서 만든다)
+///
+/// ```dart
+/// combineLatest3(eventStream, entriesStream, photosStream, (event, entries, photos) => ...)
+/// ```
+Stream<R> combineLatest3<A, B, C, R>(
+  Stream<A> streamA,
+  Stream<B> streamB,
+  Stream<C> streamC,
+  R Function(A a, B b, C c) combiner,
+) => combineLatest2(
+  combineLatest2(streamA, streamB, (A a, B b) => (a, b)),
+  streamC,
+  ((A, B) ab, C c) => combiner(ab.$1, ab.$2, c),
+);

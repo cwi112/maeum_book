@@ -4,7 +4,9 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maeum_book/core/errors/network_exception.dart';
 import 'package:maeum_book/data/database/app_database.dart';
+import 'package:maeum_book/data/photos/photo_files.dart';
 import 'package:maeum_book/data/providers.dart';
+import 'package:maeum_book/data/remote/remote_ledger_store.dart';
 import 'package:maeum_book/data/sync/ledger_sync.dart';
 
 /// 인터넷 연결 여부. 연결 방법(와이파이 · 데이터)이 하나도 없으면 false.
@@ -37,7 +39,8 @@ class MemberSyncNotifier extends Notifier<int> {
     if (userId == null) return Future.value();
     final db = ref.read(memberDatabaseProvider(userId));
     final remote = ref.read(serverStoreProvider);
-    return _running ??= LedgerSync.pull(db, remote)
+    final photos = ref.read(memberPhotoFilesProvider(userId));
+    return _running ??= _pullAndTidy(db, remote, photos)
         .catchError((Object error) {
           if (error is NetworkException) {
             state++; // 기기 사본은 그대로 두고, 감시 위젯이 "인터넷 연결" 토스트를 띄운다.
@@ -48,12 +51,24 @@ class MemberSyncNotifier extends Notifier<int> {
         .whenComplete(() => _running = null);
   }
 
+  /// 받아 온 뒤, 다른 기기에서 지운 사진의 캐시 파일을 정리한다.
+  static Future<void> _pullAndTidy(AppDatabase db, RemoteLedgerStore remote, PhotoFiles photos) async {
+    await LedgerSync.pull(db, remote);
+    final ids = {for (final photo in await db.eventPhotoDao.getAll()) photo.id};
+    await photos.retainOnly(ids);
+  }
+
   /// 로그아웃 · 탈퇴 뒤 이 기기에 남은 계정 사본을 지운다. (서버 원본은 그대로. 다음 사람이 이 기기에서 볼 수 없게)
-  static Future<void> clearLocalCopy(AppDatabase db) => db.transaction(() async {
-    await db.delete(db.ledgerEntries).go();
-    await db.delete(db.events).go();
-    await db.delete(db.eventTypes).go();
-  });
+  /// [photos]: 그 계정의 사진 캐시 폴더 (같이 비운다)
+  static Future<void> clearLocalCopy(AppDatabase db, {PhotoFiles? photos}) async {
+    await db.transaction(() async {
+      await db.delete(db.eventPhotos).go();
+      await db.delete(db.ledgerEntries).go();
+      await db.delete(db.events).go();
+      await db.delete(db.eventTypes).go();
+    });
+    await photos?.clear();
+  }
 }
 
 final memberSyncProvider = NotifierProvider<MemberSyncNotifier, int>(MemberSyncNotifier.new);

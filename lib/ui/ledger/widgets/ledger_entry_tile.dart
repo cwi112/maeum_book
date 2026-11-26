@@ -9,7 +9,17 @@ import 'package:maeum_book/data/data.dart';
 /// ```
 /// 금액 색은 보냄(장밋빛) / 받음(청록)으로 자동으로 정해진다.
 class LedgerEntryTile extends StatelessWidget {
-  const LedgerEntryTile({super.key, required this.entry, required this.typeName, this.onTap, this.onLongPress});
+  const LedgerEntryTile({
+    super.key,
+    required this.entry,
+    required this.typeName,
+    this.onTap,
+    this.onLongPress,
+    this.hasPhoto = false,
+  });
+
+  /// 이 사람이 보낸 화환 · 꽃 사진이 있으면 이름 옆에 꽃 표시 (행사 상세)
+  final bool hasPhoto;
 
   final LedgerEntry entry;
 
@@ -32,7 +42,15 @@ class LedgerEntryTile extends StatelessWidget {
       onTap: onTap,
       onLongPress: onLongPress,
       leading: _EventTypeBadge(label: typeName),
-      title: AppText.subtitle(entry.personName, maxLines: 1),
+      title: hasPhoto
+          ? Row(
+              children: [
+                AppText.subtitle(entry.personName, maxLines: 1).flexible(),
+                const SizedBox(width: 4),
+                const Icon(Icons.local_florist, size: 16, color: AppColors.primary, semanticLabel: '화환 사진 있음'),
+              ],
+            )
+          : AppText.subtitle(entry.personName, maxLines: 1),
       subtitle: AppText.caption(subtitle, maxLines: 1),
       trailing: AppText.amount(entry.amount.won, color: amountColor),
     );

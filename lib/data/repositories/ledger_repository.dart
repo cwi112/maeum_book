@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:maeum_book/data/database/app_database.dart';
 import 'package:maeum_book/data/models/models.dart';
+import 'package:maeum_book/data/photos/photo_files.dart';
 import 'package:maeum_book/data/remote/remote_ledger_store.dart';
 import 'package:maeum_book/data/repositories/remote_first_write.dart';
 import 'package:maeum_book/data/seed/sample_data.dart';
@@ -17,7 +18,10 @@ import 'package:maeum_book/data/seed/sample_data.dart';
 /// - 수정 시각(updatedAt)처럼 매번 챙겨야 하는 값을 자동으로 넣는다.
 class LedgerRepository with RemoteFirstWrite {
   /// [remote]: 로그인했으면 서버 창구, 비로그인이면 null (기기 DB에만 저장)
-  LedgerRepository(this._dao, {this.remote});
+  /// [photoFiles]: 이 장부의 사진 폴더. 모든 기록을 지울 때 사진 파일도 지운다.
+  LedgerRepository(this._dao, {this.remote, this.photoFiles});
+
+  final PhotoFiles? photoFiles;
 
   final LedgerDao _dao;
 
@@ -170,15 +174,19 @@ class LedgerRepository with RemoteFirstWrite {
   );
 
   /// 모든 기록과 행사를 지우고 지운 기록 수를 돌려준다. 되돌릴 수 없으므로 화면에서 꼭 확인을 받은 뒤 부른다.
-  /// (경조사 종류는 사용자 설정이라 남겨 둔다)
-  Future<int> clearAll() => write(
-    () => db.transaction(() async {
-      final count = await _dao.deleteAll();
-      await db.delete(db.events).go();
-      return count;
-    }),
-    (_, server) => server.clearRecords(),
-  );
+  /// (경조사 종류는 사용자 설정이라 남겨 둔다) 행사 사진도 정보 · 파일 모두 지워진다.
+  Future<int> clearAll() async {
+    final count = await write(
+      () => db.transaction(() async {
+        final count = await _dao.deleteAll();
+        await db.delete(db.events).go(); // 사진 정보는 행사와 함께 지워진다 (cascade)
+        return count;
+      }),
+      (_, server) => server.clearRecords(),
+    );
+    await photoFiles?.clear();
+    return count;
+  }
 
   // ── 내부 도우미 ───────────────────────
 

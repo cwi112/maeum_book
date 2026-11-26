@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:drift/drift.dart' show DatabaseConnection, driftRuntimeOptions;
 import 'package:drift/native.dart';
@@ -18,6 +19,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fakes/fake_auth_repository.dart';
 import 'fakes/fake_export_file_service.dart';
+import 'fakes/fake_photo_picker.dart';
 import 'fakes/fake_remote_ledger_store.dart';
 
 void main() {
@@ -28,6 +30,8 @@ void main() {
   late StreamController<bool> online;
   late SharedPreferences prefs;
   late FakeExportFileService exportService;
+  late Directory photoRoot; // 사진 폴더 (테스트마다 새 임시 폴더)
+  late FakePhotoPicker photoPicker;
 
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
@@ -40,6 +44,13 @@ void main() {
     server = FakeRemoteLedgerStore();
     online = StreamController<bool>.broadcast();
     exportService = FakeExportFileService();
+    photoRoot = Directory.systemTemp.createTempSync('maeum_photos_');
+    addTearDown(() {
+      try {
+        photoRoot.deleteSync(recursive: true);
+      } on FileSystemException catch (_) {} // 윈도우에서 파일을 아직 쥐고 있으면 임시 폴더라 그냥 둔다
+    });
+    photoPicker = FakePhotoPicker();
   });
 
   // 로딩 중에는 스피너가 계속 돌아서 pumpAndSettle이 끝나지 않는다.
@@ -69,6 +80,9 @@ void main() {
           authRepositoryProvider.overrideWithValue(auth),
           sharedPreferencesProvider.overrideWithValue(prefs),
           exportFileServiceProvider.overrideWithValue(exportService),
+          photoRootProvider.overrideWithValue(() async => photoRoot),
+          photoPickerProvider.overrideWithValue(photoPicker),
+          photoProcessorProvider.overrideWithValue(const FakePhotoProcessor()),
         ],
         child: const App(),
       ),
@@ -530,6 +544,77 @@ void main() {
 
     expect(find.text('김철수'), findsOneWidget); // 행사 상세에 바로 나타남
     expect(find.text('100,000원'), findsNWidgets(2)); // 상단 합계 + 목록
+
+    await closeApp(tester);
+  });
+
+  testWidgets('행사 사진: 앨범에서 넣고 → 보낸 분을 받은 기록에서 고르면 꽃 표시 → 지우기', (tester) async {
+    await pumpApp(tester);
+    final eventId = await tester.runAsync(
+      () => EventRepository(database.eventDao).add(title: '우리 결혼식', eventTypeId: 1, date: DateTime(2026, 5, 10)),
+    );
+    await tester.runAsync(
+      () => LedgerRepository(database.ledgerDao).add(
+        direction: RecordDirection.received,
+        eventTypeId: 1,
+        eventId: eventId,
+        personName: '김민준',
+        amount: 100000,
+        date: DateTime(2026, 5, 10),
+      ),
+    );
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabReceived));
+    await settle(tester);
+    await tester.tap(find.text('우리 결혼식'));
+    await settle(tester);
+    expect(find.text('화환 · 사진 0'), findsOneWidget);
+    expect(find.textContaining('사진은 이 기기에만 있어요'), findsOneWidget); // 비회원 안내
+
+    // 사진 파일 읽기 · 쓰기는 진짜 시간이 걸려서 조금 더 기다린다.
+    Future<void> waitFiles() async {
+      for (var i = 0; i < 6; i++) {
+        await settle(tester);
+      }
+    }
+
+    // 1. 앨범에서 2장
+    photoPicker.nextCount = 2;
+    await tester.tap(find.bySemanticsIdentifier(TestIds.eventPhotoAdd));
+    await settle(tester);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.photoAlbum));
+    await waitFiles();
+    expect(find.text('화환 · 사진 2'), findsOneWidget);
+    expect(find.textContaining('사진 2장을 넣었어요'), findsOneWidget);
+    expect(Directory('${photoRoot.path}/guest').listSync(), hasLength(4)); // 원본 + 작은 사진 × 2
+
+    // 2. 첫 사진 → 보낸 분을 받은 기록(김민준)에서 고르기
+    final photos = await tester.runAsync(() => database.eventPhotoDao.getByEvent(eventId!));
+    await tester.tap(find.bySemanticsIdentifier(TestIds.eventPhoto(photos!.first.id)));
+    await waitFiles();
+    expect(find.text('1 / 2'), findsOneWidget);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.photoEdit));
+    await settle(tester);
+    await tester.tap(find.widgetWithText(ChoiceChip, '김민준'));
+    await tester.pump();
+    await tester.tap(find.bySemanticsIdentifier(TestIds.photoInfoSave));
+    await waitFiles();
+    expect(find.text('사진 정보를 저장했어요'), findsOneWidget);
+    expect(find.textContaining('받은 마음 100,000원'), findsOneWidget); // 연결된 기록 금액
+
+    // 3. 행사 상세로 돌아가면 김민준 옆에 꽃 표시
+    GoRouter.of(tester.element(find.text('1 / 2'))).pop();
+    await settle(tester);
+    expect(find.byIcon(Icons.local_florist), findsOneWidget);
+
+    // 4. 사진 지우기 (확인 창)
+    await tester.tap(find.bySemanticsIdentifier(TestIds.eventPhoto(photos.first.id)));
+    await waitFiles();
+    await tester.tap(find.bySemanticsIdentifier(TestIds.photoDelete));
+    await settle(tester);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.dialogConfirm));
+    await waitFiles();
+    expect(find.text('1 / 1'), findsOneWidget);
+    expect(Directory('${photoRoot.path}/guest').listSync(), hasLength(2));
 
     await closeApp(tester);
   });
