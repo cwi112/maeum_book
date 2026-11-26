@@ -17,15 +17,13 @@ submit-store.ps1 ──▶ (API) Codemagic ios-appstore ──▶ 결과 표시 
 두 스크립트 모두 **Codemagic API 토큰**으로 빌드를 시작하고, **끝날 때까지 기다려 성공 · 실패를 터미널에 알려 준다.**
 Codemagic 사이트에 들어가 확인할 필요가 없고, 실패하면 로그 링크가 바로 나온다.
 
-### 처음 한 번: Codemagic 토큰
-1. Codemagic → Teams → Personal Account → Integrations → **Codemagic API** → Show → 토큰 복사
-2. Codemagic에서 앱을 열었을 때 주소 `https://codemagic.io/app/<앱 ID>`의 **앱 ID** 복사
-3. PowerShell에서 (내 PC 사용자 환경 변수에만 저장. 저장소 · 채팅에는 올리지 않는다)
-   ```powershell
-   [Environment]::SetEnvironmentVariable('CODEMAGIC_TOKEN', '<토큰>', 'User')
-   [Environment]::SetEnvironmentVariable('CODEMAGIC_APP_ID', '<앱 ID>', 'User')
-   ```
-4. 새 PowerShell 창부터 적용된다. 토큰이 없으면 스크립트가 **아무것도 바꾸기 전에** 멈추고 이 방법을 알려 준다.
+### Codemagic 토큰 (PC마다 첫 배포 때 한 번)
+따로 준비할 것은 없다. 이 PC에 토큰이 없으면 스크립트가 **그 자리에서 물어보고** 이 PC에 저장한다.
+- 토큰: Codemagic → Settings 또는 Account settings → **Codemagic API** / **API token** → Show → 복사
+- 앱 ID: Codemagic → Applications → maeum_book을 연 뒤 주소 `https://codemagic.io/app/<앱 ID>/...`의 24자리
+- 토큰은 Codemagic에서 언제든 다시 볼 수 있으니 따로 보관하지 않아도 된다. 유출이 걱정되면 Codemagic에서 새로 발급한다.
+- 붙여 넣은 값은 **배포를 시작하기 전에** 맞는지 확인한다. 틀리면 아무것도 바꾸지 않고 멈추며, 다시 실행하면 새로 묻는다.
+- 저장 위치: 이 PC의 사용자 환경 변수 `CODEMAGIC_TOKEN` · `CODEMAGIC_APP_ID` (저장소 · 채팅에는 올리지 않는다)
 
 **마지막 출시 버튼은 일부러 사람이 누르게 했다.** 심사를 통과해도 바로 모든 사용자에게 나가지 않는다.
 
