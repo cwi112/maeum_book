@@ -24,6 +24,15 @@ Set-Location (Split-Path $PSScriptRoot -Parent)
 
 if (git status --porcelain) { throw "커밋하지 않은 변경이 있습니다. 먼저 정리하세요." }
 
+# TestFlight 문구(release_notes.json) 검사: Apple은 이모지와 < > 를 거부한다(문구 등록만 409로 실패).
+$notesPath = Join-Path (Get-Location) 'release_notes.json'
+if (Test-Path $notesPath) {
+    $notes = [IO.File]::ReadAllText($notesPath)
+    $null = $notes | ConvertFrom-Json  # JSON 형식이 깨졌으면 여기서 멈춤
+    $bad = [regex]::Matches($notes, '[\uD800-\uDBFF][\uDC00-\uDFFF]|[☀-➿]|[<>]') | ForEach-Object { $_.Value } | Select-Object -Unique
+    if ($bad) { throw "release_notes.json에 TestFlight가 거부하는 문자가 있습니다: $($bad -join ' ')  (이모지 · < > 를 빼 주세요)" }
+}
+
 git checkout main; Assert-LastExit 'main 체크아웃'
 git pull --ff-only; Assert-LastExit 'main 최신화'
 git fetch --tags -q; Assert-LastExit '태그 가져오기'
