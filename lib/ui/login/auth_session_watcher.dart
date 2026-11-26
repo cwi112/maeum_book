@@ -43,9 +43,21 @@ class _AuthSessionWatcherState extends ConsumerState<AuthSessionWatcher> {
     super.dispose();
   }
 
+  /// 앱으로 돌아올 때 마지막으로 받아 온 시각
+  DateTime? _lastResumePull;
+
+  /// 앱으로 돌아올 때 이 시간 안에 이미 받아 왔으면 다시 받지 않는다.
+  /// (카톡 보고 돌아오기처럼 잠깐 나갔다 오는 일이 잦아서, 매번 장부 전체를 받으면 서버 전송량이 크게 는다)
+  /// 로그인 · 인터넷 재연결 때는 이 시간과 상관없이 바로 받는다.
+  static const resumePullInterval = Duration(minutes: 2);
+
   void _onResume() {
     if (!mounted) return;
     ref.read(authRepositoryProvider).checkProviderConnection();
+    final now = DateTime.now();
+    final last = _lastResumePull;
+    if (last != null && now.difference(last) < resumePullInterval) return;
+    _lastResumePull = now;
     _pull();
   }
 

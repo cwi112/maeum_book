@@ -131,7 +131,7 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
               title: const Text('경조사 종류 관리'),
               subtitle: const Text('환갑·졸업처럼 필요한 종류를 추가하거나 지워요'),
               trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
-              onTap: () => context.push(AppRoutes.eventTypes),
+              onTap: () => context.pushOnce(AppRoutes.eventTypes),
             ).testId(TestIds.settingsEventTypes),
           ),
           const _SectionLabel('데이터'),
@@ -294,7 +294,7 @@ class _AccountCard extends ConsumerWidget {
           title: const Text('로그인'),
           subtitle: const Text('비회원으로 쓰는 중이에요. 로그인해도 기록은 그대로예요'),
           trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
-          onTap: () => context.push(AppRoutes.login),
+          onTap: () => context.pushOnce(AppRoutes.login),
         ).testId(TestIds.settingsAccount),
       );
     }

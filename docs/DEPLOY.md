@@ -1,5 +1,7 @@
 # 배포 파이프라인
 
+> 스토어 제출(App Store 심사 · Google Play)은 [STORE_RELEASE.md](STORE_RELEASE.md) — `scripts/submit-store.ps1`.
+>
 > 현재 상태: iOS(Codemagic → TestFlight) 사용 중. CI와 Android 릴리스(GitHub Actions)는 준비 중 — 워크플로 파일을 올리려면 `gh auth refresh -h github.com -s workflow`로 gh 권한을 먼저 추가해야 한다.
 
 ```

@@ -47,7 +47,7 @@ class EntrySwipeTile extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     // 종류 이름은 종류 목록이 바뀌면(이름 변경 등) 자동으로 다시 그려진다.
     final typeName = ref.watch(eventTypeNamesProvider)[entry.eventTypeId] ?? '';
-    void openEdit() => context.push(AppRoutes.entryEdit(entry.id));
+    void openEdit() => context.pushOnce(AppRoutes.entryEdit(entry.id));
 
     return SwipeActionTile(
       actions: [

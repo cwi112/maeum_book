@@ -31,6 +31,24 @@ void main() {
   ).add(direction: RecordDirection.sent, eventTypeId: 1, personName: name, amount: amount, date: DateTime(2026, 11, 1));
 
   group('pull: 서버 원본으로 기기 사본 바꾸기', () {
+    test('받아 오는 사이에 이 기기에서 저장하면, 옛 장부로 덮어쓰지 않고 다시 받아 방금 저장한 기록이 남는다', () async {
+      await LedgerSync.pull(member, server); // 기본 종류 준비
+      final repository = LedgerRepository(member.ledgerDao, remote: server);
+      // 서버가 장부를 읽은 직후(아직 돌려주기 전)에 사용자가 기록을 저장한다.
+      server.duringFetch = () => repository.add(
+        direction: RecordDirection.sent,
+        eventTypeId: 1,
+        personName: '방금저장',
+        amount: 50000,
+        date: DateTime(2026, 11, 26),
+      );
+
+      await LedgerSync.pull(member, server);
+
+      final names = (await member.select(member.ledgerEntries).get()).map((e) => e.personName);
+      expect(names, contains('방금저장'));
+    });
+
     test('새 계정이면 기본 경조사 종류를 서버에 먼저 올린다', () async {
       await LedgerSync.pull(member, server);
       expect(server.types.length, DefaultEventTypes.all.length);

@@ -17,6 +17,9 @@ class FakeRemoteLedgerStore implements RemoteLedgerStore {
   /// true면 다음 작업들이 인터넷 문제로 실패한다. (다시 false로 바꿀 때까지)
   bool offline = false;
 
+  /// fetchAll이 장부를 읽은 **뒤**, 돌려주기 전에 한 번 실행할 일. (받아 오는 사이에 저장이 끼어드는 상황 재현)
+  Future<void> Function()? duringFetch;
+
   var _next = 1000000;
 
   void _check() {
@@ -31,12 +34,16 @@ class FakeRemoteLedgerStore implements RemoteLedgerStore {
   @override
   Future<RemoteSnapshot> fetchAll() async {
     _check();
-    return RemoteSnapshot(
+    final snapshot = RemoteSnapshot(
       types: types.values.toList(),
       events: events.values.toList(),
       entries: entries.values.toList(),
       photos: photos.values.toList(),
     );
+    final hook = duringFetch;
+    duringFetch = null; // 한 번만
+    await hook?.call();
+    return snapshot;
   }
 
   @override

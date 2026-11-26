@@ -52,7 +52,7 @@ class LedgerListView extends BaseAsyncView<LedgerListViewModel, LedgerListState>
       addLabel: texts.addLabel,
       addTestId: TestIds.ledgerAdd(direction),
       summaryTestId: TestIds.ledgerSummary(direction),
-      onAdd: () => context.push(AppRoutes.entryNew(direction)),
+      onAdd: () => context.pushOnce(AppRoutes.entryNew(direction)),
     );
   }
 }
