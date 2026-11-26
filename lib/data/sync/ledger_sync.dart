@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:maeum_book/data/database/app_database.dart';
 import 'package:maeum_book/data/photos/photo_files.dart';
 import 'package:maeum_book/data/remote/remote_ledger_store.dart';
+import 'package:maeum_book/data/repositories/remote_first_write.dart';
 
 /// 비로그인 기록 수 (연동 팝업에 보여줄 값)
 class LocalRecordCount {
@@ -24,18 +25,31 @@ abstract final class LedgerSync {
   /// 서버의 내 장부 전체를 받아 기기 사본을 **통째로 바꾼다.** (서버가 원본)
   ///
   /// 처음 가입한 계정이라 서버에 경조사 종류가 하나도 없으면, 기기의 기본 종류(1~7)를 서버에 먼저 올린다.
+  ///
+  /// 받아 오는 동안 이 기기에서 기록을 저장했으면(받은 장부가 이미 옛날 것) 덮어쓰지 않고 다시 받는다. (최대 3번)
   static Future<void> pull(AppDatabase db, RemoteLedgerStore remote) async {
-    var snapshot = await remote.fetchAll();
-    if (snapshot.types.isEmpty) {
-      final localTypes = await db.select(db.eventTypes).get();
-      await remote.upsert(types: localTypes);
-      snapshot = await remote.fetchAll();
+    for (var attempt = 0; attempt < 3; attempt++) {
+      final writesBefore = LocalWrites.version;
+      var snapshot = await remote.fetchAll();
+      if (snapshot.types.isEmpty) {
+        final localTypes = await db.select(db.eventTypes).get();
+        await remote.upsert(types: localTypes);
+        snapshot = await remote.fetchAll();
+      }
+      if (await replaceLocal(db, snapshot, unlessWrittenSince: writesBefore)) return;
     }
-    await replaceLocal(db, snapshot);
   }
 
   /// 기기 사본을 [snapshot]으로 바꾼다. 한 트랜잭션이라 화면은 바뀐 결과로 한 번만 다시 그려진다.
-  static Future<void> replaceLocal(AppDatabase db, RemoteSnapshot snapshot) => db.transaction(() async {
+  /// [unlessWrittenSince]: 그 뒤로 이 기기에서 저장한 게 있으면 바꾸지 않고 false. (트랜잭션 안에서 확인해 사이에 끼어들 틈이 없다)
+  static Future<bool> replaceLocal(AppDatabase db, RemoteSnapshot snapshot, {int? unlessWrittenSince}) =>
+      db.transaction(() async {
+        if (unlessWrittenSince != null && LocalWrites.version != unlessWrittenSince) return false;
+        await _replace(db, snapshot);
+        return true;
+      });
+
+  static Future<void> _replace(AppDatabase db, RemoteSnapshot snapshot) async {
     await db.delete(db.eventPhotos).go();
     await db.delete(db.ledgerEntries).go();
     await db.delete(db.events).go();
@@ -47,7 +61,7 @@ abstract final class LedgerSync {
         ..insertAll(db.ledgerEntries, snapshot.entries)
         ..insertAll(db.eventPhotos, snapshot.photos);
     });
-  });
+  }
 
   /// 비로그인 기록 수
   static Future<LocalRecordCount> countRecords(AppDatabase db) async {

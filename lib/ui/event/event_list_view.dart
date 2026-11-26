@@ -54,13 +54,13 @@ class EventListView extends BaseAsyncView<EventListViewModel, EventListState> {
               itemBuilder: (context, index) => EventCard(
                 key: ValueKey(events[index].event.id),
                 summary: events[index],
-                onTap: () => context.push(AppRoutes.eventDetail(events[index].event.id)),
+                onTap: () => context.pushOnce(AppRoutes.eventDetail(events[index].event.id)),
               ),
             ),
       fab: AppListFab(
         label: '행사 만들기',
         icon: Icons.add_rounded,
-        onPressed: () => context.push(AppRoutes.eventNew),
+        onPressed: () => context.pushOnce(AppRoutes.eventNew),
         testId: TestIds.eventAdd,
       ),
     );

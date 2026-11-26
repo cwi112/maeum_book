@@ -96,7 +96,7 @@ class EventDetailView extends BaseAsyncView<EventDetailViewModel, EventDetailSta
       title: event.title,
       actions: [
         IconButton(
-          onPressed: () => context.push(AppRoutes.eventEdit(event.id)),
+          onPressed: () => context.pushOnce(AppRoutes.eventEdit(event.id)),
           icon: const Icon(Icons.edit_outlined),
           tooltip: '행사 수정',
         ).testId(TestIds.eventEditButton),
@@ -137,7 +137,7 @@ class EventDetailView extends BaseAsyncView<EventDetailViewModel, EventDetailSta
               photos: state.photos,
               isAdding: state.isAddingPhotos,
               onAdd: () => _addPhotos(context, viewModel),
-              onOpen: (index) => context.push(AppRoutes.eventPhotos(event.id, index: index)),
+              onOpen: (index) => context.pushOnce(AppRoutes.eventPhotos(event.id, index: index)),
             ),
             if (ref.watch(currentUserIdProvider) == null && !ref.watch(sampleModeProvider))
               const AppText.caption('로그인하지 않으면 사진은 이 기기에만 있어요. 앱을 지우면 사라져요')
@@ -167,7 +167,7 @@ class EventDetailView extends BaseAsyncView<EventDetailViewModel, EventDetailSta
       fab: AppListFab(
         label: '받은 마음 기록',
         icon: Icons.edit_outlined,
-        onPressed: () => context.push(AppRoutes.entryNewForEvent(event.id)),
+        onPressed: () => context.pushOnce(AppRoutes.entryNewForEvent(event.id)),
         testId: TestIds.eventAddEntry,
       ),
     );

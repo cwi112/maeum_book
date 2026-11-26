@@ -38,6 +38,9 @@ abstract final class SampleData {
     7: ([20000, 30000, 50000], ['승진 축하', '출산 축하', '']),
   };
 
+  /// 받은 기록 메모 예시 (보낸 기록 메모와 말투가 다르다)
+  static const List<String> _receivedMemos = ['화환도 보내 주심', '직접 와 주심', '계좌로 보내 주심', '멀리서 와 주심', '', '', ''];
+
   /// 보낸 기록의 종류 비율 (결혼·조의가 많도록 여러 번 넣음)
   static const List<int> _sentTypeWeights = [1, 1, 1, 1, 2, 2, 2, 3, 3, 4, 5, 6, 7];
 
@@ -70,17 +73,18 @@ abstract final class SampleData {
       required int typeId,
       required DateTime date,
       int? eventId,
+      String? name,
     }) {
       final (amounts, memos) = _patterns[typeId]!;
       final relation = random.nextInt(5) == 0 ? null : pick(Relation.values);
       final isFamily = relation == Relation.family || relation == Relation.relative;
-      final memo = pick(memos);
+      final memo = direction == RecordDirection.received ? pick(_receivedMemos) : pick(memos);
       return LedgerEntriesCompanion.insert(
         id: id(),
         direction: direction,
         eventTypeId: typeOrOther(typeId),
         eventId: Value(eventId),
-        personName: pick(_people),
+        personName: name ?? pick(_people),
         amount: pick(amounts) * (isFamily ? 2 : 1),
         date: date,
         relation: Value(relation),
@@ -108,9 +112,11 @@ abstract final class SampleData {
         final eventId = await db.eventDao.insertEvent(
           EventsCompanion.insert(id: id(), title: title, eventTypeId: typeOrOther(typeId), date: date),
         );
+        // 한 행사 안에서는 같은 이름이 두 번 나오지 않게 섞은 명단에서 차례로 뽑는다.
+        final names = [..._people]..shuffle(random);
         final received = [
           for (var i = 0; i < givers; i++)
-            entry(direction: RecordDirection.received, typeId: typeId, date: date, eventId: eventId),
+            entry(direction: RecordDirection.received, typeId: typeId, date: date, eventId: eventId, name: names[i]),
         ];
         await db.ledgerDao.insertAll(received);
         count += received.length;

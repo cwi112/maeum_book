@@ -1,3 +1,5 @@
+import 'dart:isolate';
+
 import 'package:maeum_book/core/core.dart';
 import 'package:maeum_book/data/data.dart';
 import 'package:maeum_book/ui/login/login_view_model.dart';
@@ -64,7 +66,8 @@ class SettingsViewModel extends BaseViewModel<SettingsState> {
       );
       final isMember = ref.read(authRepositoryProvider).currentUser != null;
       return ExcelExportFile(
-        bytes: exporter.encode(),
+        // 기록이 수천 건이면 파일 만들기가 오래 걸려서, 화면이 멈추지 않게 다른 일꾼(Isolate)에게 맡긴다.
+        bytes: await Isolate.run(exporter.encode),
         fileName: exporter.fileName,
         sentCount: exporter.sentCount,
         receivedCount: exporter.receivedCount,

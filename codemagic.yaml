@@ -1,9 +1,50 @@
-# Codemagic: Mac 없이 iOS 앱을 빌드해 TestFlight에 업로드한다.
-# 배포 흐름 전체는 docs/DEPLOY.md 참고.
+# Codemagic: Mac 없이 iOS · Android 앱을 빌드해 TestFlight · 스토어에 올린다.
+# 배포 흐름 전체는 docs/DEPLOY.md, 스토어 첫 출시 준비는 docs/STORE_RELEASE.md 참고.
+#
+# | 워크플로 | 언제 | 하는 일 |
+# |---|---|---|
+# | ios-testflight | v* 태그 push (scripts/release.ps1) | 테스트 → IPA → TestFlight 업로드 |
+# | ios-appstore   | 수동 (scripts/submit-store.ps1 또는 Codemagic 화면) | 테스트 → IPA → App Store 심사 제출. 출시 버튼은 사람이 |
+# | android-play   | 수동 (scripts/submit-store.ps1 또는 Codemagic 화면) | 테스트 → AAB → Google Play 내부 테스트 트랙에 초안 |
 #
 # 사전 준비 (Codemagic 웹에서 한 번만):
-#   Personal Account → Settings → Integrations → Developer Portal 에 App Store Connect API 키를 등록하고
-#   키 이름을 아래 integrations.app_store_connect 값(maeum_book_asc)과 똑같이 맞춘다.
+#   - App Store Connect API 키: Settings → Integrations → Developer Portal, 이름 maeum_book_asc
+#   - iOS 서명: Code signing identities에 App Store 인증서 · 프로파일 (docs/DEPLOY.md)
+#   - Android 서명: Code signing identities → Android keystores에 업로드 키, 이름 maeum_book_upload
+#   - Google Play: Environment variables → 그룹 google_play 에 GCLOUD_SERVICE_ACCOUNT_CREDENTIALS (서비스 계정 JSON)
+
+definitions:
+  ios_environment: &ios_environment
+    ios_signing:
+      distribution_type: app_store
+      bundle_identifier: com.maeumbook.maeumBook
+    vars:
+      # App Store Connect → 앱 → 앱 정보 → "Apple ID" 숫자. 비워 두면 빌드 번호는 pubspec 값을 쓴다.
+      APP_STORE_APPLE_ID: ""
+    flutter: stable
+    xcode: latest
+    cocoapods: default
+
+  ios_build_scripts: &ios_build_scripts
+    - name: 패키지 설치
+      script: flutter pub get
+    - name: 테스트
+      script: flutter test
+    - name: Xcode 프로젝트에 서명 프로파일 적용
+      script: xcode-project use-profiles
+    - name: 빌드 번호 정하기
+      # pubspec 번호와 "이미 올라간 번호 + 1" 중 큰 값 → TestFlight · 스토어 제출이 번호로 겹치지 않는다.
+      script: |
+        BUILD_NUMBER=$(bash scripts/ci/next_build_number.sh ios)
+        echo "빌드 번호: $BUILD_NUMBER"
+        echo "BUILD_NUMBER=$BUILD_NUMBER" >> $CM_ENV
+    - name: IPA 빌드
+      # 버전 이름은 pubspec.yaml의 version(예: 1.2.1+6)의 앞부분을 그대로 쓴다.
+      script: |
+        flutter build ipa --release \
+          --build-number=$BUILD_NUMBER \
+          --export-options-plist=/Users/builder/export_options.plist
+
 workflows:
   ios-testflight:
     name: iOS TestFlight
@@ -21,28 +62,8 @@ workflows:
     integrations:
       app_store_connect: maeum_book_asc
 
-    environment:
-      # Code signing identities에 올려 둔 App Store 인증서·프로파일을 번들 ID로 찾아 쓴다. (docs/DEPLOY.md 4~6번)
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.maeumbook.maeumBook
-      flutter: stable
-      xcode: latest
-      cocoapods: default
-
-    scripts:
-      - name: 패키지 설치
-        script: flutter pub get
-      - name: 테스트
-        script: flutter test
-      - name: Xcode 프로젝트에 서명 프로파일 적용
-        script: xcode-project use-profiles
-      - name: IPA 빌드
-        # 버전과 빌드 번호는 pubspec.yaml의 version(예: 1.0.1+3)을 그대로 쓴다.
-        # scripts/release.ps1이 배포할 때마다 빌드 번호를 1씩 올리므로 TestFlight에서 겹치지 않는다.
-        script: |
-          flutter build ipa --release \
-            --export-options-plist=/Users/builder/export_options.plist
+    environment: *ios_environment
+    scripts: *ios_build_scripts
 
     artifacts:
       - build/ios/ipa/*.ipa
@@ -55,3 +76,67 @@ workflows:
         # 외부 테스터에게 배포하려면 true로 바꾼다. 그 전에 App Store Connect → TestFlight → 테스트 정보
         # (피드백 이메일, 심사 담당자 이름·전화·이메일)를 채워야 하며, 비어 있으면 빌드가 post-processing 실패로 끝난다.
         submit_to_testflight: false
+
+  ios-appstore:
+    name: iOS App Store 심사 제출
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    # 자동으로 돌지 않는다. scripts/submit-store.ps1 <버전> 또는 Codemagic 화면에서 v태그를 골라 시작한다.
+
+    integrations:
+      app_store_connect: maeum_book_asc
+
+    environment: *ios_environment
+    scripts: *ios_build_scripts
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: false
+        # 빌드를 올린 뒤 App Store 심사에 제출한다. 이번 버전의 새로운 기능 = release_notes.json
+        # ⚠️ 처음 한 번은 App Store Connect에서 앱 정보 · 스크린샷 · 개인정보 등을 직접 채워야 제출된다. (docs/STORE_RELEASE.md)
+        submit_to_app_store: true
+        # 심사를 통과해도 바로 출시하지 않는다. App Store Connect에서 "이 버전 출시"를 눌러야 사용자에게 나간다.
+        release_type: MANUAL
+
+  android-play:
+    name: Android Google Play (내부 테스트)
+    max_build_duration: 60
+    instance_type: linux_x2
+    # 자동으로 돌지 않는다. scripts/submit-store.ps1 <버전> 또는 Codemagic 화면에서 v태그를 골라 시작한다.
+
+    environment:
+      android_signing:
+        - maeum_book_upload
+      groups:
+        - google_play
+      vars:
+        PACKAGE_NAME: com.maeumbook.maeum_book
+      flutter: stable
+
+    scripts:
+      - name: 패키지 설치
+        script: flutter pub get
+      - name: 테스트
+        script: flutter test
+      - name: 빌드 번호 정하기
+        script: |
+          BUILD_NUMBER=$(bash scripts/ci/next_build_number.sh android)
+          echo "빌드 번호: $BUILD_NUMBER"
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> $CM_ENV
+      - name: AAB 빌드 (서명)
+        script: flutter build appbundle --release --build-number=$BUILD_NUMBER
+
+    artifacts:
+      - build/app/outputs/bundle/release/*.aab
+
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        # 내부 테스트 트랙에 "초안"으로 올린다. Play Console에서 검토 후 프로덕션으로 승격 · 출시한다.
+        track: internal
+        submit_as_draft: true

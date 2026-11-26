@@ -192,7 +192,7 @@ class _EventPicker extends StatelessWidget {
   final EntryFormViewModel viewModel;
 
   Future<void> _createEvent(BuildContext context) async {
-    await context.push(AppRoutes.eventNew);
+    await context.pushOnce(AppRoutes.eventNew);
     await viewModel.refreshEvents();
   }
 

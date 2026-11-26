@@ -200,7 +200,7 @@ fvm dart run build_runner build
 
 ## 배포
 
-배포는 명령 하나로 Android와 iOS에 함께 나갑니다. 자세한 흐름과 처음 설정은 [docs/DEPLOY.md](docs/DEPLOY.md)에 정리했습니다.
+배포는 명령 하나로 TestFlight까지, 한 줄 더로 App Store 심사 제출 · Google Play 업로드까지 나갑니다. 자세한 흐름은 [docs/DEPLOY.md](docs/DEPLOY.md), 스토어 첫 출시 준비는 [docs/STORE_RELEASE.md](docs/STORE_RELEASE.md), 서버 용량 검토는 [docs/SERVER_CAPACITY.md](docs/SERVER_CAPACITY.md)에 정리했습니다.
 
 ```powershell
 .\scripts\release.ps1 1.0.1
