@@ -73,6 +73,8 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
       body: ListView(
         padding: const EdgeInsets.all(AppSpacing.screen),
         children: [
+          const _SectionLabel('계정'),
+          _AccountCard(viewModel: viewModel),
           const _SectionLabel('기록 설정'),
           Card(
             child: ListTile(
@@ -135,6 +137,79 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
               onTap: () => _checkUpdate(context, viewModel),
             ).testId(TestIds.settingsAppInfo),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// 계정 카드. 로그인 상태(currentUserProvider)가 바뀌면 자동으로 다시 그려진다.
+///
+/// - 로그인 전: [로그인] → 로그인 화면
+/// - 로그인 후: 이름 · 로그인 방법, [로그아웃], [회원 탈퇴]
+class _AccountCard extends ConsumerWidget {
+  const _AccountCard({required this.viewModel});
+
+  final SettingsViewModel viewModel;
+
+  static void _showError(BuildContext context) => context.showToast('처리하지 못했어요. 다시 시도해 주세요', type: ToastType.error);
+
+  Future<void> _signOut(BuildContext context) async {
+    final confirmed = await AppDialog.confirm(context, title: '로그아웃할까요?', confirmLabel: '로그아웃');
+    if (!confirmed || !context.mounted) return;
+    if (await viewModel.signOut(onError: (_) => _showError(context)) && context.mounted) {
+      context.showToast('로그아웃했어요', type: ToastType.info);
+    }
+  }
+
+  Future<void> _deleteAccount(BuildContext context) async {
+    final confirmed = await AppDialog.confirm(
+      context,
+      title: '탈퇴할까요?',
+      message: '계정과 서버에 저장된 정보가 지워지고 되돌릴 수 없어요.\n이 기기에 기록한 장부는 그대로 남아요.',
+      confirmLabel: '탈퇴하기',
+      isDestructive: true,
+    );
+    if (!confirmed || !context.mounted) return;
+    if (await viewModel.deleteAccount(onError: (_) => _showError(context)) && context.mounted) {
+      context.showToast('탈퇴했어요. 그동안 고마웠어요', type: ToastType.info);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final user = ref.watch(currentUserProvider).value;
+    if (user == null) {
+      return Card(
+        child: ListTile(
+          leading: const Icon(Icons.person_outline),
+          title: const Text('로그인'),
+          subtitle: const Text('카카오 · Apple 계정으로 로그인해요'),
+          trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+          onTap: () => context.push(AppRoutes.login),
+        ).testId(TestIds.settingsAccount),
+      );
+    }
+    return Card(
+      child: Column(
+        children: [
+          ListTile(
+            leading: const Icon(Icons.account_circle_outlined),
+            title: Text(user.name ?? '마음장부 사용자'),
+            subtitle: Text('${user.providerLabel} 계정으로 로그인됨'),
+          ).testId(TestIds.settingsAccount),
+          const Divider(indent: AppSpacing.screen, endIndent: AppSpacing.screen),
+          ListTile(
+            leading: const Icon(Icons.logout_rounded),
+            title: const Text('로그아웃'),
+            onTap: () => _signOut(context),
+          ).testId(TestIds.settingsSignOut),
+          const Divider(indent: AppSpacing.screen, endIndent: AppSpacing.screen),
+          ListTile(
+            leading: const Icon(Icons.person_remove_outlined, color: AppColors.textSecondary),
+            title: const AppText.body('회원 탈퇴', color: AppColors.textSecondary),
+            onTap: () => _deleteAccount(context),
+          ).testId(TestIds.settingsDeleteAccount),
         ],
       ),
     );

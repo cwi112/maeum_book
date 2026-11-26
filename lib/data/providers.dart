@@ -1,10 +1,13 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maeum_book/core/define/app_define.dart';
 import 'package:maeum_book/data/database/app_database.dart';
+import 'package:maeum_book/data/models/app_user.dart';
 import 'package:maeum_book/data/repositories/app_update_repository.dart';
+import 'package:maeum_book/data/repositories/auth_repository.dart';
 import 'package:maeum_book/data/repositories/event_repository.dart';
 import 'package:maeum_book/data/repositories/event_type_repository.dart';
 import 'package:maeum_book/data/repositories/ledger_repository.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
 /// 데이터 계층의 Riverpod provider 모음.
 ///
@@ -45,6 +48,12 @@ final eventRepositoryProvider = Provider<EventRepository>(
 final appUpdateRepositoryProvider = Provider<AppUpdateRepository>(
   (ref) => AppUpdateRepository(versionUrl: AppDefine.versionCheckUrl),
 );
+
+/// 로그인 Repository. 테스트에서는 가짜로 바꿔 끼운다. (main.dart에서 Supabase.initialize를 먼저 해야 한다)
+final authRepositoryProvider = Provider<AuthRepository>((ref) => SupabaseAuthRepository(Supabase.instance.client));
+
+/// 지금 로그인한 사용자 (로그인 안 했으면 null). 로그인 · 로그아웃하면 이 값을 쓰는 화면이 자동으로 다시 그려진다.
+final currentUserProvider = StreamProvider<AppUser?>((ref) => ref.watch(authRepositoryProvider).watchUser());
 
 /// 모든 경조사 종류 (여러 화면이 함께 씀: 입력 칩, 목록의 종류 이름, 필터, 통계).
 ///

@@ -7,8 +7,11 @@ import 'package:maeum_book/core/define/test_ids.dart';
 import 'package:maeum_book/data/data.dart';
 import 'package:material_ui/material_ui.dart';
 
+import 'fakes/fake_auth_repository.dart';
+
 void main() {
   late AppDatabase database;
+  late FakeAuthRepository auth;
 
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
@@ -16,6 +19,7 @@ void main() {
   // closeStreamsSynchronously: 화면이 사라질 때 Stream을 바로 닫아, 테스트 종료 시 남는 타이머가 없게 한다.
   setUp(() {
     database = AppDatabase(DatabaseConnection(NativeDatabase.memory(), closeStreamsSynchronously: true));
+    auth = FakeAuthRepository(); // 실제 카카오 · Supabase에 접속하지 않게
   });
 
   // 로딩 중에는 스피너가 계속 돌아서 pumpAndSettle이 끝나지 않는다.
@@ -33,7 +37,10 @@ void main() {
     tester.view.devicePixelRatio = 2.625;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
-      ProviderScope(overrides: [appDatabaseProvider.overrideWithValue(database)], child: const App()),
+      ProviderScope(
+        overrides: [appDatabaseProvider.overrideWithValue(database), authRepositoryProvider.overrideWithValue(auth)],
+        child: const App(),
+      ),
     );
     await settle(tester);
   }
@@ -391,6 +398,56 @@ void main() {
     expect(hasShadow(), isFalse);
     expect(find.text('보낸 마음 기록'), findsOneWidget);
     expect(tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity).last).opacity, 1);
+
+    await closeApp(tester);
+  });
+
+  testWidgets('설정에서 카카오로 로그인하면 이름이 보이고, 로그아웃 · 탈퇴하면 다시 로그인 버튼이 보인다', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabSettings));
+    await settle(tester);
+    expect(find.text('로그인'), findsOneWidget);
+
+    // 로그인 화면: Android 테스트 환경이라 Apple 버튼은 없다.
+    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsAccount));
+    await tester.pumpAndSettle();
+    expect(find.text('카카오 로그인'), findsOneWidget);
+    expect(find.text('Apple로 로그인'), findsNothing);
+
+    // 취소하면 화면에 그대로 남는다.
+    auth.cancelNext = true;
+    await tester.tap(find.text('카카오 로그인'));
+    await tester.pumpAndSettle();
+    expect(find.text('카카오 로그인'), findsOneWidget);
+
+    // 로그인 성공 → 설정으로 돌아와 이름이 보인다.
+    await tester.tap(find.text('카카오 로그인'));
+    await settle(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('홍길동'), findsOneWidget);
+    expect(find.text('카카오 계정으로 로그인됨'), findsOneWidget);
+
+    // 로그아웃 (확인 창)
+    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsSignOut));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('로그아웃').last);
+    await settle(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('홍길동'), findsNothing);
+
+    // 다시 로그인 후 탈퇴
+    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsAccount));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('카카오 로그인'));
+    await settle(tester);
+    await tester.pumpAndSettle();
+    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsDeleteAccount));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('탈퇴하기'));
+    await settle(tester);
+    await tester.pumpAndSettle();
+    expect(auth.deleteCount, 1);
+    expect(find.text('로그인'), findsOneWidget);
 
     await closeApp(tester);
   });

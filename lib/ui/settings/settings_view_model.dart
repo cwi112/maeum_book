@@ -28,6 +28,24 @@ class SettingsViewModel extends BaseViewModel<SettingsState> {
   /// 모든 기록을 지운다. 성공하면 지운 건수, 실패하면 null. (화면에서 확인 창을 거친 뒤 호출)
   Future<int?> clearAll({ErrorCallback? onError}) => runTask(_repository.clearAll, onError: onError);
 
+  AuthRepository get _authRepository => ref.read(authRepositoryProvider);
+
+  /// 로그아웃. 성공하면 true.
+  Future<bool> signOut({ErrorCallback? onError}) async =>
+      await runTask(() async {
+        await _authRepository.signOut();
+        return true;
+      }, onError: onError) ??
+      false;
+
+  /// 회원 탈퇴 (서버 계정 삭제). 기기 안의 기록은 그대로 둔다. 성공하면 true.
+  Future<bool> deleteAccount({ErrorCallback? onError}) async =>
+      await runTask(() async {
+        await _authRepository.deleteAccount();
+        return true;
+      }, onError: onError) ??
+      false;
+
   /// 최신 버전인지 확인한다. 이미 확인 중이면 null.
   Future<AppUpdateResult?> checkUpdate() async {
     if (state.isCheckingUpdate) return null;

@@ -5,6 +5,7 @@
 library;
 
 export 'app_update_info.dart';
+export 'app_user.dart';
 export 'event_summary.dart';
 export 'ledger_summary.dart';
 export 'monthly_total.dart';

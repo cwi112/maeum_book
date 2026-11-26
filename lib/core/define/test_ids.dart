@@ -95,6 +95,13 @@ abstract final class TestIds {
   static const String settingsSeed = 'settings_seed';
   static const String settingsClear = 'settings_clear';
   static const String settingsAppInfo = 'settings_app_info';
+  static const String settingsAccount = 'settings_account';
+  static const String settingsSignOut = 'settings_sign_out';
+  static const String settingsDeleteAccount = 'settings_delete_account';
+
+  // ── 로그인 ─────────────────────────────
+  static const String loginKakao = 'login_kakao';
+  static const String loginApple = 'login_apple';
 
   // ── 통계 ───────────────────────────────
   static const String statsBalanceChart = 'stats_balance_chart';
