@@ -95,6 +95,30 @@ function Start-CodemagicBuild($config, [string]$workflow, [string]$tag) {
     return @{ Workflow = $workflow; Id = $id }
 }
 
+# 태그 push로 자동 시작된 빌드를 찾는다. (태그 · 워크플로가 같고 [since] 이후에 만들어진 것)
+# 웹훅이 빌드를 만들기까지 몇 초 ~ 1분쯤 걸려서, 나타날 때까지 10초마다 다시 본다. 못 찾으면 $null.
+function Find-CodemagicBuild($config, [string]$workflow, [string]$tag, [datetime]$since, [int]$timeoutMinutes = 5) {
+    $deadline = (Get-Date).AddMinutes($timeoutMinutes)
+    $sinceUtc = $since.ToUniversalTime().AddMinutes(-1) # 시계가 조금 어긋나도 놓치지 않게
+    while ((Get-Date) -lt $deadline) {
+        try {
+            $response = Invoke-RestMethod -Uri "https://api.codemagic.io/builds?appId=$($config.AppId)" `
+                -Headers @{ 'x-auth-token' = $config.Token }
+            $match = $response.builds | Where-Object {
+                $_.tag -eq $tag -and $_.fileWorkflowId -eq $workflow -and ([datetime]$_.createdAt).ToUniversalTime() -ge $sinceUtc
+            } | Select-Object -First 1
+            if ($match) {
+                Write-Host "  $workflow 시작됨 → https://codemagic.io/app/$($config.AppId)/build/$($match._id)"
+                return @{ Workflow = $workflow; Id = $match._id }
+            }
+        } catch {
+            Write-Warning "빌드 목록을 읽지 못해 다시 시도합니다: $($_.Exception.Message)"
+        }
+        Start-Sleep -Seconds 10
+    }
+    return $null
+}
+
 # 실패한 빌드의 이유 한 줄. (예: codemagic.yaml 설정 오류 메시지) 못 읽으면 $null
 # v3 API에는 이유가 없어서, 이유(message)를 주는 예전 API로 읽는다.
 function Get-CodemagicFailureReason($config, [string]$buildId) {
