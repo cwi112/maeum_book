@@ -82,8 +82,12 @@ class _AddTile extends StatelessWidget {
     return Column(
       children: [
         Material(
-          color: AppColors.primaryLight,
-          borderRadius: BorderRadius.circular(AppRadius.sm),
+          // 흰 바탕 + 얇은 테두리: 크림색 화면 위에서 사진 칸처럼 또렷하게 보이고, 테라코타 아이콘이 돋보인다.
+          color: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.sm),
+            side: const BorderSide(color: AppColors.divider),
+          ),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: isAdding || disabled ? null : onTap,
