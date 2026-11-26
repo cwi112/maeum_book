@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform;
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:maeum_book/core/core.dart';
 
@@ -9,6 +10,10 @@ abstract final class SocialButtonSpec {
 
   /// 모서리 둥글기 (카카오 디자인 가이드 12px, Apple 버튼도 같게)
   static const double radius = 12;
+
+  /// OS 기본 서체 이름: iOS는 SF(한글은 Apple SD 산돌고딕 Neo), Android는 Roboto(한글은 본고딕).
+  /// 이름을 직접 적어 두면 앱 글꼴(Pretendard)을 물려받지 않고, 스크린샷 생성기에서도 같은 이름으로 대신 그릴 수 있다.
+  static String get systemFont => defaultTargetPlatform == TargetPlatform.iOS ? 'CupertinoSystemText' : 'Roboto';
 }
 
 /// 카카오 로그인 버튼. [카카오 디자인 가이드](https://developers.kakao.com/docs/ko/kakaologin/design-guide)를 따른다.
@@ -28,8 +33,9 @@ class KakaoLoginButton extends StatelessWidget {
   final bool isLoading;
 
   // 글자 높이 ≤ 버튼 높이의 1/3 (52 / 3 ≈ 17) → 16
-  static const _labelStyle = TextStyle(
+  static TextStyle get _labelStyle => TextStyle(
     inherit: false, // 앱 글꼴을 물려받지 않고 OS 기본 서체를 쓴다. (가이드 규정)
+    fontFamily: SocialButtonSpec.systemFont,
     fontSize: 16,
     fontWeight: FontWeight.w600,
     color: AppColors.kakaoLabel,
@@ -49,7 +55,7 @@ class KakaoLoginButton extends StatelessWidget {
                 // 심볼은 글자와 함께 가운데 정렬 (가이드에서 허용하는 배치)
                 SvgPicture.asset('assets/images/kakao_symbol.svg', width: 15, height: 15),
                 const SizedBox(width: AppSpacing.sm),
-                const Text('카카오 로그인', style: _labelStyle),
+                Text('카카오 로그인', style: _labelStyle),
               ],
             ),
     );
@@ -70,8 +76,9 @@ class AppleLoginButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool isLoading;
 
-  static const _labelStyle = TextStyle(
+  static TextStyle get _labelStyle => TextStyle(
     inherit: false, // 시스템 서체 (앱 글꼴을 물려받지 않음)
+    fontFamily: SocialButtonSpec.systemFont,
     fontSize: 19,
     fontWeight: FontWeight.w500,
     color: Colors.white,
@@ -89,7 +96,7 @@ class AppleLoginButton extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Image.asset('assets/images/apple_logo.png', width: 30, height: 30),
-                const Text('Apple로 로그인', style: _labelStyle),
+                Text('Apple로 로그인', style: _labelStyle),
                 const SizedBox(width: 8), // 로고 이미지 안쪽 여백만큼 오른쪽도 비워 가운데를 맞춘다
               ],
             ),

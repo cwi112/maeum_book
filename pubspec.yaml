@@ -42,6 +42,7 @@ flutter:
   uses-material-design: true
 
   assets:
+    - assets/icon/app_icon.png
     - assets/icon/app_icon_foreground.png
     # 로그인 버튼 공식 심볼: 카카오(디자인 리소스 SVG), Apple(appleid.cdn-apple.com 공식 버튼 이미지 서비스, 1x/2x/3x)
     - assets/images/

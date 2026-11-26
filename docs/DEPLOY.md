@@ -25,6 +25,13 @@ feature 브랜치 ──PR──▶ CI(분석·테스트) ──통과──▶ 
 
 ## 새 버전 배포하기
 
+**배포 전에 할 일 (매번)**
+1. `docs/RELEASE_NOTES.md` 맨 위에 새 버전 소식을 추가한다. (사용자용 · 이모지 섹션 ✨ 새로워졌어요 / 🛠 고쳤어요)
+2. 저장소 맨 위 `release_notes.json`의 `ko` · `en-US` 문구를 같은 내용으로 짧게 바꾼다.
+   - Codemagic이 이 파일을 자동으로 읽어 TestFlight **테스트할 내용(What to Test)** 에 넣는다. (App Store 심사 제출을 켜면 **이번 버전의 새로운 기능**에도)
+   - `<` `>` 문자는 Apple이 거부하므로 쓰지 않는다. 4000자 이하.
+3. 화면이 바뀌었으면 스토어 스크린샷을 다시 만든다 → 아래 "스토어 스크린샷"
+
 main에 원하는 변경이 모두 병합된 상태에서:
 
 ```powershell
@@ -104,3 +111,22 @@ main에 원하는 변경이 모두 병합된 상태에서:
 3. 이후 배포부터 빌드가 외부 테스트 심사에 자동 제출된다 (첫 심사는 보통 하루 안팎)
 
 1번을 빼먹으면 업로드는 되지만 Codemagic 빌드가 `post-processing failed`로 끝난다.
+
+## 스토어 스크린샷
+
+실제 앱 화면(샘플 데이터)을 기기 틀에 넣고 소개 문구를 얹은 이미지를 규격별로 만든다. 결과는 `store_assets/`.
+
+```powershell
+fvm flutter test screenshots/store_screenshots_test.dart --update-goldens
+```
+
+| 폴더 | 크기 | 올리는 곳 |
+| --- | --- | --- |
+| `ios_iphone_6.9` | 1320 × 2868 | App Store Connect › 앱 › iOS 앱 › 미리보기 및 스크린샷 › **iPhone 6.9"** (필수) |
+| `ios_iphone_6.5` | 1284 × 2778 | 같은 곳 › iPhone 6.5" (6.9"가 있으면 선택) |
+| `ios_ipad_13` | 2064 × 2752 | 같은 곳 › **iPad 13"** (iPad 지원 앱이라 필수) |
+| `android_phone` | 1080 × 1920 | Play Console › 기본 스토어 등록정보 › 휴대전화 스크린샷 (2~8장) |
+| `android_feature_graphic.png` | 1024 × 500 | Play Console › 그래픽 이미지 (필수) |
+
+- 소개 문구 · 순서는 `screenshots/store_screenshots_test.dart`의 `_shots`에서 바꾼다.
+- TestFlight 자체는 스크린샷이 필요 없다. (App Store 출시 · Play 출시 때 필요)

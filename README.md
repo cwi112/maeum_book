@@ -204,6 +204,7 @@ fvm dart run build_runner build
 - 스크립트가 `pubspec.yaml`의 버전과 빌드 번호를 올리고 `v1.0.1` 태그를 붙이면, 두 곳에서 동시에 배포가 시작됩니다.
   - **Android** (준비 중): GitHub Actions가 서명된 APK를 만들어 GitHub Releases에 올립니다. 폰에서 링크를 눌러 바로 설치할 수 있습니다. (카카오톡은 APK 전송을 막아서 이 방식을 택했습니다.)
   - **iOS**: Windows에서 개발하고 있어 iOS를 직접 빌드할 수 없기 때문에, [Codemagic](https://codemagic.io)의 클라우드 Mac에서 빌드해 TestFlight에 올립니다. 배포 인증서와 프로비저닝 프로파일은 Codemagic에 한 번 등록해 두고, 빌드할 때 번들 ID로 찾아 서명합니다.
+- 업데이트 소식은 [docs/RELEASE_NOTES.md](docs/RELEASE_NOTES.md), TestFlight 문구는 elease_notes.json(Codemagic이 자동 등록), 스토어 스크린샷은 store_assets/(실제 화면을 규격별로 자동 생성)에 있습니다.
 - 빌드 번호를 스크립트가 한 곳(pubspec)에서만 올리기 때문에, 두 플랫폼의 버전이 항상 같고 스토어에서 번호가 겹치는 일이 없습니다.
 - 같은 스크립트가 저장소의 `app_version.json`(최신 버전, 업데이트 주소)도 올립니다. 앱의 설정 > 앱 정보를 누르면 이 파일과 설치된 버전을 비교해, 새 버전이 있으면 업데이트할 곳으로 보냅니다. 별도 서버 없이 GitHub의 파일 하나로 처리했고, App Store에 출시하면 앱을 다시 배포하지 않고 이 파일의 `iosUrl`만 바꾸면 됩니다.
 

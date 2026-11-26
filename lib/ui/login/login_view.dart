@@ -102,7 +102,12 @@ class LoginView extends BaseView<LoginViewModel, LoginMethod?> {
           child: Column(
             children: [
               const Spacer(),
-              Image.asset('assets/icon/app_icon_foreground.png', width: 140, height: 140),
+              // 배경이 있는 앱 아이콘 (투명 아이콘은 크림색 배경에 편지가 묻혀 보여서)
+              ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Image.asset('assets/icon/app_icon.png', width: 104, height: 104),
+              ),
+              const SizedBox(height: AppSpacing.lg),
               const AppText.headline('마음장부에 로그인'),
               const SizedBox(height: AppSpacing.sm),
               const AppText.body(
