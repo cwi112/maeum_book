@@ -73,6 +73,10 @@ void main() {
     final workbook = XmlDocument.parse(files['xl/workbook.xml']!);
     expect(workbook.findAllElements('sheet').map((e) => e.getAttribute('name')), ['요약', '보낸 마음', '받은 마음', '사람별']);
     expect(files['xl/sharedStrings.xml'], contains('샘플 데이터예요'));
+    expect(files['xl/sharedStrings.xml'], isNot(contains('마음장부 요약'))); // 요약 시트에는 제목을 달지 않는다
+    // 표 바깥에 테라코타 굵은 테두리 · 머리글은 테라코타 배경
+    expect(files['xl/styles.xml'], contains('<left style="medium"><color rgb="FFC0714A"/></left>'));
+    expect(files['xl/styles.xml'], contains('<fgColor rgb="FFC0714A"/>'));
   });
 
   test('합계는 함수와 앱이 계산한 값이 함께 들어 있고, 그 값이 실제 합계와 같다', () async {

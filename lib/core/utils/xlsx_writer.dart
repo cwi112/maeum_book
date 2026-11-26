@@ -112,6 +112,31 @@ class XlsxSheet {
   void merge(int fromRow, int fromCol, int toRow, int toCol) =>
       _merges.add('${xlsxCell(fromCol, fromRow)}:${xlsxCell(toCol, toRow)}');
 
+  /// 표 바깥쪽에 [line] 테두리를 두른다. (안쪽 칸 테두리는 그대로) 비어 있는 칸은 빈 글자 칸으로 채워 선이 끊기지 않게 한다.
+  void outline(int fromRow, int fromCol, int toRow, int toCol, XlsxLine line) {
+    for (var row = fromRow; row <= toRow; row++) {
+      for (var col = fromCol; col <= toCol; col++) {
+        final edge = row == fromRow || row == toRow || col == fromCol || col == toCol;
+        if (!edge) continue;
+        final cell = _rows[row]?[col];
+        final style = cell?.$2 ?? XlsxStyle.plain;
+        set(
+          row,
+          col,
+          cell?.$1 ?? const XlsxText(''),
+          style.copyWith(
+            border: style.border.copyWith(
+              top: row == fromRow ? line : null,
+              bottom: row == toRow ? line : null,
+              left: col == fromCol ? line : null,
+              right: col == toCol ? line : null,
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   /// 위에서부터 [rows]개 행을 고정한다. (아래로 내려도 머리글이 보이게)
   void freezeRows(int rows) => _frozenRows = rows;
 
@@ -228,18 +253,52 @@ class XlsxFormula extends XlsxValue {
 
 enum XlsxAlign { general, left, center, right }
 
-/// 칸 테두리
-enum XlsxBorder {
-  none,
+/// 선 모양 (엑셀 이름 그대로)
+enum XlsxLineStyle { thin, medium, thick, double, dashed, dotted, hair }
 
-  /// 얇은 회색 선 (표 안의 칸)
-  grid,
+/// 테두리 선 하나: 모양 + 색(`RRGGBB`)
+class XlsxLine {
+  const XlsxLine(this.style, this.color);
 
-  /// 표 안 + 아래쪽 굵은 선 (머리글)
-  header,
+  final XlsxLineStyle style;
+  final String color;
 
-  /// 표 안 + 위쪽 굵은 선 (합계 줄)
-  total,
+  @override
+  bool operator ==(Object other) => other is XlsxLine && other.style == style && other.color == color;
+
+  @override
+  int get hashCode => Object.hash(style, color);
+}
+
+/// 칸 테두리: 위 · 아래 · 왼쪽 · 오른쪽 선 (없으면 null)
+class XlsxBorder {
+  const XlsxBorder({this.left, this.right, this.top, this.bottom});
+
+  /// 네 변 모두 같은 선
+  const XlsxBorder.all(XlsxLine line) : left = line, right = line, top = line, bottom = line;
+
+  static const none = XlsxBorder();
+
+  final XlsxLine? left;
+  final XlsxLine? right;
+  final XlsxLine? top;
+  final XlsxLine? bottom;
+
+  bool get isNone => left == null && right == null && top == null && bottom == null;
+
+  XlsxBorder copyWith({XlsxLine? left, XlsxLine? right, XlsxLine? top, XlsxLine? bottom}) => XlsxBorder(
+    left: left ?? this.left,
+    right: right ?? this.right,
+    top: top ?? this.top,
+    bottom: bottom ?? this.bottom,
+  );
+
+  @override
+  bool operator ==(Object other) =>
+      other is XlsxBorder && other.left == left && other.right == right && other.top == top && other.bottom == bottom;
+
+  @override
+  int get hashCode => Object.hash(left, right, top, bottom);
 }
 
 /// 칸 서식. 같은 값이면 같은 서식으로 묶여 파일 안에 한 번만 저장된다.
@@ -417,6 +476,7 @@ class _StyleTable {
   final Map<Object, int> _fonts = {};
   final Map<String?, int> _fills = {null: 0, '__gray125': 1}; // 0 · 1번 채우기는 엑셀이 정해 둔 것
   final Map<String, int> _numberFormats = {};
+  final Map<XlsxBorder, int> _borders = {XlsxBorder.none: 0}; // 0번은 테두리 없음
 
   /// 엑셀에 미리 정해진 숫자 형식 번호
   static const _builtInFormats = {'General': 0, '0': 1, '#,##0': 3};
@@ -424,6 +484,7 @@ class _StyleTable {
   int indexOf(XlsxStyle style) => _styles.putIfAbsent(style, () {
     _fonts.putIfAbsent(style._fontKey, () => _fonts.length);
     _fills.putIfAbsent(style.fill, () => _fills.length);
+    _borders.putIfAbsent(style.border, () => _borders.length);
     final format = style.numberFormat;
     if (format != null && !_builtInFormats.containsKey(format)) {
       _numberFormats.putIfAbsent(format, () => 164 + _numberFormats.length); // 직접 만든 형식은 164번부터
@@ -465,8 +526,8 @@ class _StyleTable {
     }
     out.write('</fills>');
 
-    out.write('<borders count="${XlsxBorder.values.length}">');
-    for (final border in XlsxBorder.values) {
+    out.write('<borders count="${_borders.length}">');
+    for (final border in _borders.keys) {
       out.write(_borderXml(border));
     }
     out.write('</borders>');
@@ -483,10 +544,10 @@ class _StyleTable {
           : '';
       out.write(
         '<xf numFmtId="$formatId" fontId="${_fonts[style._fontKey]}" fillId="${_fills[style.fill]}" '
-        'borderId="${style.border.index}" xfId="0"'
+        'borderId="${_borders[style.border]}" xfId="0"'
         '${formatId == 0 ? '' : ' applyNumberFormat="1"'} applyFont="1"'
         '${style.fill == null ? '' : ' applyFill="1"'}'
-        '${style.border == XlsxBorder.none ? '' : ' applyBorder="1"'}'
+        '${style.border.isNone ? '' : ' applyBorder="1"'}'
         '${alignment.isEmpty ? '/>' : ' applyAlignment="1">$alignment</xf>'}',
       );
     }
@@ -504,19 +565,9 @@ class _StyleTable {
   }
 
   static String _borderXml(XlsxBorder border) {
-    const grid = '<color rgb="FFD9D2CB"/>';
-    String side(String name, String style, String color) => '<$name style="$style">$color</$name>';
-    return switch (border) {
-      XlsxBorder.none => '<border><left/><right/><top/><bottom/><diagonal/></border>',
-      XlsxBorder.grid =>
-        '<border>${side('left', 'thin', grid)}${side('right', 'thin', grid)}'
-            '${side('top', 'thin', grid)}${side('bottom', 'thin', grid)}<diagonal/></border>',
-      XlsxBorder.header =>
-        '<border>${side('left', 'thin', grid)}${side('right', 'thin', grid)}'
-            '${side('top', 'thin', grid)}${side('bottom', 'medium', '<color rgb="FFC0714A"/>')}<diagonal/></border>',
-      XlsxBorder.total =>
-        '<border>${side('left', 'thin', grid)}${side('right', 'thin', grid)}'
-            '${side('top', 'medium', '<color rgb="FF8C7B70"/>')}${side('bottom', 'thin', grid)}<diagonal/></border>',
-    };
+    String side(String name, XlsxLine? line) =>
+        line == null ? '<$name/>' : '<$name style="${line.style.name}"><color rgb="FF${line.color}"/></$name>';
+    return '<border>${side('left', border.left)}${side('right', border.right)}'
+        '${side('top', border.top)}${side('bottom', border.bottom)}<diagonal/></border>';
   }
 }
