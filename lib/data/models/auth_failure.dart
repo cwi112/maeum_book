@@ -18,6 +18,9 @@ enum AuthFailureType {
   /// 짧은 시간에 너무 많이 시도함
   rateLimited('요청이 많아요. 잠시 후 다시 시도해 주세요'),
 
+  /// 연결하려는 카카오 · Apple 계정이 이미 다른 마음장부 계정으로 가입돼 있음
+  alreadyLinkedElsewhere('이미 다른 마음장부 계정으로 가입된 계정이에요. 그 계정을 탈퇴한 뒤 연결해 주세요'),
+
   /// 이용이 제한된 계정
   userBanned('이용이 제한된 계정이에요'),
 

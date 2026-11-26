@@ -1,5 +1,6 @@
 import 'package:maeum_book/core/core.dart';
 import 'package:maeum_book/data/data.dart';
+import 'package:maeum_book/ui/login/login_view_model.dart';
 
 part 'settings_state.dart';
 
@@ -37,6 +38,18 @@ class SettingsViewModel extends BaseViewModel<SettingsState> {
   /// 회원 탈퇴 (서버 계정 삭제). 기기 안의 기록은 그대로 둔다. 성공하면 true.
   Future<bool> deleteAccount({void Function(AuthFailure failure)? onFailure}) =>
       _runAuth(_authRepository.deleteAccount, onFailure: onFailure);
+
+  /// 지금 계정에 다른 로그인 방법을 연결한다. 성공하면 true.
+  Future<bool> link(LoginMethod provider, {void Function(AuthFailure failure)? onFailure}) async {
+    if (state.linkingProvider != null) return false;
+    state = state.withLinking(provider);
+    final linked = await _runAuth(
+      provider == LoginMethod.kakao ? _authRepository.linkKakao : _authRepository.linkApple,
+      onFailure: onFailure,
+    );
+    if (ref.mounted) state = state.withLinking(null);
+    return linked;
+  }
 
   /// 계정 작업을 실행하고, 실패하면 이유([AuthFailure])를 알린다.
   Future<bool> _runAuth(Future<void> Function() action, {void Function(AuthFailure failure)? onFailure}) async {

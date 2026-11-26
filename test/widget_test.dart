@@ -1,17 +1,20 @@
 import 'package:drift/drift.dart' show DatabaseConnection, driftRuntimeOptions;
 import 'package:drift/native.dart';
+import 'package:flutter/foundation.dart' show TargetPlatform, debugDefaultTargetPlatformOverride;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maeum_book/app.dart';
 import 'package:maeum_book/core/define/test_ids.dart';
 import 'package:maeum_book/data/data.dart';
 import 'package:material_ui/material_ui.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fakes/fake_auth_repository.dart';
 
 void main() {
   late AppDatabase database;
   late FakeAuthRepository auth;
+  late SharedPreferences prefs;
 
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
@@ -31,14 +34,21 @@ void main() {
     }
   }
 
-  Future<void> pumpApp(WidgetTester tester) async {
+  /// [guest]: true면 "로그인 없이 시작하기"를 이미 고른 상태(기존 테스트들), false면 첫 실행(시작 화면부터).
+  Future<void> pumpApp(WidgetTester tester, {bool guest = true}) async {
+    SharedPreferences.setMockInitialValues({if (guest) 'guest_mode': true});
+    prefs = await SharedPreferences.getInstance();
     // 기본 테스트 화면(800x600)은 폼이 잘려서, 실제 휴대폰 크기(1080x2400)로 맞춘다.
     tester.view.physicalSize = const Size(1080, 2400);
     tester.view.devicePixelRatio = 2.625;
     addTearDown(tester.view.reset);
     await tester.pumpWidget(
       ProviderScope(
-        overrides: [appDatabaseProvider.overrideWithValue(database), authRepositoryProvider.overrideWithValue(auth)],
+        overrides: [
+          appDatabaseProvider.overrideWithValue(database),
+          authRepositoryProvider.overrideWithValue(auth),
+          sharedPreferencesProvider.overrideWithValue(prefs),
+        ],
         child: const App(),
       ),
     );
@@ -402,101 +412,142 @@ void main() {
     await closeApp(tester);
   });
 
-  testWidgets('설정에서 카카오로 로그인하면 이름이 보이고, 로그아웃 · 탈퇴하면 다시 로그인 버튼이 보인다', (tester) async {
-    await pumpApp(tester);
-    await tester.tap(find.bySemanticsIdentifier(TestIds.tabSettings));
-    await settle(tester);
-    expect(find.text('로그인'), findsOneWidget);
+  // ── 로그인 · 비회원 ──────────────────────
 
-    // 로그인 화면: Android 테스트 환경이라 Apple 버튼은 없다.
-    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsAccount));
+  Future<void> tapAndSettle(WidgetTester tester, Finder finder) async {
+    await tester.tap(finder);
+    await settle(tester);
     await tester.pumpAndSettle();
+  }
+
+  testWidgets('첫 실행: 시작 화면에서 [로그인 없이 시작하기]를 누르면 바로 기록 화면이고, 다음 실행에도 기억한다', (tester) async {
+    await pumpApp(tester, guest: false);
     expect(find.text('카카오 로그인'), findsOneWidget);
+    expect(find.text('로그인 없이 시작하기'), findsOneWidget);
+    expect(find.byType(BackButton), findsNothing); // 시작 화면은 뒤로 갈 곳이 없다
+
+    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.loginGuest));
+    expect(find.text('아직 보낸 마음이 없어요'), findsOneWidget);
+    expect(prefs.getBool('guest_mode'), isTrue);
+
+    await closeApp(tester);
+  });
+
+  testWidgets('비회원 → 설정에서 로그인: 취소 · 인터넷 오류 · 성공, 비회원 때 기록은 그대로 남는다', (tester) async {
+    await pumpApp(tester);
+    await seed(tester, name: '비회원기록');
+    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.tabSettings));
+
+    // 설정에서 연 로그인 화면: 뒤로 가기 있음, 밑줄 버튼 없음, Android라 Apple 버튼 없음
+    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.settingsAccount));
+    expect(find.text('카카오 로그인'), findsOneWidget);
+    expect(find.text('로그인 없이 시작하기'), findsNothing);
     expect(find.text('Apple로 로그인'), findsNothing);
 
-    // 취소하면 아무 안내 없이 화면에 그대로 남는다.
+    // 취소하면 아무 안내 없이 그대로
     auth.failNext = AuthFailureType.canceled;
-    await tester.tap(find.text('카카오 로그인'));
-    await tester.pumpAndSettle();
+    await tapAndSettle(tester, find.text('카카오 로그인'));
     expect(find.text('카카오 로그인'), findsOneWidget);
     expect(find.byType(SnackBar), findsNothing);
 
-    // 인터넷이 없으면 이유를 알려 주고 화면에 남는다.
+    // 인터넷 없음 → 이유 안내
     auth.failNext = AuthFailureType.network;
-    await tester.tap(find.text('카카오 로그인'));
-    await tester.pumpAndSettle();
+    await tapAndSettle(tester, find.text('카카오 로그인'));
     expect(find.text(AuthFailureType.network.message), findsOneWidget);
-    expect(find.text('카카오 로그인'), findsOneWidget);
     ScaffoldMessenger.of(tester.element(find.text('카카오 로그인'))).removeCurrentSnackBar();
     await tester.pumpAndSettle();
 
-    // 로그인 성공 → 설정으로 돌아와 이름이 보인다.
-    await tester.tap(find.text('카카오 로그인'));
-    await settle(tester);
-    await tester.pumpAndSettle();
+    // 성공 → 설정으로 돌아와 이름 · 연결된 로그인
+    await tapAndSettle(tester, find.text('카카오 로그인'));
     expect(find.text('홍길동'), findsOneWidget);
-    expect(find.text('카카오 계정으로 로그인됨'), findsOneWidget);
+    expect(find.text('카카오 계정으로 가입'), findsOneWidget);
+    expect(find.text('연결됨'), findsOneWidget);
+    expect(prefs.getBool('guest_mode'), isNull); // 회원이 됐으므로 비회원 표시는 지움
 
-    // 로그아웃 (확인 창)
-    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsSignOut));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('로그아웃').last);
-    await settle(tester);
-    await tester.pumpAndSettle();
-    expect(find.text('홍길동'), findsNothing);
+    // 비회원 때 기록이 그대로
+    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.tabSent));
+    expect(find.text('비회원기록'), findsOneWidget);
 
-    // 다시 로그인 후 탈퇴
-    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsAccount));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('카카오 로그인'));
-    await settle(tester);
-    await tester.pumpAndSettle();
-    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsDeleteAccount));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('탈퇴하기'));
-    await settle(tester);
-    await tester.pumpAndSettle();
+    await closeApp(tester);
+  });
+
+  testWidgets('로그아웃 · 탈퇴하면 시작 화면으로 가고, 이 기기의 기록은 남는다', (tester) async {
+    await auth.signInWithKakao();
+    await pumpApp(tester, guest: false);
+    await seed(tester, name: '남을기록');
+    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.tabSettings));
+
+    // 로그아웃 → 시작 화면
+    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.settingsSignOut));
+    await tapAndSettle(tester, find.text('로그아웃').last);
+    expect(find.text('로그인 없이 시작하기'), findsOneWidget);
+
+    // 다시 로그인 → 탈퇴 → 시작 화면
+    await tapAndSettle(tester, find.text('카카오 로그인'));
+    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.tabSettings));
+    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.settingsDeleteAccount));
+    await tapAndSettle(tester, find.text('탈퇴하기'));
     expect(auth.deleteCount, 1);
-    expect(find.text('로그인'), findsOneWidget);
-
-    await closeApp(tester);
-  });
-
-  testWidgets('로그인이 만료되면 어느 화면에서든 안내가 뜨고, [다시 로그인]을 누르면 로그인 화면으로 간다', (tester) async {
-    await pumpApp(tester);
-    await tester.runAsync(auth.signInWithKakao);
-    await settle(tester);
-
-    // 보내요 탭에 있을 때 서버가 로그인을 만료시킴
-    auth.expireSession();
-    await settle(tester);
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(find.text(AuthFailureType.sessionExpired.message), findsOneWidget);
-
-    await tester.tap(find.text('다시 로그인'));
+    expect(find.text('로그인 없이 시작하기'), findsOneWidget);
+    ScaffoldMessenger.of(tester.element(find.text('카카오 로그인'))).removeCurrentSnackBar(); // 토스트가 밑줄 버튼을 가림
     await tester.pumpAndSettle();
-    expect(find.text('카카오 로그인'), findsOneWidget);
+
+    // 비회원으로 들어가면 기록이 그대로
+    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.loginGuest));
+    expect(find.text('남을기록'), findsOneWidget);
 
     await closeApp(tester);
   });
 
-  testWidgets('탈퇴할 때 로그인이 만료돼 있으면 다시 로그인을 안내하고 계정은 그대로다', (tester) async {
-    await pumpApp(tester);
-    await tester.runAsync(auth.signInWithKakao);
-    await tester.tap(find.bySemanticsIdentifier(TestIds.tabSettings));
+  testWidgets('로그인이 만료되면 시작 화면으로 가고 이유를 알려 준다', (tester) async {
+    await auth.signInWithKakao();
+    await pumpApp(tester, guest: false);
+    expect(find.text('아직 보낸 마음이 없어요'), findsOneWidget); // 자동 로그인 → 바로 기록 화면
+
+    auth.expireSession(); // 서버가 토큰 갱신을 거절
     await settle(tester);
+    await tester.pumpAndSettle();
+    expect(find.text(AuthFailureType.sessionExpired.message), findsOneWidget);
+    expect(find.text('로그인 없이 시작하기'), findsOneWidget);
+
+    await closeApp(tester);
+  });
+
+  testWidgets('탈퇴할 때 로그인이 만료돼 있으면 이유를 알리고 탈퇴하지 않는다', (tester) async {
+    await auth.signInWithKakao();
+    await pumpApp(tester, guest: false);
+    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.tabSettings));
 
     auth.failNext = AuthFailureType.sessionExpired;
-    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsDeleteAccount));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('탈퇴하기'));
-    await settle(tester);
-    await tester.pumpAndSettle();
-
+    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.settingsDeleteAccount));
+    await tapAndSettle(tester, find.text('탈퇴하기'));
     expect(auth.deleteCount, 0);
     expect(find.text(AuthFailureType.sessionExpired.message), findsOneWidget);
-    expect(find.text('다시 로그인'), findsOneWidget);
 
     await closeApp(tester);
+  });
+
+  testWidgets('iOS: 카카오 계정에 Apple을 연결하면 연결됨으로 바뀌고, 이미 다른 계정이면 이유를 알려 준다', (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.iOS;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    await auth.signInWithKakao();
+    await pumpApp(tester, guest: false);
+    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.tabSettings));
+    expect(find.text('연결됨'), findsOneWidget); // 카카오만
+
+    // 이미 다른 계정으로 가입된 Apple
+    auth.failNext = AuthFailureType.alreadyLinkedElsewhere;
+    await tapAndSettle(tester, find.text('연결하기'));
+    expect(find.text(AuthFailureType.alreadyLinkedElsewhere.message), findsOneWidget);
+    ScaffoldMessenger.of(tester.element(find.text('연결하기'))).removeCurrentSnackBar();
+    await tester.pumpAndSettle();
+
+    // 연결 성공
+    await tapAndSettle(tester, find.text('연결하기'));
+    expect(find.text('연결됨'), findsNWidgets(2));
+    expect(find.text('연결하기'), findsNothing);
+
+    await closeApp(tester);
+    debugDefaultTargetPlatformOverride = null;
   });
 }

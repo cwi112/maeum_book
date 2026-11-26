@@ -52,6 +52,12 @@ abstract interface class AuthRepository {
   /// Apple 로그인 (iOS 전용)
   Future<void> signInWithApple();
 
+  /// 지금 계정에 카카오 로그인을 연결한다. 이미 다른 계정으로 가입된 카카오면 [AuthFailureType.alreadyLinkedElsewhere].
+  Future<void> linkKakao();
+
+  /// 지금 계정에 Apple 로그인을 연결한다. (iOS 전용)
+  Future<void> linkApple();
+
   Future<void> signOut();
 
   /// 계정과 서버 데이터를 지운다. (기기 안의 장부는 지우지 않는다)
@@ -100,7 +106,7 @@ class SupabaseAuthRepository implements AuthRepository {
   Future<void> checkProviderConnection() async {
     final user = _auth.currentUser;
     if (user == null || kIsWeb || defaultTargetPlatform != TargetPlatform.iOS) return;
-    if (AppUser.fromSupabase(user)?.provider != 'apple') return;
+    if (!(AppUser.fromSupabase(user)?.isLinked('apple') ?? false)) return;
 
     // Apple 사용자 번호 = Supabase identity의 sub
     final appleUserId = user.identities
@@ -119,34 +125,74 @@ class SupabaseAuthRepository implements AuthRepository {
     }
   }
 
-  // ── 카카오 ─────────────────────────────
+  // ── 로그인 ─────────────────────────────
 
   @override
   Future<void> signInWithKakao() => _guard(() async {
+    final token = await _kakaoIdToken();
+    await _auth
+        .signInWithIdToken(
+          provider: OAuthProvider.kakao,
+          idToken: token.idToken,
+          accessToken: token.accessToken,
+          nonce: token.rawNonce,
+        )
+        .timeout(_timeout);
+    await _saveName(await _kakaoNickname(), onlyIfEmpty: false);
+  });
+
+  @override
+  Future<void> signInWithApple() => _guard(() async {
+    final token = await _appleIdToken();
+    await _auth
+        .signInWithIdToken(provider: OAuthProvider.apple, idToken: token.idToken, nonce: token.rawNonce)
+        .timeout(_timeout);
+    await _saveName(token.name, onlyIfEmpty: false);
+  });
+
+  // ── 계정 연결 ──────────────────────────
+  // 지금 로그인한 계정에 다른 로그인 방법을 붙인다. 붙인 뒤에는 카카오 · Apple 어느 쪽으로 로그인해도 같은 계정이 된다.
+  // Supabase 대시보드에서 "Allow manual linking"을 켜 둬야 한다. (docs/AUTH_SETUP.md)
+
+  @override
+  Future<void> linkKakao() => _guard(() async {
+    _requireSignedIn();
+    final token = await _kakaoIdToken();
+    await _auth
+        .linkIdentityWithIdToken(
+          provider: OAuthProvider.kakao,
+          idToken: token.idToken,
+          accessToken: token.accessToken,
+          nonce: token.rawNonce,
+        )
+        .timeout(_timeout);
+    await _saveName(await _kakaoNickname(), onlyIfEmpty: true);
+  });
+
+  @override
+  Future<void> linkApple() => _guard(() async {
+    _requireSignedIn();
+    final token = await _appleIdToken();
+    await _auth
+        .linkIdentityWithIdToken(provider: OAuthProvider.apple, idToken: token.idToken, nonce: token.rawNonce)
+        .timeout(_timeout);
+    await _saveName(token.name, onlyIfEmpty: true);
+  });
+
+  void _requireSignedIn() {
+    if (_auth.currentUser == null) throw const AuthFailure(AuthFailureType.sessionExpired);
+  }
+
+  // ── 카카오 · Apple에서 ID 토큰 받기 (로그인 · 연결이 같이 씀) ──
+
+  Future<_IdToken> _kakaoIdToken() async {
     final rawNonce = _generateNonce();
     final token = await _kakaoLogin(_sha256(rawNonce));
     final idToken = token.idToken;
     // ID 토큰은 카카오 콘솔에서 OpenID Connect를 켜야 나온다.
     if (idToken == null) throw const AuthFailure(AuthFailureType.misconfigured, 'ID 토큰 없음: OpenID Connect 꺼짐');
-
-    await _auth
-        .signInWithIdToken(
-          provider: OAuthProvider.kakao,
-          idToken: idToken,
-          accessToken: token.accessToken,
-          nonce: rawNonce,
-        )
-        .timeout(_timeout);
-
-    // 카카오 닉네임을 Supabase 사용자 정보에 저장해 둔다. (설정 화면 표시용, 실패해도 로그인은 성공)
-    final nickname = await _kakaoNickname();
-    if (nickname != null && nickname != currentUser?.name) {
-      await _auth.updateUser(UserAttributes(data: {'name': nickname})).timeout(_timeout).catchError((Object e) {
-        _log('save nickname', e);
-        return UserResponse.fromJson(const {});
-      });
-    }
-  });
+    return _IdToken(idToken: idToken, rawNonce: rawNonce, accessToken: token.accessToken);
+  }
 
   /// 카카오톡이 있으면 카카오톡으로 로그인하고, 카카오톡 로그인이 안 되면(로그아웃 상태 · 오래된 버전 등) 카카오계정 로그인으로 넘어간다.
   /// 사용자가 취소했을 때는 넘어가지 않는다. (카카오 공식 권장 흐름)
@@ -172,10 +218,7 @@ class SupabaseAuthRepository implements AuthRepository {
     }
   }
 
-  // ── Apple ──────────────────────────────
-
-  @override
-  Future<void> signInWithApple() => _guard(() async {
+  Future<_IdToken> _appleIdToken() async {
     if (!await SignInWithApple.isAvailable()) throw const AuthFailure(AuthFailureType.notSupported);
     final rawNonce = _generateNonce();
     final credential = await SignInWithApple.getAppleIDCredential(
@@ -184,19 +227,22 @@ class SupabaseAuthRepository implements AuthRepository {
     );
     final idToken = credential.identityToken;
     if (idToken == null) throw const AuthFailure(AuthFailureType.unknown, 'Apple ID 토큰 없음');
-
-    await _auth.signInWithIdToken(provider: OAuthProvider.apple, idToken: idToken, nonce: rawNonce).timeout(_timeout);
-
-    // Apple은 이름을 "처음 로그인할 때 한 번만" 준다. 받았으면 바로 저장한다. (실패해도 로그인은 성공)
+    // Apple은 이름을 "처음 로그인할 때 한 번만" 준다.
     final name = [credential.familyName, credential.givenName].whereType<String>().join();
-    if (name.isNotEmpty) {
-      await _auth.updateUser(UserAttributes(data: {'name': name})).timeout(_timeout).catchError((Object e) {
-        _log('save apple name', e);
-        return UserResponse.fromJson(const {});
-      });
-    }
-  });
+    return _IdToken(idToken: idToken, rawNonce: rawNonce, name: name.isEmpty ? null : name);
+  }
 
+  /// 표시 이름을 Supabase 사용자 정보에 저장한다. 실패해도 로그인 · 연결은 성공으로 본다.
+  /// [onlyIfEmpty]: 계정 연결 때는 이미 있는 이름을 덮어쓰지 않는다.
+  Future<void> _saveName(String? name, {required bool onlyIfEmpty}) async {
+    final current = currentUser?.name;
+    if (name == null || name == current || (onlyIfEmpty && current != null)) return;
+    try {
+      await _auth.updateUser(UserAttributes(data: {'name': name})).timeout(_timeout);
+    } catch (error) {
+      _log('save name', error);
+    }
+  }
   // ── 로그아웃 · 탈퇴 ────────────────────
 
   /// 로그아웃은 인터넷이 없어도 기기에서는 항상 끝난다. (Supabase가 기기 세션을 먼저 지운 뒤 서버에 알린다)
@@ -204,7 +250,7 @@ class SupabaseAuthRepository implements AuthRepository {
   Future<void> signOut() => _guard(_signOutQuietly);
 
   Future<void> _signOutQuietly() async {
-    if (currentUser?.provider == 'kakao') {
+    if (currentUser?.isLinked('kakao') ?? false) {
       try {
         await kakao.UserApi.instance.logout(); // 카카오 SDK에 남은 토큰도 지운다.
       } catch (error) {
@@ -222,7 +268,7 @@ class SupabaseAuthRepository implements AuthRepository {
   @override
   Future<void> deleteAccount() => _guard(() async {
     if (_auth.currentUser == null) throw const AuthFailure(AuthFailureType.sessionExpired);
-    final wasKakao = currentUser?.provider == 'kakao';
+    final wasKakao = currentUser?.isLinked('kakao') ?? false;
 
     // 오래 켜 둔 앱이면 접속 토큰이 만료됐을 수 있어 먼저 새로 받는다. 거절되면 sessionExpired.
     if (_auth.currentSession?.isExpired ?? false) await _auth.refreshSession().timeout(_timeout);
@@ -295,6 +341,10 @@ class SupabaseAuthRepository implements AuthRepository {
         'bad_jwt' ||
         'user_not_found' => of(AuthFailureType.sessionExpired),
         'provider_disabled' => of(AuthFailureType.providerDisabled),
+        // 연결하려는 카카오 · Apple 계정이 이미 다른 사용자로 가입돼 있음
+        'identity_already_exists' => of(AuthFailureType.alreadyLinkedElsewhere),
+        // 대시보드에서 Allow manual linking이 꺼져 있음
+        'manual_linking_disabled' => of(AuthFailureType.misconfigured),
         'user_banned' => of(AuthFailureType.userBanned),
         'over_request_rate_limit' => of(AuthFailureType.rateLimited),
         'request_timeout' => of(AuthFailureType.network),
@@ -325,4 +375,18 @@ class SupabaseAuthRepository implements AuthRepository {
   }
 
   static String _sha256(String input) => sha256.convert(utf8.encode(input)).toString();
+}
+
+/// 카카오 · Apple에서 받은 ID 토큰 묶음
+class _IdToken {
+  const _IdToken({required this.idToken, required this.rawNonce, this.accessToken, this.name});
+
+  final String idToken;
+
+  /// 해시하기 전 원래 nonce (Supabase에 넘김)
+  final String rawNonce;
+  final String? accessToken;
+
+  /// Apple이 처음 로그인 때만 주는 이름
+  final String? name;
 }

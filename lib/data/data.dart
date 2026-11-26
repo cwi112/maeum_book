@@ -13,5 +13,6 @@ export 'repositories/app_update_repository.dart';
 export 'repositories/auth_repository.dart';
 export 'repositories/event_repository.dart';
 export 'repositories/event_type_repository.dart';
+export 'repositories/guest_mode.dart';
 export 'repositories/ledger_repository.dart';
 export 'seed/sample_data.dart';

@@ -102,6 +102,9 @@ abstract final class TestIds {
   // ── 로그인 ─────────────────────────────
   static const String loginKakao = 'login_kakao';
   static const String loginApple = 'login_apple';
+  static const String loginGuest = 'login_guest';
+  static const String settingsLinkKakao = 'settings_link_kakao';
+  static const String settingsLinkApple = 'settings_link_apple';
 
   // ── 통계 ───────────────────────────────
   static const String statsBalanceChart = 'stats_balance_chart';
