@@ -98,6 +98,8 @@ abstract final class TestIds {
   static const String settingsAppInfo = 'settings_app_info';
   static const String settingsThemeMode = 'settings_theme_mode';
   static const String settingsExcelExport = 'settings_excel_export';
+  static const String excelShare = 'excel_share'; // 엑셀 내보내기 창: 공유하기
+  static const String excelSave = 'excel_save'; // 엑셀 내보내기 창: 내 휴대폰에 저장
   static const String settingsAccount = 'settings_account';
   static const String settingsSignOut = 'settings_sign_out';
   static const String settingsDeleteAccount = 'settings_delete_account';

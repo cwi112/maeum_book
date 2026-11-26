@@ -17,6 +17,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fakes/fake_auth_repository.dart';
+import 'fakes/fake_export_file_service.dart';
 import 'fakes/fake_remote_ledger_store.dart';
 
 void main() {
@@ -26,6 +27,7 @@ void main() {
   late FakeRemoteLedgerStore server;
   late StreamController<bool> online;
   late SharedPreferences prefs;
+  late FakeExportFileService exportService;
 
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
 
@@ -37,6 +39,7 @@ void main() {
     auth = FakeAuthRepository(); // 실제 카카오 · Supabase에 접속하지 않게
     server = FakeRemoteLedgerStore();
     online = StreamController<bool>.broadcast();
+    exportService = FakeExportFileService();
   });
 
   // 로딩 중에는 스피너가 계속 돌아서 pumpAndSettle이 끝나지 않는다.
@@ -65,6 +68,7 @@ void main() {
           isOnlineProvider.overrideWith((ref) => online.stream),
           authRepositoryProvider.overrideWithValue(auth),
           sharedPreferencesProvider.overrideWithValue(prefs),
+          exportFileServiceProvider.overrideWithValue(exportService),
         ],
         child: const App(),
       ),
@@ -116,18 +120,57 @@ void main() {
     await closeApp(tester);
   });
 
-  testWidgets('설정의 엑셀 내보내기 · 화면 모드는 준비 중 안내만 띄운다', (tester) async {
+  testWidgets('설정의 화면 모드는 준비 중 안내만 띄운다', (tester) async {
     await pumpApp(tester);
     await tester.tap(find.bySemanticsIdentifier(TestIds.tabSettings));
     await settle(tester);
-    for (final id in [TestIds.settingsExcelExport, TestIds.settingsThemeMode]) {
-      await tester.scrollUntilVisible(find.bySemanticsIdentifier(id), 200);
-      await tester.tap(find.bySemanticsIdentifier(id));
-      await tester.pump();
-      expect(find.text(AppDefine.comingSoonMessage), findsOneWidget);
-      ScaffoldMessenger.of(tester.element(find.bySemanticsIdentifier(id))).removeCurrentSnackBar();
-      await tester.pumpAndSettle();
-    }
+    await tester.scrollUntilVisible(find.bySemanticsIdentifier(TestIds.settingsThemeMode), 200);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsThemeMode));
+    await tester.pump();
+    expect(find.text(AppDefine.comingSoonMessage), findsOneWidget);
+
+    await closeApp(tester);
+  });
+
+  testWidgets('엑셀로 내보내기: 기록이 없으면 안내하고, 있으면 파일을 만들어 공유 · 저장할 수 있다', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabSettings));
+    await settle(tester);
+    final exportTile = find.bySemanticsIdentifier(TestIds.settingsExcelExport);
+
+    // 1. 기록이 없으면 파일을 만들지 않는다.
+    await tester.tap(exportTile);
+    await settle(tester);
+    expect(find.text('내보낼 기록이 없어요'), findsOneWidget);
+    expect(exportService.shared, isEmpty);
+    ScaffoldMessenger.of(tester.element(exportTile)).removeCurrentSnackBar();
+
+    // 2. 기록이 있으면 → 파일 이름 · 건수가 보이는 창 → 공유하기
+    await tester.runAsync(
+      () => LedgerRepository(database.ledgerDao).add(
+        direction: RecordDirection.sent,
+        eventTypeId: 1,
+        personName: '김철수',
+        amount: 50000,
+        date: DateTime(2026, 11, 24),
+      ),
+    );
+    await tester.tap(exportTile);
+    await settle(tester);
+    expect(find.textContaining('보낸 1건 · 받은 0건'), findsOneWidget);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.excelShare));
+    await settle(tester);
+    expect(exportService.shared, hasLength(1));
+    expect(exportService.shared.single, matches(RegExp(r'^마음장부_\d{4}-\d{2}-\d{2}\.xlsx$')));
+    expect(exportService.lastBytes!.take(2), [0x50, 0x4B]); // zip 파일 시작 표시 "PK"
+
+    // 3. 내 휴대폰에 저장 → 완료 안내
+    await tester.tap(exportTile);
+    await settle(tester);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.excelSave));
+    await settle(tester);
+    expect(exportService.saved, hasLength(1));
+    expect(find.text('엑셀 파일을 저장했어요'), findsOneWidget);
 
     await closeApp(tester);
   });
