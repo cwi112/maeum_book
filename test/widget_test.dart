@@ -285,14 +285,58 @@ void main() {
     await closeApp(tester);
   });
 
-  testWidgets('설정에서 샘플 데이터를 넣고, 확인 후 모두 지울 수 있다', (tester) async {
+  testWidgets('샘플 둘러보기: 메모리에만 있고 기기 DB에는 남지 않으며, [끝내기]하면 사라진다', (tester) async {
     await pumpApp(tester);
+    await seed(tester, name: '내기록');
     await tester.tap(find.bySemanticsIdentifier(TestIds.tabSettings));
     await settle(tester);
 
     await tester.tap(find.bySemanticsIdentifier(TestIds.settingsSeed));
     await settle(tester);
-    expect(find.text('샘플 기록 ${SampleData.totalCount}개를 넣었어요'), findsOneWidget);
+    expect(find.text('샘플 기록 ${SampleData.totalCount}개로 둘러보는 중이에요. 앱을 끄면 사라져요'), findsOneWidget);
+    expect(find.text('모든 기록 지우기'), findsNothing); // 샘플 중에는 숨김
+    expect(find.bySemanticsIdentifier(TestIds.sampleTourEnd), findsOneWidget); // 탭 바 위 안내 띠
+
+    // 기기 DB(실제 장부)에는 샘플이 하나도 안 들어갔다
+    final saved = await tester.runAsync(() => LedgerRepository(database.ledgerDao).fetchAllForExport());
+    expect(saved!.map((e) => e.personName), ['내기록']);
+
+    // 보내요 탭은 샘플을 보여주고, 내 기록은 섞이지 않는다
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabSent));
+    await settle(tester);
+    expect(find.text('내기록'), findsNothing);
+    expect(find.textContaining('지금까지 보낸 마음'), findsOneWidget);
+
+    // 끝내기 → 내 기록으로 돌아옴
+    await tester.tap(find.bySemanticsIdentifier(TestIds.sampleTourEnd));
+    await settle(tester);
+    expect(find.bySemanticsIdentifier(TestIds.sampleTourEnd), findsNothing);
+    expect(find.text('내기록'), findsOneWidget);
+
+    await closeApp(tester);
+  });
+
+  testWidgets('회원이 샘플로 둘러봐도 서버에는 아무것도 올라가지 않는다', (tester) async {
+    await auth.signInWithKakao();
+    await pumpApp(tester, guest: false);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabSettings));
+    await settle(tester);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsSeed));
+    await settle(tester);
+    expect(find.bySemanticsIdentifier(TestIds.sampleTourEnd), findsOneWidget);
+    expect(server.entries, isEmpty);
+    expect(server.events, isEmpty);
+    expect(await tester.runAsync(() => memberDatabase.select(memberDatabase.ledgerEntries).get()), isEmpty);
+
+    await closeApp(tester);
+  });
+
+  testWidgets('설정에서 확인 후 모든 기록을 지울 수 있다 (취소하면 그대로)', (tester) async {
+    await pumpApp(tester);
+    await seed(tester, name: '하나');
+    await seed(tester, name: '둘');
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabSettings));
+    await settle(tester);
 
     await tester.tap(find.bySemanticsIdentifier(TestIds.settingsClear));
     await settle(tester);
@@ -305,11 +349,10 @@ void main() {
     await tester.tap(find.bySemanticsIdentifier(TestIds.dialogConfirm));
     await settle(tester);
     await settle(tester); // 확인 창이 닫히는 애니메이션 + DB 삭제가 끝나길 기다림
-    expect(find.text('기록 ${SampleData.totalCount}개를 지웠어요'), findsOneWidget);
+    expect(find.text('기록 2개를 지웠어요'), findsOneWidget);
 
     await closeApp(tester);
   });
-
   testWidgets('받아요: 행사를 만들고, 행사 안에서 받은 마음을 기록하면 바로 보인다', (tester) async {
     await pumpApp(tester);
     await tester.tap(find.bySemanticsIdentifier(TestIds.tabReceived));

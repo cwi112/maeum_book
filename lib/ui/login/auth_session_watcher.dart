@@ -65,6 +65,8 @@ class _AuthSessionWatcherState extends ConsumerState<AuthSessionWatcher> {
     });
     // 로그인한 사람이 바뀌면(로그인 · 자동 로그인) 그 계정의 장부를 받아 온다.
     ref.listen(currentUserIdProvider, (previous, next) {
+      // 로그인 · 로그아웃하면 샘플 둘러보기는 끝낸다. (바뀐 계정의 실제 장부를 보여주기 위해)
+      if (next != previous) ref.read(sampleModeProvider.notifier).exit();
       if (next != null && next != previous) _pull();
     });
     // 인터넷 끊김 → 1번 알림, 다시 연결 → 초기화 + 최신 장부 받기
