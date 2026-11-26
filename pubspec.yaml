@@ -53,6 +53,8 @@ flutter:
     - assets/icon/app_icon_foreground.png
     # 로그인 버튼 공식 심볼: 카카오(디자인 리소스 SVG), Apple(appleid.cdn-apple.com 공식 버튼 이미지 서비스, 1x/2x/3x)
     - assets/images/
+    # 개인정보 처리방침: 앱 안에서도 보여 준다 (인터넷 없이도). 원본은 문서 하나로 관리
+    - docs/PRIVACY_POLICY.md
 
   fonts:
     - family: Pretendard

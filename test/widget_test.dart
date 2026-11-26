@@ -135,6 +135,21 @@ void main() {
     await closeApp(tester);
   });
 
+  testWidgets('개인정보 처리방침은 앱 안에 들어 있는 글로 열린다 (인터넷 없이도)', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabSettings));
+    await settle(tester);
+    await tester.scrollUntilVisible(find.bySemanticsIdentifier(TestIds.settingsPrivacyPolicy), 200);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsPrivacyPolicy));
+    await settle(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.text('마음장부 개인정보 처리방침'), findsOneWidget); // 문서 제목
+    expect(find.text('1. 모으는 정보'), findsOneWidget);
+
+    await closeApp(tester);
+  });
+
   testWidgets('설정의 화면 모드는 준비 중 안내만 띄운다', (tester) async {
     await pumpApp(tester);
     await tester.tap(find.bySemanticsIdentifier(TestIds.tabSettings));

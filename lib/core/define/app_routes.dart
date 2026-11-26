@@ -44,6 +44,9 @@ abstract final class AppRoutes {
   // ── 설정 하위 ──────────────────────────
   static const String eventTypes = '/settings/event-types';
 
+  /// 개인정보 처리방침 (앱 안에서 보기)
+  static const String privacyPolicy = '/settings/privacy';
+
   /// 로그인 (카카오 · Apple). 설정 탭에서 연다.
   static const String login = '/login';
 

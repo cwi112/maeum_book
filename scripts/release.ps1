@@ -5,9 +5,9 @@
 #   1. main 최신화 → release/v<버전> 브랜치에서 pubspec.yaml 버전을 <버전>+<빌드번호+1>로 올림
 #      app_version.json의 latestVersion도 <버전>으로 올림 (앱의 업데이트 확인용)
 #   2. PR 생성 → CI 통과 확인 → 병합
-#   3. main에 v<버전> 태그 push
-#      → GitHub Actions: 서명된 APK를 GitHub Release에 업로드 (Android)
-#      → Codemagic: IPA 빌드 후 TestFlight 업로드 (iOS)
+#   3. main에 v<버전> 태그 push (배포 기록용)
+#   4. Codemagic API로 ios-testflight 빌드 시작 → 끝날 때까지 기다려 성공 · 실패를 알려 줌
+#      (Codemagic 토큰 필요: scripts/lib/Codemagic.ps1 맨 위 설명)
 param(
     [Parameter(Mandatory = $true)][string]$Version
 )
@@ -21,6 +21,10 @@ if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw "버전은 1.2.3 형식으로 
 $tag = "v$Version"
 
 Set-Location (Split-Path $PSScriptRoot -Parent)
+
+. "$PSScriptRoot/lib/Codemagic.ps1"
+# 토큰이 없으면 아무것도 바꾸기 전에 여기서 멈춘다.
+$codemagic = Get-CodemagicConfig
 
 if (git status --porcelain) { throw "커밋하지 않은 변경이 있습니다. 먼저 정리하세요." }
 
@@ -85,8 +89,15 @@ git pull --ff-only; Assert-LastExit 'main 최신화'
 git tag -a $tag -m "릴리스 $tag"; Assert-LastExit '태그 생성'
 git push origin $tag; Assert-LastExit '태그 push'
 
-$repo = gh repo view --json url -q .url
+# Codemagic에 iOS 빌드(TestFlight)를 시작하고 끝날 때까지 기다린다. (토큰은 맨 위에서 확인함)
 Write-Host ""
 Write-Host "배포 시작: $tag ($Version+$build)"
-Write-Host "  Android: $repo/actions  → 끝나면 $repo/releases/tag/$tag 에 APK"
-Write-Host "  iOS    : https://codemagic.io/apps  → 끝나면 TestFlight 앱에 새 빌드"
+$started = Start-CodemagicBuild $codemagic 'ios-testflight' $tag
+Write-Host '  빌드가 끝날 때까지 기다립니다. (보통 15~25분, Ctrl+C로 그만 기다려도 빌드는 계속됨)'
+if (Wait-CodemagicBuilds $codemagic @($started)) {
+    Write-Host ""
+    Write-Host "TestFlight 업로드 완료: Apple 처리 후 5~30분 안에 TestFlight 앱에 $Version ($build) 가 올라옵니다."
+    Write-Host "확인이 끝나면 스토어 제출: .\scripts\submit-store.ps1 $Version"
+} else {
+    throw "iOS 빌드가 실패했습니다. 위 링크에서 로그를 확인하세요. (태그 $tag 는 이미 올라가 있으니 고친 뒤 새 버전으로 배포)"
+}
