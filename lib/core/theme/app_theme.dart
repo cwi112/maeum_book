@@ -65,6 +65,9 @@ class AppTheme {
       // 카드: 흰 바탕, 둥근 모서리, 그림자 대신 옅은 테두리
       cardTheme: CardThemeData(
         color: AppColors.surface,
+        // 카드 안의 목록 줄 · 버튼을 누를 때 물결(splash) · 눌림 색(highlight)이 카드의 둥근 모서리 밖으로
+        // 네모나게 삐져나오지 않도록, 카드 모양대로 잘라서 그린다. (설정 · 경조사 종류 관리 등 모든 Card)
+        clipBehavior: Clip.antiAlias,
         surfaceTintColor: Colors.transparent,
         elevation: 0,
         margin: EdgeInsets.zero,

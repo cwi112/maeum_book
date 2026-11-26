@@ -5,9 +5,11 @@ import 'package:drift/native.dart';
 import 'package:flutter/foundation.dart' show TargetPlatform, debugDefaultTargetPlatformOverride;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:go_router/go_router.dart';
 import 'package:maeum_book/app.dart';
 import 'package:maeum_book/core/define/test_ids.dart';
 import 'package:maeum_book/core/errors/network_exception.dart';
+import 'package:maeum_book/core/theme/app_theme.dart';
 import 'package:maeum_book/data/data.dart';
 import 'package:maeum_book/ui/login/auth_session_watcher.dart';
 import 'package:material_ui/material_ui.dart';
@@ -77,6 +79,29 @@ void main() {
     await online.close();
   }
 
+  testWidgets('하단 탭: 툴팁이 없고, 이미 선택된 탭을 다시 눌러도 보던 화면이 그대로다', (tester) async {
+    await pumpApp(tester);
+    // 탭을 길게 눌러도 툴팁(같은 글자의 말풍선)이 뜨지 않는다. 툴팁 문구가 비어 있으면 Flutter가 툴팁을 그리지 않는다.
+    await tester.longPress(find.bySemanticsIdentifier(TestIds.tabStats));
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('통계'), findsOneWidget); // 탭 이름 하나만 (툴팁이 뜨면 2개)
+    await tester.pumpAndSettle();
+
+    // 받아요 탭에서 같은 탭을 다시 눌러도 이동하지 않는다 (화면 위치 그대로)
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabReceived));
+    await settle(tester);
+    final router = GoRouter.of(tester.element(find.byType(NavigationBar)));
+    final before = router.routerDelegate.currentConfiguration.uri.toString();
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabReceived));
+    await settle(tester);
+    expect(router.routerDelegate.currentConfiguration.uri.toString(), before);
+
+    await closeApp(tester);
+  });
+
+  test('카드는 안의 터치 효과를 둥근 모서리대로 자른다', () {
+    expect(AppTheme.light.cardTheme.clipBehavior, Clip.antiAlias);
+  });
   testWidgets('하단 탭 4개로 화면을 전환할 수 있다', (tester) async {
     await pumpApp(tester);
     expect(find.text('아직 보낸 마음이 없어요'), findsOneWidget);
