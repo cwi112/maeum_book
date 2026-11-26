@@ -25,6 +25,46 @@ class PhotoInfoSheet extends StatefulWidget {
     builder: (_) => PhotoInfoSheet(photo: photo, entries: entries),
   );
 
+  /// 받은 기록 칩의 이름표. 기록 번호 → 글자. 겹치지 않을 때까지 정보를 하나씩 덧붙인다.
+  ///
+  /// | 상황 | 이름표 |
+  /// |---|---|
+  /// | 이름이 하나뿐 | 김민준 |
+  /// | 같은 이름이 여럿 | 김민준 (친구 · 10만원) |
+  /// | 이름 · 관계 · 금액까지 같음 | 김민준 (친구 · 10만원 · 회사 동기) ← 메모 |
+  /// | 메모까지 같거나 없음 | 김민준 (친구 · 10만원) 1 / … 2 ← 기록한 순서 |
+  static Map<int, String> chipLabels(List<LedgerEntry> entries) {
+    Map<int, String> countWhere(Map<int, String> labels, String Function(LedgerEntry) next) {
+      final counts = <String, int>{};
+      for (final label in labels.values) {
+        counts[label] = (counts[label] ?? 0) + 1;
+      }
+      return {
+        for (final entry in entries) entry.id: (counts[labels[entry.id]] ?? 0) > 1 ? next(entry) : labels[entry.id]!,
+      };
+    }
+
+    // 1) 이름 → 2) 같은 이름이면 관계 · 금액 → 3) 그래도 같으면 메모
+    var labels = {for (final entry in entries) entry.id: entry.personName};
+    labels = countWhere(labels, (e) => '${e.personName} (${[?e.relation?.label, e.amount.manWon].join(' · ')})');
+    labels = countWhere(labels, (e) {
+      final memo = e.memo;
+      return memo == null ? labels[e.id]! : '${labels[e.id]!.substring(0, labels[e.id]!.length - 1)} · $memo)';
+    });
+    // 4) 그래도 같으면 기록한 순서 번호 (먼저 기록한 분이 1)
+    final groups = <String, List<LedgerEntry>>{};
+    for (final entry in entries) {
+      (groups[labels[entry.id]!] ??= []).add(entry);
+    }
+    for (final group in groups.values.where((g) => g.length > 1)) {
+      group.sort((a, b) => a.id.compareTo(b.id));
+      for (final (i, entry) in group.indexed) {
+        labels[entry.id] = '${labels[entry.id]} ${i + 1}';
+      }
+    }
+    return labels;
+  }
+
   @override
   State<PhotoInfoSheet> createState() => _PhotoInfoSheetState();
 }
@@ -48,17 +88,10 @@ class _PhotoInfoSheetState extends State<PhotoInfoSheet> {
 
   @override
   Widget build(BuildContext context) {
-    // 받은 기록 하나당 칩 하나. 사진은 이름이 아니라 **기록 번호**로 연결되므로 동명이인도 정확히 구분된다.
-    // 같은 이름이 여럿이면 칩에 관계(없으면 금액)를 붙여 누구인지 알 수 있게 한다. 예) 김민준 (친구) · 김민준 (10만원)
+    // 받은 기록 하나당 칩 하나. 사진은 이름이 아니라 **기록 번호**로 연결되므로, 무엇이 같든 고른 그 기록에만 붙는다.
     final choices = widget.entries;
-    final nameCounts = <String, int>{};
-    for (final entry in choices) {
-      nameCounts[entry.personName] = (nameCounts[entry.personName] ?? 0) + 1;
-    }
-    String chipLabel(LedgerEntry entry) {
-      if ((nameCounts[entry.personName] ?? 0) < 2) return entry.personName;
-      return '${entry.personName} (${entry.relation?.label ?? entry.amount.manWon})';
-    }
+    final labels = PhotoInfoSheet.chipLabels(choices);
+    String chipLabel(LedgerEntry entry) => labels[entry.id]!;
 
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),

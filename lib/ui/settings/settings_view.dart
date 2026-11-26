@@ -85,12 +85,6 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
   static void _showComingSoon(BuildContext context) =>
       context.showToast(AppDefine.comingSoonMessage, type: ToastType.info);
 
-  /// 개인정보 처리방침 웹 페이지를 브라우저로 연다.
-  static Future<void> _openPrivacyPolicy(BuildContext context) async {
-    final opened = await launchUrl(Uri.parse(AppDefine.privacyPolicyUrl), mode: LaunchMode.externalApplication);
-    if (!opened && context.mounted) context.showToast('페이지를 열지 못했어요', type: ToastType.error);
-  }
-
   /// 앱 정보를 누르면: 최신 버전인지 확인하고, 아니면 업데이트할 곳(지금은 TestFlight)으로 보낸다.
   Future<void> _checkUpdate(BuildContext context, SettingsViewModel viewModel) async {
     final result = await context.withLoading(viewModel.checkUpdate, style: LoadingStyle.button);
@@ -113,7 +107,7 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
           cancelLabel: '나중에',
         );
         if (!confirmed) return;
-        final opened = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+        final opened = await InAppHandoff.run(() => launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication));
         if (!opened && context.mounted) {
           context.showToast('업데이트 화면을 열지 못했어요', type: ToastType.error);
         }
@@ -228,8 +222,9 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
                 ListTile(
                   leading: const Icon(Icons.privacy_tip_outlined),
                   title: const Text('개인정보 처리방침'),
-                  trailing: const Icon(Icons.open_in_new_rounded, size: 20, color: AppColors.textHint),
-                  onTap: () => _openPrivacyPolicy(context),
+                  trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+                  // 앱 안에 들어 있는 글을 보여 준다. (인터넷 없이도) 웹 페이지는 그 화면 오른쪽 위에서
+                  onTap: () => context.pushOnce(AppRoutes.privacyPolicy),
                 ).testId(TestIds.settingsPrivacyPolicy),
               ],
             ),

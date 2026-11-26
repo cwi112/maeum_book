@@ -4,6 +4,7 @@ import 'dart:ui' show Rect;
 
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:maeum_book/core/utils/in_app_handoff.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -32,10 +33,12 @@ class ExportFileService {
     final file = File('${dir.path}/$fileName');
     await file.writeAsBytes(bytes, flush: true);
 
-    final result = await SharePlus.instance.share(
-      ShareParams(
-        files: [XFile(file.path, mimeType: xlsxMimeType)],
-        sharePositionOrigin: origin,
+    final result = await InAppHandoff.run(
+      () => SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: xlsxMimeType)],
+          sharePositionOrigin: origin,
+        ),
       ),
     );
     return result.status == ShareResultStatus.success;
@@ -43,11 +46,8 @@ class ExportFileService {
 
   /// 저장 위치를 고르는 창을 띄워 저장한다. 저장했으면 true, 취소했으면 false.
   Future<bool> saveToDevice(Uint8List bytes, String fileName) async {
-    final uri = await FilePicker.saveFile(
-      fileName: fileName,
-      bytes: bytes,
-      mimeType: xlsxMimeType,
-      dialogTitle: '엑셀 파일 저장',
+    final uri = await InAppHandoff.run(
+      () => FilePicker.saveFile(fileName: fileName, bytes: bytes, mimeType: xlsxMimeType, dialogTitle: '엑셀 파일 저장'),
     );
     return uri != null;
   }

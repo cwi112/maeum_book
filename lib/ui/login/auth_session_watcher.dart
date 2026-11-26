@@ -5,7 +5,7 @@ import 'package:maeum_book/data/data.dart';
 ///
 /// | 언제 | 하는 일 |
 /// |---|---|
-/// | 로그인 직후 · 앱을 켤 때(자동 로그인) · 앱으로 돌아올 때 | 회원이면 서버의 장부를 받아 기기 사본을 바꾼다 (다른 기기에서 고친 내용 반영) |
+/// | 로그인 직후 · 앱을 켤 때(자동 로그인) · 앱으로 돌아올 때 | 회원이면 서버의 장부를 받아 기기 사본을 바꾼다 (다른 기기에서 고친 내용 반영). 2분 안에 다시 돌아오거나, 앨범 · 카메라처럼 앱이 연 화면에서 돌아올 때는 받지 않는다 |
 /// | 사용자가 하지 않은 로그아웃(만료 · 다른 기기에서 탈퇴 · Apple 연결 해제) | 라우터가 시작 화면으로 보내고, 여기서 "로그인이 만료됐어요" 토스트 |
 /// | 회원인데 인터넷이 끊기거나 약함 | "인터넷 연결" 토스트를 **끊길 때마다 1번만**. 다시 연결되면 초기화 |
 ///
@@ -57,6 +57,8 @@ class _AuthSessionWatcherState extends ConsumerState<AuthSessionWatcher> {
     final now = DateTime.now();
     final last = _lastResumePull;
     if (last != null && now.difference(last) < resumePullInterval) return;
+    // 앨범 · 카메라 · 공유 창처럼 앱이 직접 연 화면에서 돌아온 것이면 받지 않는다. (다른 기기의 변화가 있을 리 없음)
+    if (InAppHandoff.isReturning) return;
     _lastResumePull = now;
     _pull();
   }

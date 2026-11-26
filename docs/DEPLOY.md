@@ -52,7 +52,8 @@ main에 원하는 변경이 모두 병합된 상태에서:
 
 - **CI 실패**: 스크립트가 멈춘다. 고친 뒤 `release/v1.0.1` 브랜치에 push → CI 통과 확인 → 병합 → 태그를 직접 push
   (`git tag -a v1.0.1 -m "릴리스 v1.0.1"; git push origin v1.0.1`)
-- **태그를 push했는데 Codemagic 빌드가 안 생김**: 웹훅이 없는 것. 아래 iOS 설정 8번을 한 뒤, 이미 올린 태그는 수동 실행한다.
+- **Codemagic 토큰이 없다고 멈춤**: [STORE_RELEASE.md](STORE_RELEASE.md)의 "처음 한 번: Codemagic 토큰"을 한 번 한다. (스크립트는 아무것도 바꾸기 전에 멈추므로 다시 실행하면 된다)
+- **빌드가 실패했다고 나옴**: 출력된 링크에서 로그를 보고 고친 뒤 **새 버전**으로 다시 배포한다. (같은 버전으로 다시 빌드하려면 Codemagic 화면 → Start new build → Build tag)
 - **Android/iOS 빌드만 실패**: 원인을 고쳐 main에 병합하고 **새 버전**(예: 1.0.2)으로 다시 배포한다.
   같은 태그를 지우고 다시 쓰지 않는다.
 

@@ -8,13 +8,24 @@
 ```
 
 ```
-release.ps1 ──▶ v1.3.0 태그 ──▶ Codemagic ios-testflight ──▶ TestFlight (테스터 확인)
-                                      │ 같은 커밋
-submit-store.ps1 ──▶ store-ios-v1.3.0 태그 ──▶ Codemagic ios-appstore ──▶ App Store 심사 제출 ──▶ 통과 ──▶ [이 버전 출시] (사람)
-                 └─▶ store-v1.3.0 태그(-Platform all) ──▶ + android-play ──▶ Play 내부 테스트 초안 ──▶ [프로덕션 승격] (사람)
+release.ps1 ──▶ v1.3.0 태그 ──▶ (API) Codemagic ios-testflight ──▶ 끝날 때까지 기다려 결과 표시 ──▶ TestFlight
+                                      │ 같은 태그(같은 코드)
+submit-store.ps1 ──▶ (API) Codemagic ios-appstore ──▶ 결과 표시 ──▶ App Store 심사 ──▶ 통과 ──▶ [이 버전 출시] (사람)
+                 └─▶ (-Platform all) android-play ──▶ 결과 표시 ──▶ Play 내부 테스트 초안 ──▶ [프로덕션 승격] (사람)
 ```
 
-두 스크립트 모두 **태그만 push**한다. GitHub이 태그 소식을 Codemagic에 알려 줘서(웹훅) 빌드가 시작되므로, 토큰 같은 따로 준비할 것이 없다.
+두 스크립트 모두 **Codemagic API 토큰**으로 빌드를 시작하고, **끝날 때까지 기다려 성공 · 실패를 터미널에 알려 준다.**
+Codemagic 사이트에 들어가 확인할 필요가 없고, 실패하면 로그 링크가 바로 나온다.
+
+### 처음 한 번: Codemagic 토큰
+1. Codemagic → Teams → Personal Account → Integrations → **Codemagic API** → Show → 토큰 복사
+2. Codemagic에서 앱을 열었을 때 주소 `https://codemagic.io/app/<앱 ID>`의 **앱 ID** 복사
+3. PowerShell에서 (내 PC 사용자 환경 변수에만 저장. 저장소 · 채팅에는 올리지 않는다)
+   ```powershell
+   [Environment]::SetEnvironmentVariable('CODEMAGIC_TOKEN', '<토큰>', 'User')
+   [Environment]::SetEnvironmentVariable('CODEMAGIC_APP_ID', '<앱 ID>', 'User')
+   ```
+4. 새 PowerShell 창부터 적용된다. 토큰이 없으면 스크립트가 **아무것도 바꾸기 전에** 멈추고 이 방법을 알려 준다.
 
 **마지막 출시 버튼은 일부러 사람이 누르게 했다.** 심사를 통과해도 바로 모든 사용자에게 나가지 않는다.
 

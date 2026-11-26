@@ -15,5 +15,6 @@ export 'define/define.dart';
 export 'errors/network_exception.dart';
 export 'extensions/extensions.dart';
 export 'theme/theme.dart';
+export 'utils/in_app_handoff.dart';
 export 'utils/stream_utils.dart';
 export 'widgets/widgets.dart';

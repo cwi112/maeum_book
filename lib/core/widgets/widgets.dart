@@ -16,5 +16,6 @@ export 'form/form_section.dart';
 export 'form/search_field.dart';
 export 'layout/app_list_scaffold.dart';
 export 'ledger_list_layout.dart';
+export 'simple_markdown.dart';
 export 'summary_card.dart';
 export 'swipe_action_tile.dart';
