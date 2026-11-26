@@ -36,7 +36,8 @@
 - [x] 경조사 종류 직접 추가·이름 변경·삭제 (설정)
 - [ ] 다가오는 경조사 알림
 - [x] 스플래시 화면
-- [x] 카카오 · Apple 로그인 (Supabase Auth), 로그아웃, 회원 탈퇴 — 설정 방법은 [docs/AUTH_SETUP.md](docs/AUTH_SETUP.md)
+- [x] 카카오 · Apple 로그인 (Supabase Auth), 자동 로그인 · 만료 안내, 로그아웃, 회원 탈퇴 — 설정 방법은 [docs/AUTH_SETUP.md](docs/AUTH_SETUP.md)
+- [x] 로그인 없이 시작하기(비회원), 카카오 ↔ Apple 계정 연결
 - [ ] 장부 서버 백업 · 동기화 (Supabase)
 - [x] 설정 > 앱 정보: 설치된 버전 표시, 눌러서 최신 버전 확인 → 업데이트 안내 (지금은 TestFlight, 출시 후 App Store)
 

@@ -1,5 +1,7 @@
 import 'package:maeum_book/core/core.dart';
 import 'package:maeum_book/data/data.dart';
+import 'package:maeum_book/ui/login/login_view_model.dart';
+import 'package:maeum_book/ui/login/widgets/social_login_buttons.dart';
 import 'package:maeum_book/ui/settings/settings_view_model.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -152,20 +154,21 @@ class _AccountCard extends ConsumerWidget {
 
   final SettingsViewModel viewModel;
 
-  /// 실패 이유에 맞는 문구를 띄운다. 로그인이 만료됐으면 [다시 로그인] 버튼을 붙인다.
+  /// 실패 이유에 맞는 문구를 띄운다. (로그인이 만료됐으면 라우터가 시작 화면으로 보낸다)
   static void _showFailure(BuildContext context, AuthFailure failure) {
     if (!context.mounted) return;
     final expired = failure.type == AuthFailureType.sessionExpired;
-    context.showToast(
-      failure.message,
-      type: expired ? ToastType.info : ToastType.error,
-      actionLabel: expired ? '다시 로그인' : null,
-      onAction: expired ? () => context.push(AppRoutes.login) : null,
-    );
+    context.showToast(failure.message, type: expired ? ToastType.info : ToastType.error);
   }
 
+  /// 로그아웃하면 시작(로그인) 화면으로 간다. 이 기기에 기록한 장부는 그대로 남는다.
   Future<void> _signOut(BuildContext context) async {
-    final confirmed = await AppDialog.confirm(context, title: '로그아웃할까요?', confirmLabel: '로그아웃');
+    final confirmed = await AppDialog.confirm(
+      context,
+      title: '로그아웃할까요?',
+      message: '이 기기에 기록한 장부는 그대로 남아요.',
+      confirmLabel: '로그아웃',
+    );
     if (!confirmed || !context.mounted) return;
     if (await viewModel.signOut(onFailure: (f) => _showFailure(context, f)) && context.mounted) {
       context.showToast('로그아웃했어요', type: ToastType.info);
@@ -186,6 +189,13 @@ class _AccountCard extends ConsumerWidget {
     }
   }
 
+  Future<void> _link(BuildContext context, LoginMethod provider) async {
+    final linked = await viewModel.link(provider, onFailure: (f) => _showFailure(context, f));
+    if (linked && context.mounted) {
+      context.showToast('${provider.label} 계정을 연결했어요. 이제 어느 쪽으로 로그인해도 같은 계정이에요');
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(currentUserProvider).value;
@@ -194,20 +204,30 @@ class _AccountCard extends ConsumerWidget {
         child: ListTile(
           leading: const Icon(Icons.person_outline),
           title: const Text('로그인'),
-          subtitle: const Text('카카오 · Apple 계정으로 로그인해요'),
+          subtitle: const Text('비회원으로 쓰는 중이에요. 로그인해도 기록은 그대로예요'),
           trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
           onTap: () => context.push(AppRoutes.login),
         ).testId(TestIds.settingsAccount),
       );
     }
+    final linking = ref.watch(settingsViewModelProvider.select((s) => s.linkingProvider));
     return Card(
       child: Column(
         children: [
           ListTile(
             leading: const Icon(Icons.account_circle_outlined),
             title: Text(user.name ?? '마음장부 사용자'),
-            subtitle: Text('${user.providerLabel} 계정으로 로그인됨'),
+            subtitle: Text('${user.providerLabel} 계정으로 가입'),
           ).testId(TestIds.settingsAccount),
+          const Divider(indent: AppSpacing.screen, endIndent: AppSpacing.screen),
+          // 연결된 로그인 방법: 연결해 두면 카카오 · Apple 어느 쪽으로 로그인해도 같은 계정
+          for (final provider in LoginMethod.availableHere)
+            _LinkTile(
+              provider: provider,
+              isLinked: user.isLinked(provider.id),
+              isLoading: linking == provider,
+              onLink: linking == null ? () => _link(context, provider) : null,
+            ),
           const Divider(indent: AppSpacing.screen, endIndent: AppSpacing.screen),
           ListTile(
             leading: const Icon(Icons.logout_rounded),
@@ -223,6 +243,29 @@ class _AccountCard extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+/// 로그인 방법 한 줄: [카카오 · 연결됨] 또는 [Apple · 연결하기]
+class _LinkTile extends StatelessWidget {
+  const _LinkTile({required this.provider, required this.isLinked, required this.isLoading, required this.onLink});
+
+  final LoginMethod provider;
+  final bool isLinked;
+  final bool isLoading;
+  final VoidCallback? onLink;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      leading: LoginProviderSymbol(isKakao: provider == LoginMethod.kakao),
+      title: Text('${provider.label} 로그인'),
+      trailing: isLinked
+          ? const AppText.caption('연결됨', color: AppColors.success)
+          : isLoading
+          ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
+          : TextButton(onPressed: onLink, child: const Text('연결하기')),
+    ).testId(provider == LoginMethod.kakao ? TestIds.settingsLinkKakao : TestIds.settingsLinkApple);
   }
 }
 

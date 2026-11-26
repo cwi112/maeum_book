@@ -1,7 +1,8 @@
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:maeum_book/core/core.dart';
-import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 
-/// 소셜 로그인 버튼 공통 크기. Apple 규정: 다른 로그인 버튼보다 작거나 덜 눈에 띄면 안 된다 → 두 버튼 크기를 똑같이 맞춘다.
+/// 소셜 로그인 버튼 공통 크기. 두 버튼 모두 공식 심볼 이미지를 쓴다.
+/// Apple 규정: 다른 로그인 버튼보다 작거나 덜 눈에 띄면 안 된다 → 두 버튼 크기를 똑같이 맞춘다.
 abstract final class SocialButtonSpec {
   /// 버튼 높이 (Apple 최소 44pt 이상)
   static const double height = 52;
@@ -15,7 +16,7 @@ abstract final class SocialButtonSpec {
 /// | 항목 | 규격 |
 /// |---|---|
 /// | 배경 | #FEE500 |
-/// | 심볼(말풍선) | #000000, 모양 · 비율 · 색 변경 금지, 심볼 없는 버튼 금지 |
+/// | 심볼(말풍선) | 공식 리소스 SVG 그대로 (assets/images/kakao_symbol.svg), 모양 · 비율 · 색 변경 금지 |
 /// | 글자 | "카카오 로그인", #000000 85%, **OS 기본 시스템 서체** (앱 글꼴 Pretendard를 쓰지 않음) |
 /// | 모서리 | 12px |
 /// | 크기 | 버튼을 넓힐 때는 심볼 · 글자는 그대로 두고 좌우로만 늘린다. 글자 높이는 버튼 높이의 1/3 이하 |
@@ -42,47 +43,56 @@ class KakaoLoginButton extends StatelessWidget {
       onPressed: isLoading ? null : onPressed,
       child: isLoading
           ? const _ButtonSpinner(color: AppColors.kakaoLabel)
-          : const Row(
+          : Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // 심볼은 글자와 함께 가운데 정렬 (가이드에서 허용하는 배치)
-                SizedBox.square(dimension: 18, child: CustomPaint(painter: _KakaoSymbolPainter())),
-                SizedBox(width: AppSpacing.sm),
-                Text('카카오 로그인', style: _labelStyle),
+                SvgPicture.asset('assets/images/kakao_symbol.svg', width: 15, height: 15),
+                const SizedBox(width: AppSpacing.sm),
+                const Text('카카오 로그인', style: _labelStyle),
               ],
             ),
     );
   }
 }
 
-/// Apple 로그인 버튼. Apple이 정한 모양(로고 · 서체 · 검정 스타일)을 그려 주는 sign_in_with_apple 패키지 버튼을 쓴다.
-/// 문구는 Apple의 한국어 공식 문구 "Apple로 로그인". 크기 · 모서리는 카카오 버튼과 같게 맞춘다.
+/// Apple 로그인 버튼. 로고는 Apple 공식 버튼 이미지 서비스(appleid.cdn-apple.com)에서 받은 이미지를 쓴다.
+///
+/// | 항목 | 규격 |
+/// |---|---|
+/// | 스타일 | 검정 배경 + 흰 로고 · 글자 |
+/// | 문구 | Apple 한국어 공식 문구 "Apple로 로그인", 시스템 서체 |
+/// | 로고 | 공식 이미지 (assets/images/apple_logo.png, 1x · 2x · 3x) |
+/// | 크기 | 다른 로그인 버튼보다 작거나 덜 눈에 띄면 안 된다 → 카카오 버튼과 같은 높이 · 너비 · 모서리 |
 class AppleLoginButton extends StatelessWidget {
   const AppleLoginButton({super.key, required this.onPressed, this.isLoading = false});
 
   final VoidCallback? onPressed;
   final bool isLoading;
 
+  static const _labelStyle = TextStyle(
+    inherit: false, // 시스템 서체 (앱 글꼴을 물려받지 않음)
+    fontSize: 19,
+    fontWeight: FontWeight.w500,
+    color: Colors.white,
+    textBaseline: TextBaseline.alphabetic,
+  );
+
   @override
   Widget build(BuildContext context) {
-    if (isLoading) {
-      return const _SocialButtonFrame(
-        color: Colors.black,
-        child: _ButtonSpinner(color: Colors.white),
-      );
-    }
-    // 다른 로그인 진행 중이면 흐리게 + 누를 수 없게
-    return Opacity(
-      opacity: onPressed == null ? 0.6 : 1,
-      child: IgnorePointer(
-        ignoring: onPressed == null,
-        child: SignInWithAppleButton(
-          onPressed: onPressed ?? () {},
-          text: 'Apple로 로그인',
-          height: SocialButtonSpec.height,
-          borderRadius: const BorderRadius.all(Radius.circular(SocialButtonSpec.radius)),
-        ),
-      ),
+    return _SocialButtonFrame(
+      color: Colors.black,
+      onPressed: isLoading ? null : onPressed,
+      child: isLoading
+          ? const _ButtonSpinner(color: Colors.white)
+          : Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset('assets/images/apple_logo.png', width: 30, height: 30),
+                const Text('Apple로 로그인', style: _labelStyle),
+                const SizedBox(width: 8), // 로고 이미지 안쪽 여백만큼 오른쪽도 비워 가운데를 맞춘다
+              ],
+            ),
     );
   }
 }
@@ -124,27 +134,28 @@ class _ButtonSpinner extends StatelessWidget {
       SizedBox.square(dimension: 22, child: CircularProgressIndicator(strokeWidth: 2, color: color));
 }
 
-/// 카카오 말풍선 심볼 (검정). 둥근 말풍선 + 왼쪽 아래 꼬리.
-/// 공식 리소스(developers.kakao.com → 도구 → 리소스 다운로드 → 카카오 로그인)의 심볼 이미지로 바꿀 수 있다.
-class _KakaoSymbolPainter extends CustomPainter {
-  const _KakaoSymbolPainter();
+/// 로그인 방법 공식 심볼 (설정 탭의 "연결된 로그인" 줄 등 작은 자리에 쓴다)
+/// - 카카오: 공식 말풍선 심볼 (검정)
+/// - Apple: Apple 로고 (Material 아이콘은 쓰지 않고, 밝은 배경에 맞게 검정 원 안에 공식 로고 이미지)
+class LoginProviderSymbol extends StatelessWidget {
+  const LoginProviderSymbol({super.key, required this.isKakao, this.size = 24});
+
+  final bool isKakao;
+  final double size;
 
   @override
-  void paint(Canvas canvas, Size size) {
-    final w = size.width;
-    final h = size.height;
-    final paint = Paint()..color = Colors.black;
-    // 말풍선 몸통: 가로로 조금 긴 타원
-    canvas.drawOval(Rect.fromLTWH(0, h * 0.04, w, h * 0.78), paint);
-    // 꼬리: 몸통 왼쪽 아래에서 아래로 짧게
-    final tail = Path()
-      ..moveTo(w * 0.22, h * 0.66)
-      ..lineTo(w * 0.17, h * 0.98)
-      ..lineTo(w * 0.44, h * 0.76)
-      ..close();
-    canvas.drawPath(tail, paint);
+  Widget build(BuildContext context) {
+    if (isKakao) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: const BoxDecoration(color: AppColors.kakao, shape: BoxShape.circle),
+        alignment: Alignment.center,
+        child: SvgPicture.asset('assets/images/kakao_symbol.svg', width: size * 0.5, height: size * 0.5),
+      );
+    }
+    return ClipOval(
+      child: Image.asset('assets/images/apple_logo.png', width: size, height: size, fit: BoxFit.cover),
+    );
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

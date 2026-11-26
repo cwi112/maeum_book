@@ -50,7 +50,7 @@ class FakeAuthRepository implements AuthRepository {
 
   Future<void> _signIn(String provider) async {
     _throwIfFailNext();
-    _set(AppUser(id: 'test-user', provider: provider, name: '홍길동'));
+    _set(AppUser(id: 'test-user', provider: provider, name: '홍길동', linkedProviders: [provider]));
   }
 
   @override
@@ -58,6 +58,26 @@ class FakeAuthRepository implements AuthRepository {
 
   @override
   Future<void> signInWithApple() => _signIn('apple');
+
+  @override
+  Future<void> linkKakao() => _link('kakao');
+
+  @override
+  Future<void> linkApple() => _link('apple');
+
+  Future<void> _link(String provider) async {
+    _throwIfFailNext();
+    final user = _user;
+    if (user == null) throw const AuthFailure(AuthFailureType.sessionExpired);
+    _set(
+      AppUser(
+        id: user.id,
+        provider: user.provider,
+        name: user.name,
+        linkedProviders: [...user.linkedProviders, provider],
+      ),
+    );
+  }
 
   @override
   Future<void> signOut() async => _set(null);

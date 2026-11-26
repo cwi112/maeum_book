@@ -1,13 +1,12 @@
 import 'package:maeum_book/core/core.dart';
 import 'package:maeum_book/data/data.dart';
-import 'package:maeum_book/router/app_router.dart';
 
 /// 앱 전체를 감싸서 **로그인 만료**를 지켜보는 위젯. (app.dart의 builder에서 한 번만 쓴다)
 ///
 /// - 사용자가 직접 하지 않은 로그아웃(토큰 갱신 거절 · 다른 기기에서 탈퇴 · Apple 연결 해제)이 일어나면
-///   어느 화면에 있든 "로그인이 만료됐어요" 토스트와 [다시 로그인] 버튼을 띄운다.
+///   라우터가 시작(로그인) 화면으로 보내고, 여기서는 "로그인이 만료됐어요" 토스트로 이유를 알린다.
 /// - 앱을 켤 때와 다시 열 때(백그라운드 → 화면) 로그인 방법 쪽 연결이 살아 있는지 확인한다. (Apple)
-/// - 로그인하지 않아도 앱은 그대로 쓸 수 있으므로, 강제로 로그인 화면으로 보내지는 않는다.
+/// - 시작 화면에서 다시 로그인하거나 "로그인 없이 시작하기"를 고를 수 있다.
 class AuthSessionWatcher extends ConsumerStatefulWidget {
   const AuthSessionWatcher({super.key, required this.child});
 
@@ -37,13 +36,9 @@ class _AuthSessionWatcherState extends ConsumerState<AuthSessionWatcher> {
 
   void _onExpired() {
     if (!mounted) return;
-    context.showToast(
-      AuthFailureType.sessionExpired.message,
-      type: ToastType.info,
-      actionLabel: '다시 로그인',
-      // 이 위젯은 Navigator 바깥(앱 맨 위)에 있어서 context.push 대신 라우터를 직접 쓴다.
-      onAction: () => ref.read(appRouterProvider).push(AppRoutes.login),
-    );
+    // 화면 이동은 라우터가 한다: 로그인이 풀리면 시작(로그인) 화면으로 자동으로 간다. (app_router.dart의 redirect)
+    // 여기서는 왜 로그인 화면이 나왔는지만 알려 준다.
+    context.showToast(AuthFailureType.sessionExpired.message, type: ToastType.info);
   }
 
   @override

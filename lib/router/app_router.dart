@@ -27,8 +27,29 @@ import 'package:maeum_book/ui/stats/stats.dart';
 /// Provider로 만든 이유: 테스트마다 새 ProviderScope를 쓰면 라우터도 새로 만들어져
 /// 이전 테스트의 화면 위치가 남지 않는다.
 final appRouterProvider = Provider<GoRouter>((ref) {
+  // ── 시작 화면 문지기 ──
+  // 로그인했거나 "로그인 없이 시작하기"를 골랐으면 앱으로, 아니면 로그인(시작) 화면으로 보낸다.
+  // 로그인 · 로그아웃 · 탈퇴 · 만료 · 비회원 선택이 바뀔 때마다 redirect를 다시 계산한다.
+  bool canEnterApp() => ref.read(authRepositoryProvider).currentUser != null || ref.read(guestModeProvider);
+
+  // ValueNotifier는 값이 "바뀔 때만" 알린다. 그래서 비회원 → 회원처럼 들어갈 수 있는 상태가 그대로면
+  // 라우터를 다시 계산하지 않는다. (설정에서 연 로그인 화면이 스스로 닫히는 것과 겹치지 않게)
+  final refresh = ValueNotifier<bool>(canEnterApp());
+  void update() => refresh.value = canEnterApp();
+  ref.listen(currentUserProvider, (_, _) => update());
+  ref.listen(guestModeProvider, (_, _) => update());
+  ref.onDispose(refresh.dispose);
+
   final router = GoRouter(
     initialLocation: AppRoutes.initial,
+    refreshListenable: refresh,
+    redirect: (context, state) {
+      final atLogin = state.matchedLocation == AppRoutes.login;
+      if (!canEnterApp()) return atLogin ? null : AppRoutes.login;
+      // 시작 화면(뒤로 갈 곳 없는 로그인 화면)에서 로그인 · 비회원 선택이 끝나면 앱 첫 화면으로.
+      // 설정에서 쌓아 연 로그인 화면은 화면이 스스로 닫는다.
+      return null;
+    },
     routes: [
       // 하단 탭 4개. indexedStack: 탭을 바꿔도 각 탭 화면이 사라지지 않고 상태가 유지된다.
       StatefulShellRoute.indexedStack(
