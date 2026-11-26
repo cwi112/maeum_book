@@ -33,6 +33,9 @@ class AppDatabase extends _$AppDatabase {
   /// 테스트에서는 `NativeDatabase.memory()`를 넘겨 메모리에만 있는 임시 DB로 실행한다.
   AppDatabase([QueryExecutor? executor]) : super(executor ?? _openConnection());
 
+  /// 이름이 다른 DB 파일을 연다. (회원 계정별 사본: `maeum_book_<사용자 id>.sqlite`)
+  AppDatabase.named(String name) : super(driftDatabase(name: name));
+
   /// DB 구조(스키마) 버전.
   /// - v1: 최초 (기록 테이블)
   /// - v2: 관계(relation) 컬럼 추가

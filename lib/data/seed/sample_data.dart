@@ -52,7 +52,14 @@ abstract final class SampleData {
 
   /// DB에 샘플을 넣고 넣은 기록 수를 돌려준다. 행사와 기록을 **한 트랜잭션**으로 넣어서,
   /// 중간에 실패하면 전부 취소되고 화면 갱신도 마지막에 한 번만 일어난다.
-  static Future<int> insertInto(AppDatabase db, {required DateTime now, int seed = 20261124}) async {
+  /// [newId]: 회원이면 서버와 겹치지 않는 번호를 만드는 함수 (비로그인은 null → 자동 번호)
+  static Future<int> insertInto(
+    AppDatabase db, {
+    required DateTime now,
+    int seed = 20261124,
+    int Function()? newId,
+  }) async {
+    Value<int> id() => newId == null ? const Value.absent() : Value(newId());
     final random = Random(seed);
     T pick<T>(List<T> list) => list[random.nextInt(list.length)];
     final existingTypeIds = (await db.select(db.eventTypes).get()).map((t) => t.id).toSet();
@@ -69,6 +76,7 @@ abstract final class SampleData {
       final isFamily = relation == Relation.family || relation == Relation.relative;
       final memo = pick(memos);
       return LedgerEntriesCompanion.insert(
+        id: id(),
         direction: direction,
         eventTypeId: typeOrOther(typeId),
         eventId: Value(eventId),
@@ -98,7 +106,7 @@ abstract final class SampleData {
       for (final (title, typeId, daysAgo, givers) in _myEvents) {
         final date = DateTime(now.year, now.month, now.day).subtract(Duration(days: daysAgo));
         final eventId = await db.eventDao.insertEvent(
-          EventsCompanion.insert(title: title, eventTypeId: typeOrOther(typeId), date: date),
+          EventsCompanion.insert(id: id(), title: title, eventTypeId: typeOrOther(typeId), date: date),
         );
         final received = [
           for (var i = 0; i < givers; i++)

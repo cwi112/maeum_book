@@ -41,9 +41,46 @@ class LoginView extends BaseView<LoginViewModel, LoginMethod?> {
         if (context.mounted) context.showToast(failure.message, type: ToastType.error);
       },
     );
-    if (success && context.mounted) {
-      context.showToast('로그인했어요');
-      _leave(context);
+    if (!success || !context.mounted) return;
+    final imported = await _offerGuestImport(context, viewModel);
+    if (!context.mounted) return;
+    if (imported == null) context.showToast('로그인했어요');
+    _leave(context);
+  }
+
+  /// 처음 로그인할 때 이 기기에 비로그인 기록이 있으면 "계정으로 옮길까요?"를 묻는다.
+  /// 옮겼으면 옮긴 건수, 묻지 않았거나 옮기지 않았으면 null.
+  ///
+  /// | 계정 상태 | 팝업 |
+  /// |---|---|
+  /// | 새 계정 (서버에 기록 없음) | 이 기기의 기록 N건을 계정으로 옮길까요? [옮기기] [나중에] |
+  /// | 다른 기기에서 쓰던 계정 | 계정에 기록 M건이 있어요. 이 기기의 기록 N건을 합칠까요? [합치기] [나중에] |
+  ///
+  /// [나중에]를 고르면 비로그인 기록은 이 기기에 그대로 남고(로그아웃 후 비회원으로 보면 보임), 다음 로그인 때 다시 묻는다.
+  static Future<int?> _offerGuestImport(BuildContext context, LoginViewModel viewModel) async {
+    final offer = await viewModel.checkGuestRecords();
+    if (offer == null || !context.mounted) return null;
+    final count = offer.localEntries > 0 ? '기록 ${offer.localEntries}건' : '행사 ${offer.localEvents}개';
+    final merge = offer.serverEntries > 0;
+    final confirmed = await AppDialog.confirm(
+      context,
+      title: merge ? '이 기기의 기록을 합칠까요?' : '이 기기의 기록을 계정으로 옮길까요?',
+      message: merge
+          ? '계정에 기록 ${offer.serverEntries}건이 있어요.\n로그인 전에 이 기기에 쓴 $count을 계정에 합치면\n어느 기기에서든 함께 볼 수 있어요.'
+          : '로그인 전에 이 기기에 쓴 $count이 있어요.\n계정으로 옮기면 어느 기기에서든 이어서 볼 수 있어요.',
+      confirmLabel: merge ? '합치기' : '옮기기',
+      cancelLabel: '나중에',
+    );
+    if (!confirmed || !context.mounted) return null;
+    try {
+      final moved = await viewModel.importGuestRecords();
+      if (context.mounted) context.showToast('기록 $moved건을 계정으로 옮겼어요');
+      return moved;
+    } catch (error) {
+      if (context.mounted) {
+        context.showErrorToast(error, '기록을 옮기지 못했어요. 다음에 로그인할 때 다시 물어볼게요');
+      }
+      return null;
     }
   }
 

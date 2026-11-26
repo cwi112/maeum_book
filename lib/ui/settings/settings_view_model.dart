@@ -32,12 +32,13 @@ class SettingsViewModel extends BaseViewModel<SettingsState> {
   AuthRepository get _authRepository => ref.read(authRepositoryProvider);
 
   /// 로그아웃. 성공하면 true. (인터넷이 없어도 기기에서는 로그아웃된다)
+  /// 서버의 계정 장부는 그대로 남고, 이 기기에 받아 둔 계정 사본만 지운다. (다음에 이 기기를 쓰는 사람이 못 보게)
   Future<bool> signOut({void Function(AuthFailure failure)? onFailure}) =>
-      _runAuth(_authRepository.signOut, onFailure: onFailure);
+      _runAuth(_authRepository.signOut, onFailure: onFailure, thenClearLocalCopy: true);
 
-  /// 회원 탈퇴 (서버 계정 삭제). 기기 안의 기록은 그대로 둔다. 성공하면 true.
+  /// 회원 탈퇴: 계정과 서버의 장부를 모두 지운다. 이 기기의 계정 사본도 지운다. (비로그인 기록은 그대로) 성공하면 true.
   Future<bool> deleteAccount({void Function(AuthFailure failure)? onFailure}) =>
-      _runAuth(_authRepository.deleteAccount, onFailure: onFailure);
+      _runAuth(_authRepository.deleteAccount, onFailure: onFailure, thenClearLocalCopy: true);
 
   /// 지금 계정에 다른 로그인 방법을 연결한다. 성공하면 true.
   Future<bool> link(LoginMethod provider, {void Function(AuthFailure failure)? onFailure}) async {
@@ -52,9 +53,17 @@ class SettingsViewModel extends BaseViewModel<SettingsState> {
   }
 
   /// 계정 작업을 실행하고, 실패하면 이유([AuthFailure])를 알린다.
-  Future<bool> _runAuth(Future<void> Function() action, {void Function(AuthFailure failure)? onFailure}) async {
+  Future<bool> _runAuth(
+    Future<void> Function() action, {
+    void Function(AuthFailure failure)? onFailure,
+    bool thenClearLocalCopy = false,
+  }) async {
+    // 로그아웃하면 화면용 DB가 비로그인 DB로 바뀌므로, 지울 계정 사본을 미리 잡아 둔다.
+    final userId = ref.read(authRepositoryProvider).currentUser?.id;
+    final memberDb = userId == null ? null : ref.read(memberDatabaseProvider(userId));
     try {
       await action();
+      if (thenClearLocalCopy && memberDb != null) await MemberSyncNotifier.clearLocalCopy(memberDb);
       return true;
     } on AuthFailure catch (failure) {
       if (!failure.isCanceled) onFailure?.call(failure);

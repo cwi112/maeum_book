@@ -18,10 +18,11 @@ class EventTypeDao extends DatabaseAccessor<AppDatabase> with _$EventTypeDaoMixi
   /// 새 종류를 맨 뒤에 추가하고 id를 돌려준다.
   ///
   /// SQL로 쓰면: `INSERT INTO event_types (name, sort_order) VALUES (?, (SELECT MAX(sort_order) + 1 ...))`
-  Future<int> insertType(String name) async {
+  /// [id]: 회원은 서버와 겹치지 않는 번호를 직접 넣는다. 비우면 자동 번호.
+  Future<int> insertType(String name, {Value<int> id = const Value.absent()}) async {
     final maxOrder = eventTypes.sortOrder.max();
     final last = await (selectOnly(eventTypes)..addColumns([maxOrder])).map((row) => row.read(maxOrder)).getSingle();
-    return into(eventTypes).insert(EventTypesCompanion.insert(name: name, sortOrder: Value((last ?? 0) + 1)));
+    return into(eventTypes).insert(EventTypesCompanion.insert(id: id, name: name, sortOrder: Value((last ?? 0) + 1)));
   }
 
   /// 이름을 바꾼다.

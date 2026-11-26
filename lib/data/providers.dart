@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maeum_book/core/define/app_define.dart';
 import 'package:maeum_book/data/database/app_database.dart';
 import 'package:maeum_book/data/models/app_user.dart';
+import 'package:maeum_book/data/remote/remote_ledger_store.dart';
 import 'package:maeum_book/data/repositories/app_update_repository.dart';
 import 'package:maeum_book/data/repositories/auth_repository.dart';
 import 'package:maeum_book/data/repositories/event_repository.dart';
@@ -13,35 +14,66 @@ import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 ///
 /// ## 의존 관계
 /// ```
-/// appDatabaseProvider ──▶ ledgerRepositoryProvider ──▶ 각 화면의 ViewModel
+/// currentUserIdProvider ─┬▶ appDatabaseProvider ─┬▶ ledgerRepositoryProvider ──▶ 각 화면의 ViewModel
+///                        └▶ remoteStoreProvider ─┘   (회원이면 서버에도 쓴다)
 /// ```
-/// ViewModel에서는 `ref.watch(ledgerRepositoryProvider)`로 Repository를 받아 쓴다.
-/// 테스트에서는 `ProviderScope(overrides: [appDatabaseProvider.overrideWithValue(테스트용DB)])`로
-/// 실제 DB 대신 메모리 DB를 끼워 넣을 수 있다.
-
-/// 앱 전체에서 공유하는 DB 하나.
+/// ## 기록이 남는 곳
+/// | 상태 | 기기 DB 파일 | 서버 |
+/// |---|---|---|
+/// | 비로그인 | `maeum_book.sqlite` (원본) | 안 씀 |
+/// | 로그인 | `maeum_book_<사용자 id>.sqlite` (계정별 사본) | **원본** |
 ///
-/// autoDispose가 아닌 일반 Provider라서 앱이 살아 있는 동안 계속 유지된다.
-/// 앱이 종료되며 ProviderScope가 정리될 때 [AppDatabase.close]로 DB 연결을 닫는다.
-final appDatabaseProvider = Provider<AppDatabase>((ref) {
+/// 로그인 · 로그아웃하면 [currentUserIdProvider]가 바뀌고, DB · Repository · 화면이 그 계정 것으로 자동으로 다시 만들어진다.
+/// 테스트에서는 [guestDatabaseProvider] · [memberDatabaseProvider] · [serverStoreProvider]를 메모리 DB · 가짜 서버로 바꿔 끼운다.
+
+/// 지금 로그인한 사용자 id (비로그인이면 null). 같은 사람이면 값이 그대로라 DB를 다시 만들지 않는다.
+final currentUserIdProvider = Provider<String?>((ref) {
+  ref.watch(currentUserProvider); // 로그인 상태가 바뀔 때마다 다시 계산
+  return ref.read(authRepositoryProvider).currentUser?.id;
+});
+
+/// 비로그인 기록이 있는 기기 DB. 로그인 중에도 "기록을 계정으로 옮길까요?"에서 읽으려고 따로 둔다.
+final guestDatabaseProvider = Provider<AppDatabase>((ref) {
   final database = AppDatabase();
   ref.onDispose(database.close);
   return database;
 });
 
+/// 계정별 기기 사본 DB. (서버 원본을 받아 둔 것, 계정마다 파일이 따로)
+final memberDatabaseProvider = Provider.family<AppDatabase, String>((ref, userId) {
+  final database = AppDatabase.named('${AppDefine.databaseName}_$userId');
+  ref.onDispose(database.close);
+  return database;
+});
+
+/// 지금 화면들이 쓰는 DB: 비로그인이면 비로그인 DB, 로그인이면 그 계정의 사본 DB.
+final appDatabaseProvider = Provider<AppDatabase>((ref) {
+  final userId = ref.watch(currentUserIdProvider);
+  return userId == null ? ref.watch(guestDatabaseProvider) : ref.watch(memberDatabaseProvider(userId));
+});
+
+/// 서버 창구 (로그인 여부와 상관없이 하나). 테스트에서는 메모리에 저장하는 가짜로 바꿔 끼운다.
+/// (main.dart에서 Supabase.initialize를 먼저 해야 한다)
+final serverStoreProvider = Provider<RemoteLedgerStore>((ref) => SupabaseRemoteLedgerStore(Supabase.instance.client));
+
+/// Repository가 쓰는 서버 창구. 로그인했을 때만 있고, 비로그인이면 null (기기 DB에만 저장).
+final remoteStoreProvider = Provider<RemoteLedgerStore?>(
+  (ref) => ref.watch(currentUserIdProvider) == null ? null : ref.watch(serverStoreProvider),
+);
+
 /// 경조사 기록 Repository.
 final ledgerRepositoryProvider = Provider<LedgerRepository>(
-  (ref) => LedgerRepository(ref.watch(appDatabaseProvider).ledgerDao),
+  (ref) => LedgerRepository(ref.watch(appDatabaseProvider).ledgerDao, remote: ref.watch(remoteStoreProvider)),
 );
 
 /// 경조사 종류 Repository.
 final eventTypeRepositoryProvider = Provider<EventTypeRepository>(
-  (ref) => EventTypeRepository(ref.watch(appDatabaseProvider).eventTypeDao),
+  (ref) => EventTypeRepository(ref.watch(appDatabaseProvider).eventTypeDao, remote: ref.watch(remoteStoreProvider)),
 );
 
 /// 행사 Repository.
 final eventRepositoryProvider = Provider<EventRepository>(
-  (ref) => EventRepository(ref.watch(appDatabaseProvider).eventDao),
+  (ref) => EventRepository(ref.watch(appDatabaseProvider).eventDao, remote: ref.watch(remoteStoreProvider)),
 );
 
 /// 앱 버전 확인 Repository. 테스트에서는 가짜로 바꿔 끼운다.

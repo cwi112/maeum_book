@@ -20,7 +20,7 @@ class EntrySwipeTile extends ConsumerWidget {
   final Future<bool> Function(LedgerEntry entry, {ErrorCallback? onError}) onRestore;
 
   Future<void> _delete(BuildContext context) async {
-    void showError(Object _) => context.showToast('처리하지 못했어요. 다시 시도해 주세요', type: ToastType.error);
+    void showError(Object e) => context.showErrorToast(e, '처리하지 못했어요. 다시 시도해 주세요');
 
     final removed = await onRemove(entry.id, onError: showError);
     if (!removed || !context.mounted) return;

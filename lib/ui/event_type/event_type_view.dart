@@ -16,8 +16,10 @@ class EventTypeView extends BaseAsyncView<EventTypeViewModel, List<EventType>> {
 
   /// 같은 이름이 이미 있으면 DB가 막는다(unique). 그 경우를 알아듣기 쉬운 문구로 바꿔 보여준다.
   static void _showError(BuildContext context, Object error) {
-    final message = error.toString().contains('UNIQUE') ? '이미 있는 이름이에요' : '처리하지 못했어요. 다시 시도해 주세요';
-    context.showToast(message, type: ToastType.error);
+    // 기기 DB는 'UNIQUE', 서버 DB는 'duplicate key'로 알려 준다.
+    final text = error.toString();
+    final duplicated = text.contains('UNIQUE') || text.contains('duplicate key');
+    context.showErrorToast(error, duplicated ? '이미 있는 이름이에요' : '처리하지 못했어요. 다시 시도해 주세요');
   }
 
   Future<void> _add(BuildContext context, EventTypeViewModel viewModel) async {

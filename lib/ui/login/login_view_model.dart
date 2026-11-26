@@ -56,6 +56,45 @@ class LoginViewModel extends BaseViewModel<LoginMethod?> {
 
   /// "로그인 없이 시작하기"
   Future<void> continueAsGuest() => ref.read(guestModeProvider.notifier).enter();
+
+  // ── 첫 로그인: 비로그인 기록 연동 ───────
+
+  /// 이 기기에 비로그인 기록이 있으면, 팝업에 보여줄 개수를 돌려준다. 없으면 null (팝업 없음)
+  ///
+  /// 계정(서버)에 이미 기록이 있는지도 같이 센다. (다른 기기에서 쓰던 계정이면 "합칠까요?"로 묻기 위해)
+  /// 서버 개수를 못 세면(인터넷 문제) 0으로 보고 "옮길까요?"로 묻는다.
+  Future<GuestImportOffer?> checkGuestRecords() async {
+    final local = await LedgerSync.countRecords(ref.read(guestDatabaseProvider));
+    if (local.isEmpty) return null;
+    var serverEntries = 0;
+    try {
+      serverEntries = (await ref.read(serverStoreProvider).fetchAll()).entries.length;
+    } catch (_) {}
+    return GuestImportOffer(localEntries: local.entries, localEvents: local.events, serverEntries: serverEntries);
+  }
+
+  /// 비로그인 기록을 계정(서버)으로 옮기고 옮긴 기록 수를 돌려준다. 이어서 계정 장부를 다시 받아 화면에 보여준다.
+  /// 인터넷 문제면 [NetworkException] (비로그인 기록은 그대로 남아서 다음 로그인 때 다시 물어본다)
+  Future<int> importGuestRecords() async {
+    final count = await LedgerSync.importGuest(
+      guestDb: ref.read(guestDatabaseProvider),
+      remote: ref.read(serverStoreProvider),
+    );
+    await ref.read(memberSyncProvider.notifier).pull();
+    return count;
+  }
+}
+
+/// 첫 로그인 연동 팝업에 보여줄 개수
+class GuestImportOffer {
+  const GuestImportOffer({required this.localEntries, required this.localEvents, required this.serverEntries});
+
+  /// 이 기기의 비로그인 기록 · 행사 수
+  final int localEntries;
+  final int localEvents;
+
+  /// 계정에 이미 있는 기록 수 (0이면 새 계정)
+  final int serverEntries;
 }
 
 final loginViewModelProvider = NotifierProvider.autoDispose<LoginViewModel, LoginMethod?>(LoginViewModel.new);
