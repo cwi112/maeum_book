@@ -116,14 +116,18 @@ void main() {
     await closeApp(tester);
   });
 
-  testWidgets('설정의 화면 모드는 준비 중 안내만 띄운다', (tester) async {
+  testWidgets('설정의 엑셀 내보내기 · 화면 모드는 준비 중 안내만 띄운다', (tester) async {
     await pumpApp(tester);
     await tester.tap(find.bySemanticsIdentifier(TestIds.tabSettings));
     await settle(tester);
-    await tester.scrollUntilVisible(find.bySemanticsIdentifier(TestIds.settingsThemeMode), 200);
-    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsThemeMode));
-    await tester.pump();
-    expect(find.text(AppDefine.comingSoonMessage), findsOneWidget);
+    for (final id in [TestIds.settingsExcelExport, TestIds.settingsThemeMode]) {
+      await tester.scrollUntilVisible(find.bySemanticsIdentifier(id), 200);
+      await tester.tap(find.bySemanticsIdentifier(id));
+      await tester.pump();
+      expect(find.text(AppDefine.comingSoonMessage), findsOneWidget);
+      ScaffoldMessenger.of(tester.element(find.bySemanticsIdentifier(id))).removeCurrentSnackBar();
+      await tester.pumpAndSettle();
+    }
 
     await closeApp(tester);
   });
@@ -144,6 +148,8 @@ void main() {
 
     await tester.tap(find.text('설정').last);
     await settle(tester);
+    // 설정 메뉴가 늘어 맨 아래 '앱 정보'는 내려야 보인다
+    await tester.scrollUntilVisible(find.text('앱 정보'), 200);
     expect(find.text('앱 정보'), findsOneWidget);
 
     await closeApp(tester);
