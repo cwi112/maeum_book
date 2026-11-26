@@ -11,11 +11,38 @@ class MainView extends StatelessWidget {
 
   final StatefulNavigationShell navigationShell;
 
+  /// 하단 탭 4개: (아이콘, 선택됐을 때 아이콘, 이름, 자동화 테스트 이름)
+  static const _tabs = [
+    (Icons.outbox_outlined, Icons.outbox, '보내요', TestIds.tabSent),
+    (Icons.move_to_inbox_outlined, Icons.move_to_inbox, '받아요', TestIds.tabReceived),
+    (Icons.insert_chart_outlined, Icons.insert_chart, '통계', TestIds.tabStats),
+    (Icons.settings_outlined, Icons.settings, '설정', TestIds.tabSettings),
+  ];
+
   /// 탭을 누르면 해당 탭으로 이동한다. 이미 선택된 탭을 다시 누르면 아무것도 하지 않는다.
-  /// (다시 그리거나 첫 화면으로 되돌리지 않아서 보던 위치 · 검색어가 그대로 유지된다)
   void _onTap(int index) {
     if (index == navigationShell.currentIndex) return;
     navigationShell.goBranch(index);
+  }
+
+  /// 탭 하나.
+  /// - `tooltip: ''`: 길게 눌렀을 때 뜨는 툴팁 끄기 (빈 문자열이면 Flutter가 툴팁을 그리지 않음)
+  /// - 이미 선택된 탭은 눌러도 물결(splash) · 눌림 색(highlight)이 보이지 않게 효과 색을 투명으로 한다.
+  ///   탭 바는 "선택됨" 상태로 효과 색을 고를 수 없지만, 각 탭이 바로 위의 [NavigationBarTheme]에서 효과 색을 읽기 때문에
+  ///   선택된 탭만 테마로 감싸 투명색을 준다. (물결 · 눌림 색 모두 이 overlayColor를 쓴다)
+  Widget _destination(BuildContext context, int index) {
+    final (icon, selectedIcon, label, testId) = _tabs[index];
+    final destination = NavigationDestination(
+      icon: Icon(icon),
+      selectedIcon: Icon(selectedIcon),
+      label: label,
+      tooltip: '',
+    ).testId(testId);
+    if (index != navigationShell.currentIndex) return destination;
+    return NavigationBarTheme(
+      data: NavigationBarTheme.of(context).copyWith(overlayColor: const WidgetStatePropertyAll(Colors.transparent)),
+      child: destination,
+    );
   }
 
   @override
@@ -30,32 +57,7 @@ class MainView extends StatelessWidget {
           NavigationBar(
             selectedIndex: navigationShell.currentIndex,
             onDestinationSelected: _onTap,
-            destinations: [
-              const NavigationDestination(
-                icon: Icon(Icons.outbox_outlined),
-                selectedIcon: Icon(Icons.outbox),
-                label: '보내요',
-                tooltip: '', // 길게 눌렀을 때 뜨는 툴팁 끄기 (빈 문자열 = 툴팁 없음)
-              ).testId(TestIds.tabSent),
-              const NavigationDestination(
-                icon: Icon(Icons.move_to_inbox_outlined),
-                selectedIcon: Icon(Icons.move_to_inbox),
-                label: '받아요',
-                tooltip: '', // 길게 눌렀을 때 뜨는 툴팁 끄기 (빈 문자열 = 툴팁 없음)
-              ).testId(TestIds.tabReceived),
-              const NavigationDestination(
-                icon: Icon(Icons.insert_chart_outlined),
-                selectedIcon: Icon(Icons.insert_chart),
-                label: '통계',
-                tooltip: '', // 길게 눌렀을 때 뜨는 툴팁 끄기 (빈 문자열 = 툴팁 없음)
-              ).testId(TestIds.tabStats),
-              const NavigationDestination(
-                icon: Icon(Icons.settings_outlined),
-                selectedIcon: Icon(Icons.settings),
-                label: '설정',
-                tooltip: '', // 길게 눌렀을 때 뜨는 툴팁 끄기 (빈 문자열 = 툴팁 없음)
-              ).testId(TestIds.tabSettings),
-            ],
+            destinations: [for (var i = 0; i < _tabs.length; i++) _destination(context, i)],
           ),
         ],
       ),
