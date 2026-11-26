@@ -114,6 +114,7 @@ class LedgerExcelExporter {
       rows.isEmpty ? const XlsxNumber(0) : XlsxFormula('SUM(E${_firstDataRow + 1}:E${last + 1})', cached: total),
       _Styles.totalMoney,
     );
+    sheet.outline(_firstDataRow - 1, 0, totalAt, headers.length - 1, _Styles.frame); // 표 바깥 테두리
     return _SentRanges(rowCount: rows.length, last: last, totalRow: totalAt, total: total);
   }
 
@@ -199,6 +200,7 @@ class LedgerExcelExporter {
             : XlsxFormula('SUMIF($aRange,"소계*",F${_firstDataRow + 1}:F${last + 1})', cached: total),
         _Styles.totalMoney,
       );
+    sheet.outline(_firstDataRow - 1, 0, row, headers.length - 1, _Styles.frame);
     return _ReceivedRanges(rowCount: received.length, last: last, totalRow: row, total: total);
   }
 
@@ -285,6 +287,7 @@ class LedgerExcelExporter {
         col == 4 ? _Styles.totalBalance(cached) : _Styles.totalMoney,
       );
     }
+    sheet.outline(_firstDataRow - 1, 0, totalRow, headers.length - 1, _Styles.frame);
   }
 
   // ── 요약 ─────────────────────────────────
@@ -292,11 +295,15 @@ class LedgerExcelExporter {
   void _writeSummary(XlsxSheet sheet, _SentRanges sent, _ReceivedRanges received) {
     const width = 3;
     sheet.setColumnWidths(const [20, 16, 16]);
-    _title(sheet, '마음장부 요약', width, '내보낸 날짜 ${_date(exportedAt)}');
-    if (isSample) {
-      // 2행 안내를 빨간 경고로 바꾼다. (칸 합치기는 _title에서 이미 했다)
-      sheet.set(1, 0, XlsxText('샘플 데이터예요 (실제 장부 아님) · 내보낸 날짜 ${_date(exportedAt)}'), _Styles.sampleWarning);
-    }
+    // 맨 위에는 내보낸 날짜만 (시트 이름이 "요약"이라 제목은 따로 달지 않는다). 샘플이면 빨간 경고.
+    sheet
+      ..set(
+        0,
+        0,
+        XlsxText('${isSample ? '샘플 데이터예요 (실제 장부 아님) · ' : ''}내보낸 날짜 ${_date(exportedAt)}'),
+        isSample ? _Styles.sampleWarning : _Styles.note,
+      )
+      ..merge(0, 0, 0, width - 1);
 
     final sentSum = xlsxRange(sentSheet, 4, _firstDataRow, 4, sent.last);
     final receivedTotalCell = "'$receivedSheet'!F${received.totalRow + 1}";
@@ -355,6 +362,7 @@ class LedgerExcelExporter {
       )
       ..set(row, 2, const XlsxText(''), _Styles.center(false))
       ..merge(row, 1, row, 2);
+    sheet.outline(2, 0, row, 2, _Styles.frame); // 표 바깥 테두리
     row += 2;
 
     // 종류별 합계
@@ -396,6 +404,7 @@ class LedgerExcelExporter {
         row++;
       }
       _columnTotals(sheet, row++, from, sent.total, received.total);
+      sheet.outline(from - 1, 0, row - 1, 2, _Styles.frame);
       row++;
     }
 
@@ -441,6 +450,7 @@ class LedgerExcelExporter {
         row++;
       }
       _columnTotals(sheet, row, from, sent.total, received.total);
+      sheet.outline(from - 1, 0, row, 2, _Styles.frame);
     }
   }
 
@@ -532,11 +542,21 @@ class _Person {
 }
 
 /// 엑셀 서식 모음. 앱의 AppColors와 같은 색을 쓴다.
+///
+/// | 부분 | 모양 |
+/// |---|---|
+/// | 표 바깥 | 테라코타 굵은 선 ([frame]) |
+/// | 머리글 | 테라코타 배경 + 흰 굵은 글자 + 아래 진한 선 |
+/// | 데이터 줄 | 따뜻한 베이지 얇은 선, 한 줄 건너 연한 배경 |
+/// | 소계 | 연한 테라코타 배경 + 위 점선 |
+/// | 합계 | 진한 베이지 배경 + 위 이중선 |
 abstract final class _Styles {
   static const _primary = 'C0714A';
+  static const _primaryDark = '9A5434';
   static const _primaryLight = 'F6E6DC';
-  static const _zebra = 'FBF7F2';
-  static const _totalFill = 'EFE6DD';
+  static const _zebra = 'FCF6F1';
+  static const _totalFill = 'EFE1D5';
+  static const _gridColor = 'E3D3C6';
   static const _textSecondary = '8C7B70';
   static const _receivedColor = '3F7F86';
   static const _sentColor = 'CB5C5C';
@@ -544,13 +564,26 @@ abstract final class _Styles {
   static const _money = '#,##0';
   static const _balance = '+#,##0;-#,##0;0';
 
+  /// 표 바깥 테두리
+  static const frame = XlsxLine(XlsxLineStyle.medium, _primary);
+  static const _grid = XlsxBorder.all(XlsxLine(XlsxLineStyle.thin, _gridColor));
+  static final _headerBorder = _grid.copyWith(bottom: const XlsxLine(XlsxLineStyle.medium, _primaryDark));
+  static final _subtotalBorder = _grid.copyWith(top: const XlsxLine(XlsxLineStyle.dashed, _primary));
+  static final _totalBorder = _grid.copyWith(top: const XlsxLine(XlsxLineStyle.double, _primary));
+
   static const title = XlsxStyle(bold: true, fontSize: 15, fontColor: _primary);
   static const subTitle = XlsxStyle(bold: true, fontSize: 12, fontColor: _primary);
   static const note = XlsxStyle(fontSize: 10, fontColor: _textSecondary);
   static const sampleWarning = XlsxStyle(bold: true, fontSize: 11, fontColor: 'C9503F');
-  static const header = XlsxStyle(bold: true, fill: _primaryLight, align: XlsxAlign.center, border: XlsxBorder.header);
+  static final header = XlsxStyle(
+    bold: true,
+    fontColor: 'FFFFFF',
+    fill: _primary,
+    align: XlsxAlign.center,
+    border: _headerBorder,
+  );
 
-  static XlsxStyle _cell(bool zebra) => XlsxStyle(border: XlsxBorder.grid, fill: zebra ? _zebra : null);
+  static XlsxStyle _cell(bool zebra) => XlsxStyle(border: _grid, fill: zebra ? _zebra : null);
 
   static XlsxStyle text(bool zebra) => _cell(zebra);
   static XlsxStyle center(bool zebra) => _cell(zebra).copyWith(align: XlsxAlign.center);
@@ -562,45 +595,20 @@ abstract final class _Styles {
   static XlsxStyle balance(int value, bool zebra) =>
       _cell(zebra).copyWith(align: XlsxAlign.right, numberFormat: _balance, fontColor: _balanceColor(value));
 
-  static const totalLabel = XlsxStyle(bold: true, fill: _totalFill, border: XlsxBorder.total);
-  static const totalMoney = XlsxStyle(
-    bold: true,
-    fill: _totalFill,
-    border: XlsxBorder.total,
-    align: XlsxAlign.right,
-    numberFormat: _money,
-  );
-  static const totalCount = XlsxStyle(
-    bold: true,
-    fill: _totalFill,
-    border: XlsxBorder.total,
-    align: XlsxAlign.right,
-    numberFormat: '0"명"',
-  );
-  static XlsxStyle totalBalance(int value) => XlsxStyle(
-    bold: true,
-    fill: _totalFill,
-    border: XlsxBorder.total,
-    align: XlsxAlign.right,
-    numberFormat: _balance,
-    fontColor: _balanceColor(value),
-  );
+  static final totalLabel = XlsxStyle(bold: true, fill: _totalFill, border: _totalBorder);
+  static final totalMoney = totalLabel.copyWith(align: XlsxAlign.right, numberFormat: _money);
+  static final totalCount = totalLabel.copyWith(align: XlsxAlign.right, numberFormat: '0"명"');
+  static XlsxStyle totalBalance(int value) =>
+      totalLabel.copyWith(align: XlsxAlign.right, numberFormat: _balance, fontColor: _balanceColor(value));
 
-  static const subtotalLabel = XlsxStyle(bold: true, fill: _primaryLight, border: XlsxBorder.grid);
-  static const subtotalMoney = XlsxStyle(
+  static final subtotalLabel = XlsxStyle(
     bold: true,
+    fontColor: _primaryDark,
     fill: _primaryLight,
-    border: XlsxBorder.grid,
-    align: XlsxAlign.right,
-    numberFormat: _money,
+    border: _subtotalBorder,
   );
-  static const subtotalCount = XlsxStyle(
-    bold: true,
-    fill: _primaryLight,
-    border: XlsxBorder.grid,
-    align: XlsxAlign.right,
-    numberFormat: '0"명"',
-  );
+  static final subtotalMoney = subtotalLabel.copyWith(align: XlsxAlign.right, numberFormat: _money);
+  static final subtotalCount = subtotalLabel.copyWith(align: XlsxAlign.right, numberFormat: '0"명"');
 
   /// 받은 게 많으면 받은 색(청록), 보낸 게 많으면 보낸 색(빨강), 같으면 기본
   static String? _balanceColor(int value) => value > 0 ? _receivedColor : (value < 0 ? _sentColor : null);
