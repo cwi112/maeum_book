@@ -97,6 +97,7 @@ abstract final class TestIds {
   static const String sampleTourEnd = 'sample_tour_end';
   static const String settingsAppInfo = 'settings_app_info';
   static const String settingsThemeMode = 'settings_theme_mode';
+  static const String settingsExcelExport = 'settings_excel_export';
   static const String settingsAccount = 'settings_account';
   static const String settingsSignOut = 'settings_sign_out';
   static const String settingsDeleteAccount = 'settings_delete_account';

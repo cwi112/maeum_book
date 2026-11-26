@@ -8,7 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 /// 설정 탭.
 ///
 /// - 데이터: 샘플 데이터로 둘러보기(메모리 전용, 앱을 끄면 사라짐), 모든 기록 지우기(확인 창 필수, 되돌릴 수 없음)
-/// - 준비 중: 알림, 백업, 화면 모드(라이트 · 다크 · 시스템) (누르면 "곧 추가될 기능" 토스트)
+/// - 준비 중: 엑셀로 내보내기, 알림, 백업, 화면 모드(라이트 · 다크 · 시스템) (누르면 "곧 추가될 기능" 토스트)
 /// - 앱 정보: 설치된 버전 표시, 누르면 최신 버전 확인 → 업데이트 안내
 class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
   const SettingsView({super.key});
@@ -125,6 +125,14 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
           Card(
             child: Column(
               children: [
+                // TODO: 기획안 docs/EXCEL_EXPORT_PLAN.md 대로 구현 (시트 4개 → 공유 창)
+                ListTile(
+                  leading: const Icon(Icons.table_view_outlined),
+                  title: const Text('엑셀로 내보내기'),
+                  subtitle: const Text('기록을 엑셀 파일로 꺼내요 (준비 중)'),
+                  onTap: () => _showComingSoon(context),
+                ).testId(TestIds.settingsExcelExport),
+                const Divider(indent: AppSpacing.screen, endIndent: AppSpacing.screen),
                 ListTile(
                   leading: const Icon(Icons.notifications_none),
                   title: const Text('알림'),
