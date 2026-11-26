@@ -79,23 +79,39 @@ void main() {
     await online.close();
   }
 
-  testWidgets('하단 탭: 툴팁이 없고, 이미 선택된 탭을 다시 눌러도 보던 화면이 그대로다', (tester) async {
+  testWidgets('하단 탭: 툴팁이 없고, 이미 선택된 탭은 눌러도 효과 · 이동이 없다', (tester) async {
     await pumpApp(tester);
     // 탭을 길게 눌러도 툴팁(같은 글자의 말풍선)이 뜨지 않는다. 툴팁 문구가 비어 있으면 Flutter가 툴팁을 그리지 않는다.
-    await tester.longPress(find.bySemanticsIdentifier(TestIds.tabStats));
+    // (선택된 탭으로 확인한다. 다른 탭을 길게 누르면 손을 뗄 때 탭 이동으로 처리된다)
+    await tester.longPress(find.bySemanticsIdentifier(TestIds.tabSent));
     await tester.pump(const Duration(seconds: 1));
-    expect(find.text('통계'), findsOneWidget); // 탭 이름 하나만 (툴팁이 뜨면 2개)
+    expect(find.text('보내요'), findsNWidgets(2)); // 탭 이름 + 화면 제목 (툴팁이 뜨면 3개)
     await tester.pumpAndSettle();
 
-    // 받아요 탭에서 같은 탭을 다시 눌러도 이동하지 않는다 (화면 위치 그대로)
-    await tester.tap(find.bySemanticsIdentifier(TestIds.tabReceived));
+    // 탭을 누르고 있을 때 보이는(투명이 아닌) 물결 · 눌림 효과가 있는지
+    Future<bool> visibleInkWhilePressing(String tabId) async {
+      final tab = find.bySemanticsIdentifier(tabId);
+      final inkWell = tester.widget<InkResponse>(
+        find.descendant(of: tab, matching: find.byWidgetPredicate((w) => w is InkResponse)).first,
+      );
+      final pressed = inkWell.overlayColor?.resolve({WidgetState.pressed});
+      final gesture = await tester.startGesture(tester.getCenter(tab));
+      await tester.pump(const Duration(milliseconds: 100));
+      await gesture.up();
+      await tester.pumpAndSettle();
+      return pressed == null || pressed.a > 0;
+    }
+
+    // 선택된 탭(보내요)은 효과 없음, 다른 탭(받아요)은 효과 있음
+    expect(await visibleInkWhilePressing(TestIds.tabSent), isFalse);
+    expect(await visibleInkWhilePressing(TestIds.tabReceived), isTrue);
     await settle(tester);
+    // 이제 받아요가 선택됨 → 받아요를 다시 눌러도 이동 · 효과 없음
     final router = GoRouter.of(tester.element(find.byType(NavigationBar)));
     final before = router.routerDelegate.currentConfiguration.uri.toString();
-    await tester.tap(find.bySemanticsIdentifier(TestIds.tabReceived));
-    await settle(tester);
+    expect(before, '/received');
+    expect(await visibleInkWhilePressing(TestIds.tabReceived), isFalse);
     expect(router.routerDelegate.currentConfiguration.uri.toString(), before);
-
     await closeApp(tester);
   });
 
