@@ -95,6 +95,17 @@ function Start-CodemagicBuild($config, [string]$workflow, [string]$tag) {
     return @{ Workflow = $workflow; Id = $id }
 }
 
+# 실패한 빌드의 이유 한 줄. (예: codemagic.yaml 설정 오류 메시지) 못 읽으면 $null
+# v3 API에는 이유가 없어서, 이유(message)를 주는 예전 API로 읽는다.
+function Get-CodemagicFailureReason($config, [string]$buildId) {
+    try {
+        $response = Invoke-RestMethod -Uri "https://api.codemagic.io/builds/$buildId" -Headers @{ 'x-auth-token' = $config.Token }
+        return $response.build.message
+    } catch {
+        return $null
+    }
+}
+
 # 빌드들이 모두 끝날 때까지 30초마다 상태를 보고, 바뀔 때만 한 줄씩 알린다. 모두 성공하면 $true.
 function Wait-CodemagicBuilds($config, $builds, [int]$timeoutMinutes = 90) {
     $deadline = (Get-Date).AddMinutes($timeoutMinutes)
@@ -125,6 +136,10 @@ function Wait-CodemagicBuilds($config, $builds, [int]$timeoutMinutes = 90) {
     foreach ($build in $builds) {
         $mark = if ($result[$build.Id] -eq 'finished') { '성공' } else { "실패 ($($result[$build.Id]))" }
         Write-Host "  $($build.Workflow): $mark → https://codemagic.io/app/$($config.AppId)/build/$($build.Id)"
+        if ($result[$build.Id] -ne 'finished') {
+            $reason = Get-CodemagicFailureReason $config $build.Id
+            if ($reason) { Write-Host "    이유: $($reason -replace "`n", "`n          ")" }
+        }
     }
     return $ok
 }

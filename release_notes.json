@@ -1,10 +1,10 @@
 [
   {
     "language": "ko",
-    "text": "1.2.2 · 사진 · 동기화 안정화\n\n[고쳤어요]\n• 앨범에서 사진을 넣었는데 바로 보이지 않고, 다음에 넣을 때 두 장이 한꺼번에 나타나던 문제\n• 저장하는 사이 장부를 새로 받아 오면 방금 저장한 기록이 잠깐 사라지던 문제\n• 버튼을 빠르게 두 번 누르면 같은 화면이 두 번 열리던 문제\n\n[달라졌어요]\n• 이름이 같아도 관계가 다르면 통계에서 다른 사람으로 나눠 보여요\n• 화환 사진이 있는 분의 기록을 지우면 확인 후 사진도 함께 지워요\n• 사진 보기 화면의 장 수 표시가 더 잘 보여요\n• 통계 그래프 밖을 누르면 선택이 풀려요\n• 설정 › 정보에 개인정보 처리방침\n\n[이렇게 써 봐 주세요]\n1. 로그인한 상태로 행사 › 사진 추가 (앨범 · 찍기) → 바로 보이는지\n2. 사진을 받은 기록과 연결한 뒤 그 기록 지우기 → 확인 창 · 사진도 지워지는지\n3. 같은 이름을 관계만 다르게 두 번 기록 → 통계 TOP 5에서 나뉘는지"
+    "text": "1.2.3 · 사진 · 동기화 안정화\n\n[고쳤어요]\n• 앨범에서 사진을 넣었는데 바로 보이지 않고, 다음에 넣을 때 두 장이 한꺼번에 나타나던 문제\n• 저장하는 사이 장부를 새로 받아 오면 방금 저장한 기록이 잠깐 사라지던 문제\n• 버튼을 빠르게 두 번 누르면 같은 화면이 두 번 열리던 문제\n\n[달라졌어요]\n• 이름이 같아도 관계가 다르면 통계에서 다른 사람으로 나눠 보여요\n• 화환 사진이 있는 분의 기록을 지우면 확인 후 사진도 함께 지워요\n• 사진 보기 화면의 장 수 표시가 더 잘 보여요\n• 통계 그래프 밖을 누르면 선택이 풀려요\n• 설정 › 정보에 개인정보 처리방침\n\n[이렇게 써 봐 주세요]\n1. 로그인한 상태로 행사 › 사진 추가 (앨범 · 찍기) → 바로 보이는지\n2. 사진을 받은 기록과 연결한 뒤 그 기록 지우기 → 확인 창 · 사진도 지워지는지\n3. 같은 이름을 관계만 다르게 두 번 기록 → 통계 TOP 5에서 나뉘는지"
   },
   {
     "language": "en-US",
-    "text": "1.2.2 · Photo and sync stability\n\n[FIXED]\n• A photo added from the album did not appear until the next one was added\n• A record saved during a sync could briefly disappear\n• Tapping a button twice opened the same screen twice\n\n[IMPROVED]\n• People with the same name but different relations are counted separately in stats\n• Deleting a record linked to wreath photos asks first and removes the photos too\n• Privacy policy link in Settings"
+    "text": "1.2.3 · Photo and sync stability\n\n[FIXED]\n• A photo added from the album did not appear until the next one was added\n• A record saved during a sync could briefly disappear\n• Tapping a button twice opened the same screen twice\n\n[IMPROVED]\n• People with the same name but different relations are counted separately in stats\n• Deleting a record linked to wreath photos asks first and removes the photos too\n• Privacy policy link in Settings"
   }
 ]

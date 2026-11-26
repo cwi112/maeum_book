@@ -22,9 +22,11 @@ definitions:
     ios_signing:
       distribution_type: app_store
       bundle_identifier: com.maeumbook.maeumBook
-    vars:
-      # App Store Connect → 앱 → 앱 정보 → "Apple ID" 숫자. 비워 두면 빌드 번호는 pubspec 값을 쓴다.
-      APP_STORE_APPLE_ID: ""
+    # (선택) 빌드 번호를 App Store Connect 최신 번호 + 1로 맞추려면 아래 두 줄의 #을 지우고 Apple ID 숫자를 넣는다.
+    #   App Store Connect → 앱 → 앱 정보 → "Apple ID". 없으면 빌드 번호는 pubspec 값을 쓴다.
+    #   ⚠️ 값을 빈칸("")으로 두면 Codemagic이 설정 파일 전체를 거부한다. (1.2.2 빌드 실패 원인)
+    # vars:
+    #   APP_STORE_APPLE_ID: 1234567890
     flutter: stable
     xcode: latest
     cocoapods: default

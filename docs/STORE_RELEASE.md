@@ -75,7 +75,7 @@ Codemagic 사이트에 들어가 확인할 필요가 없고, 실패하면 로그
 **두 번째 업데이트부터 `submit-store.ps1`을 쓴다.**
 
 ### 5. Codemagic 변수 하나 (빌드 번호 자동)
-`codemagic.yaml`의 `APP_STORE_APPLE_ID`에 App Store Connect → 앱 정보 → **Apple ID**(숫자)를 넣는다.
+`codemagic.yaml`의 `# vars:` · `#   APP_STORE_APPLE_ID:` 두 줄의 `#`을 지우고 App Store Connect → 앱 정보 → **Apple ID**(숫자)를 넣는다. **빈칸("")으로 두면 Codemagic이 설정 파일 전체를 거부한다.**
 비워 둬도 동작하지만, 채워 두면 TestFlight와 스토어 제출이 같은 버전을 빌드해도 번호가 겹치지 않는다.
 
 ---
