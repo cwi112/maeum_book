@@ -40,6 +40,9 @@ abstract final class AppRoutes {
   // ── 설정 하위 ──────────────────────────
   static const String eventTypes = '/settings/event-types';
 
+  /// 로그인 (카카오 · Apple). 설정 탭에서 연다.
+  static const String login = '/login';
+
   /// 기록 수정 화면 경로 패턴. `:id` 자리에 기록 번호가 들어간다.
   static const String entryEditPattern = '/entry/:id/edit';
 

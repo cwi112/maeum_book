@@ -21,6 +21,10 @@ dependencies:
   package_info_plus: ^10.2.2
   url_launcher: ^6.3.3
   http: ^1.6.0
+  supabase_flutter: ^2.18.3
+  kakao_flutter_sdk_user: ^2.1.0
+  sign_in_with_apple: ^8.2.0
+  crypto: ^3.0.8
 
 dev_dependencies:
   flutter_test:
@@ -33,6 +37,9 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/icon/app_icon_foreground.png
 
   fonts:
     - family: Pretendard

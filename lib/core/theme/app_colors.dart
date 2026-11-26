@@ -51,6 +51,13 @@ class AppColors {
   /// 보낸 금액: 장밋빛 빨강
   static const Color sent = Color(0xFFCB5C5C);
 
+  // ── 외부 서비스 (각 회사 디자인 가이드 색) ──
+  /// 카카오 로그인 버튼 배경 (카카오 노랑)
+  static const Color kakao = Color(0xFFFEE500);
+
+  /// 카카오 로그인 버튼 글자 (검정 85%)
+  static const Color kakaoLabel = Color(0xD9000000);
+
   // ── 밀어서 나오는 버튼 (스와이프 액션) ──
   /// 삭제 버튼 / 눌렀을 때 (조금 더 진하게 가라앉는 느낌)
   static const Color deleteAction = Color(0xFFD9655A);

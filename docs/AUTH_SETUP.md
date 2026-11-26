@@ -111,7 +111,17 @@
 
 **Save**
 
-> 앱에서 카카오톡으로 로그인하면 ID 토큰이 **네이티브 앱 키** 기준으로 발급됩니다. 구현할 때 Supabase가 이 토큰을 받지 않으면 Client ID 칸에 `REST API 키,네이티브 앱 키`처럼 두 값을 쉼표로 함께 넣어야 할 수 있습니다. 이 부분은 구현하면서 실제로 확인하고 이 문서를 고치겠습니다.
+> 앱(카카오 SDK)으로 로그인하면 ID 토큰이 **네이티브 앱 키** 앞으로 발급됩니다. Supabase는 토큰의 발급 대상이 Client ID 칸에 있는지 확인하므로,
+> Client ID 칸에는 **`REST API 키,네이티브 앱 키`** 순서로 쉼표로 이어 두 값을 넣습니다. (앞의 REST API 키는 웹 로그인용)
+> 로그인할 때 `Unacceptable audience` 같은 오류가 나면 이 칸을 확인합니다.
+
+## 3-1. 회원 탈퇴 함수 만들기 (SQL 한 번 실행)
+
+앱의 "회원 탈퇴"가 쓰는 DB 함수입니다. 로그인한 본인 계정만 지울 수 있습니다.
+
+1. Supabase 대시보드 왼쪽 **SQL Editor** → **New query**
+2. 저장소의 [`supabase/migrations/20261126000000_delete_my_account.sql`](../supabase/migrations/20261126000000_delete_my_account.sql) 내용을 전부 붙여 넣기
+3. **Run** → `Success. No rows returned`가 나오면 완료
 
 ---
 
@@ -159,7 +169,17 @@ App Store 심사 규정(4.8): 카카오 같은 소셜 로그인을 넣으면 **A
 | 카카오 REST API 키 · **클라이언트 시크릿** | 2-2 | ❌ Supabase 대시보드에만 입력, 채팅에 쓰지 않기 |
 | Supabase DB 비밀번호 · secret key | 1-3, 1-4 | ❌ 어디에도 공유하지 않기 |
 
-공개 값도 저장소에는 직접 쓰지 않고, 빌드할 때 넣는 방식(`--dart-define-from-file`)으로 구현할 예정입니다.
+공개 값 3개는 `lib/core/define/app_env.dart`에 넣었습니다. 앱 파일 안에 그대로 들어가는 값이고(카카오 키는 AndroidManifest · Info.plist에도 들어가야 함), 데이터는 RLS · 카카오 플랫폼 등록(번들 ID · 키 해시)이 지키므로 저장소에 두어도 됩니다.
+
+## 왜 Apple은 콜백 URL · Secret Key가 없어도 되나
+
+| | 웹 로그인 (OAuth) | 앱 안 로그인 (네이티브, 이 앱) |
+| --- | --- | --- |
+| 흐름 | 브라우저에서 Apple 로그인 → Apple이 **콜백 URL**(Supabase)로 결과를 보냄 → Supabase가 **Secret Key**로 Apple 서버와 토큰 교환 | iOS 기본 로그인 창 → **ID 토큰을 앱이 바로 받음** → 앱이 Supabase에 전달 → Supabase는 Apple 공개키로 서명만 확인 |
+| 콜백 URL | 필요 | 돌아올 주소가 없으므로 필요 없음 |
+| Secret Key | 필요 (.p8로 만든 값, **6개월마다 갱신**) | 서버끼리 교환을 안 하므로 필요 없음 |
+
+Android에서 Apple 로그인을 하려면 웹 로그인 방식이 필요해서 Android에서는 Apple 버튼을 숨겼습니다. (Android는 카카오로 충분하고, Apple 로그인 의무는 iOS 앱에만 해당)
 
 ## 6. 구현할 때 같이 챙길 것 (참고)
 

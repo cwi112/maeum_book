@@ -4,6 +4,7 @@ import 'package:maeum_book/ui/entry/entry.dart';
 import 'package:maeum_book/ui/event/event.dart';
 import 'package:maeum_book/ui/event_type/event_type.dart';
 import 'package:maeum_book/ui/ledger/ledger.dart';
+import 'package:maeum_book/ui/login/login.dart';
 import 'package:maeum_book/ui/main/main.dart';
 import 'package:maeum_book/ui/settings/settings.dart';
 import 'package:maeum_book/ui/stats/stats.dart';
@@ -64,6 +65,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       // 설정 → 경조사 종류 관리
       GoRoute(path: AppRoutes.eventTypes, builder: (_, _) => const EventTypeView()),
+
+      // 설정 → 로그인
+      GoRoute(path: AppRoutes.login, builder: (_, _) => const LoginView()),
 
       // 기록 수정: 경로의 :id를 숫자로 바꿔 넘긴다. 숫자가 아니면 -1(없는 기록) → "기록을 찾을 수 없어요" 화면.
       GoRoute(
