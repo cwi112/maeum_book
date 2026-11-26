@@ -214,6 +214,51 @@ void main() {
     await closeApp(tester);
   });
 
+  testWidgets('빠진 필수 칸이 있으면 저장을 누를 때 그 칸으로 이동하고, 글자 칸이면 커서가 놓인다', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.text('보낸 마음 기록'));
+    await settle(tester);
+
+    // 작은 휴대폰(폼이 한 화면에 다 안 들어감)으로 바꾼다.
+    tester.view.physicalSize = const Size(1080, 1500);
+    await settle(tester);
+
+    // 1. 위쪽(종류) 칸이 빠졌으면, 화면을 맨 아래로 내린 채 눌러도 그 칸이 보이도록 올라간다.
+    // 입력 화면의 세로 목록. (스크롤하면 '구분'이 사라지므로 처음 찾은 위젯으로 고정한다)
+    final form = find.byWidget(
+      tester.widget(find.ancestor(of: find.text('구분'), matching: find.byType(Scrollable)).first),
+    );
+    await tester.scrollUntilVisible(find.widgetWithText(TextFormField, '이름'), 200, scrollable: form);
+    await tester.enterText(find.widgetWithText(TextFormField, '이름'), '김철수');
+    await tester.scrollUntilVisible(find.text('+5만'), 200, scrollable: form);
+    await tester.tap(find.text('+5만'));
+    await tester.drag(form, const Offset(0, -2000));
+    await settle(tester);
+    expect(find.text('결혼').hitTestable(), findsNothing); // 종류 칸이 화면 밖으로 나갔는지 확인
+    await tester.tap(find.text('기록하기'));
+    await settle(tester);
+    await tester.pump(const Duration(milliseconds: 400)); // 스크롤 애니메이션
+
+    expect(find.text('경조사 종류를 골라 주세요').hitTestable(), findsOneWidget);
+
+    // 2. 종류를 고르고 이름을 지우면 → 이름 칸에 커서가 놓인다.
+    await tester.tap(find.text('결혼'));
+    await tester.enterText(find.widgetWithText(TextFormField, '김철수'), '');
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.tap(find.text('기록하기'));
+    await settle(tester);
+    await tester.pump(const Duration(milliseconds: 400));
+
+    expect(find.text('이름을 입력해 주세요'), findsOneWidget);
+    final nameField = find.descendant(
+      of: find.widgetWithText(TextFormField, '이름'),
+      matching: find.byType(EditableText),
+    );
+    expect(tester.widget<EditableText>(nameField).focusNode.hasFocus, isTrue);
+
+    await closeApp(tester);
+  });
+
   /// 테스트용 기록을 DB에 바로 넣는다.
   Future<int> seed(WidgetTester tester, {String name = '김철수', int amount = 50000}) async {
     final id = await tester.runAsync(

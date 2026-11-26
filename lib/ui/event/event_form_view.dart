@@ -17,9 +17,12 @@ class EventFormView extends BaseAsyncView<EventFormViewModel, EventFormState> {
   Future<void> _save(BuildContext context, EventFormViewModel viewModel, {required bool isEditing}) async {
     context.hideKeyboard();
     final saved = await viewModel.save(onError: (e) => context.showErrorToast(e, '저장하지 못했어요. 잠시 후 다시 시도해 주세요'));
-    if (saved && context.mounted) {
+    if (!context.mounted) return;
+    if (saved) {
       context.showToast(isEditing ? '행사를 수정했어요' : '행사를 만들었어요');
       context.pop();
+    } else {
+      await FormSection.revealFirstError(context); // 빠진 첫 칸으로 스크롤 + 커서
     }
   }
 
@@ -42,6 +45,7 @@ class EventFormView extends BaseAsyncView<EventFormViewModel, EventFormState> {
           FormSection(
             label: '행사 이름',
             isRequired: true,
+            hasError: state.titleError != null,
             child: AppTextField(
               initialValue: state.title,
               hint: '예) 우리 결혼식, 아버지 칠순',

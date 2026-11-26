@@ -10,7 +10,8 @@ import 'package:maeum_book/ui/entry/entry_form_view_model.dart';
 ///
 /// ## 저장 결과 알림
 /// - 성공: "기록했어요"/"수정했어요" 토스트를 띄우고 화면을 닫는다. (토스트는 목록 화면 위에 남아 보인다)
-/// - 입력 누락: 토스트 없이 해당 칸 아래에 빨간 문구로 알려 준다. (어디를 고쳐야 하는지 바로 보이게)
+/// - 입력 누락: 토스트 없이 해당 칸 아래에 빨간 문구로 알려 주고, 빠진 첫 칸으로 스크롤해 커서를 놓는다.
+///   (빠진 칸이 화면 밖에 있으면 버튼이 안 눌린 것처럼 보이기 때문)
 /// - 저장 실패(DB 오류): 오류 토스트를 띄우고, 입력한 내용은 그대로 둔다.
 class EntryFormView extends BaseAsyncView<EntryFormViewModel, EntryFormState> {
   /// 새 기록. 행사 상세에서 들어오면 [eventId]로 그 행사가 미리 골라진다.
@@ -30,9 +31,13 @@ class EntryFormView extends BaseAsyncView<EntryFormViewModel, EntryFormState> {
     context.hideKeyboard();
     final saved = await viewModel.save(onError: (e) => context.showErrorToast(e, '저장하지 못했어요. 잠시 후 다시 시도해 주세요'));
     // await 사이에 화면이 닫혔을 수 있으므로 확인한 뒤 context를 쓴다.
-    if (saved && context.mounted) {
+    if (!context.mounted) return;
+    if (saved) {
       context.showToast(isEditing ? '수정했어요' : '기록했어요');
       context.pop();
+    } else {
+      // 빠진 칸이 화면 밖에 있어도 알 수 있게 그 칸으로 스크롤하고, 글자 칸이면 커서를 놓는다.
+      await FormSection.revealFirstError(context);
     }
   }
 
@@ -101,6 +106,7 @@ class EntryFormView extends BaseAsyncView<EntryFormViewModel, EntryFormState> {
           FormSection(
             label: state.direction == RecordDirection.sent ? '누구에게' : '누구에게서',
             isRequired: true,
+            hasError: state.personNameError != null,
             child: AppTextField(
               initialValue: state.personName,
               hint: '이름',
@@ -113,6 +119,7 @@ class EntryFormView extends BaseAsyncView<EntryFormViewModel, EntryFormState> {
           FormSection(
             label: '금액',
             isRequired: true,
+            hasError: state.amountError != null,
             child: AmountField(
               value: state.amount,
               onChanged: viewModel.setAmount,
