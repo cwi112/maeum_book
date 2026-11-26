@@ -11,10 +11,11 @@
 -- 주의: 계정을 지워도 Storage 파일은 자동으로 지워지지 않는다. 앱이 탈퇴 직전에 Storage API로 먼저 지운다.
 --       (Supabase 문서: Storage 파일은 SQL로 지우면 안 되고 Storage API로 지워야 함)
 --
--- 적용: Supabase 대시보드 → SQL Editor → New query → 이 파일 내용 붙여 넣기 → Run (한 번만)
+-- 적용: Supabase 대시보드 → SQL Editor → New query → 이 파일 내용 붙여 넣기 → Run
+--       여러 번 실행해도 안전하다. (이미 있는 표 · 버킷은 그대로 두고, 권한 규칙은 지웠다가 다시 만든다)
 
 -- ── 표 ───────────────────────────────────
-create table public.event_photos (
+create table if not exists public.event_photos (
   user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   id bigint not null,
   event_id bigint not null,
@@ -29,7 +30,7 @@ create table public.event_photos (
   foreign key (user_id, entry_id) references public.ledger_entries (user_id, id) on delete set null (entry_id)
 );
 
-create index event_photos_user_event on public.event_photos (user_id, event_id);
+create index if not exists event_photos_user_event on public.event_photos (user_id, event_id);
 
 comment on table public.event_photos is '행사 사진(화환 · 꽃) 정보. 파일은 Storage 버킷 event-photos의 <user_id>/<id>.jpg';
 comment on column public.event_photos.user_id is '주인 (로그인한 사용자). 비워 두면 auth.uid()';
@@ -44,6 +45,7 @@ grant select, insert, update, delete on public.event_photos to authenticated;
 
 alter table public.event_photos enable row level security;
 
+drop policy if exists "본인 사진만" on public.event_photos;
 create policy "본인 사진만" on public.event_photos
   for all to authenticated using (user_id = (select auth.uid())) with check (user_id = (select auth.uid()));
 
@@ -53,18 +55,29 @@ values ('event-photos', 'event-photos', false, 5242880, array['image/jpeg'])
 on conflict (id) do nothing;
 
 -- 폴더 첫 칸(<사용자 id>)이 내 id인 파일만
+drop policy if exists "본인 사진 파일 읽기" on storage.objects;
 create policy "본인 사진 파일 읽기" on storage.objects
   for select to authenticated
   using (bucket_id = 'event-photos' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
+drop policy if exists "본인 사진 파일 올리기" on storage.objects;
 create policy "본인 사진 파일 올리기" on storage.objects
   for insert to authenticated
   with check (bucket_id = 'event-photos' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
+drop policy if exists "본인 사진 파일 바꾸기" on storage.objects;
 create policy "본인 사진 파일 바꾸기" on storage.objects
   for update to authenticated
   using (bucket_id = 'event-photos' and (storage.foldername(name))[1] = (select auth.uid())::text);
 
+drop policy if exists "본인 사진 파일 지우기" on storage.objects;
 create policy "본인 사진 파일 지우기" on storage.objects
   for delete to authenticated
   using (bucket_id = 'event-photos' and (storage.foldername(name))[1] = (select auth.uid())::text);
+
+-- ── 확인 (결과: 표 1 · 버킷 1 · 표 권한 1 · 파일 권한 4 이면 정상) ──
+select
+  (select count(*) from pg_tables where schemaname = 'public' and tablename = 'event_photos') as 표,
+  (select count(*) from storage.buckets where id = 'event-photos') as 버킷,
+  (select count(*) from pg_policies where schemaname = 'public' and tablename = 'event_photos') as 표_권한,
+  (select count(*) from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname like '본인 사진 파일%') as 파일_권한;
