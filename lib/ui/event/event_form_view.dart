@@ -16,9 +16,7 @@ class EventFormView extends BaseAsyncView<EventFormViewModel, EventFormState> {
 
   Future<void> _save(BuildContext context, EventFormViewModel viewModel, {required bool isEditing}) async {
     context.hideKeyboard();
-    final saved = await viewModel.save(
-      onError: (_) => context.showToast('저장하지 못했어요. 잠시 후 다시 시도해 주세요', type: ToastType.error),
-    );
+    final saved = await viewModel.save(onError: (e) => context.showErrorToast(e, '저장하지 못했어요. 잠시 후 다시 시도해 주세요'));
     if (saved && context.mounted) {
       context.showToast(isEditing ? '행사를 수정했어요' : '행사를 만들었어요');
       context.pop();

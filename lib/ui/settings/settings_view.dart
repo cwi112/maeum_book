@@ -16,10 +16,10 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
   @override
   NotifierProvider<SettingsViewModel, SettingsState> get provider => settingsViewModelProvider;
 
-  static void _showError(BuildContext context) => context.showToast('처리하지 못했어요. 다시 시도해 주세요', type: ToastType.error);
+  static void _showError(BuildContext context, Object error) => context.showErrorToast(error, '처리하지 못했어요. 다시 시도해 주세요');
 
   Future<void> _addSamples(BuildContext context, SettingsViewModel viewModel) async {
-    final count = await viewModel.addSamples(onError: (_) => _showError(context));
+    final count = await viewModel.addSamples(onError: (e) => _showError(context, e));
     if (count != null && context.mounted) context.showToast('샘플 기록 $count개를 넣었어요');
   }
 
@@ -32,7 +32,7 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
       isDestructive: true,
     );
     if (!confirmed || !context.mounted) return;
-    final count = await viewModel.clearAll(onError: (_) => _showError(context));
+    final count = await viewModel.clearAll(onError: (e) => _showError(context, e));
     if (count != null && context.mounted) context.showToast('기록 $count개를 지웠어요', type: ToastType.info);
   }
 

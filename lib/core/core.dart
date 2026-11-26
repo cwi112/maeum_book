@@ -12,6 +12,7 @@ export 'package:material_ui/material_ui.dart';
 
 export 'base/base.dart';
 export 'define/define.dart';
+export 'errors/network_exception.dart';
 export 'extensions/extensions.dart';
 export 'theme/theme.dart';
 export 'utils/stream_utils.dart';

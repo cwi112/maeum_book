@@ -1,6 +1,8 @@
 import 'package:drift/drift.dart';
 import 'package:maeum_book/data/database/app_database.dart';
 import 'package:maeum_book/data/models/models.dart';
+import 'package:maeum_book/data/remote/remote_ledger_store.dart';
+import 'package:maeum_book/data/repositories/remote_first_write.dart';
 import 'package:maeum_book/data/seed/sample_data.dart';
 
 /// 경조사 기록을 다루는 Repository(저장소).
@@ -13,10 +15,17 @@ import 'package:maeum_book/data/seed/sample_data.dart';
 /// - DAO 결과를 화면에서 쓰기 좋은 형태로 바꾼다. (예: 기록이 없는 방향의 합계를 0으로 채움)
 /// - 저장 전에 입력값을 정리·검사한다. (이름 앞뒤 공백 제거, 음수 금액 차단)
 /// - 수정 시각(updatedAt)처럼 매번 챙겨야 하는 값을 자동으로 넣는다.
-class LedgerRepository {
-  LedgerRepository(this._dao);
+class LedgerRepository with RemoteFirstWrite {
+  /// [remote]: 로그인했으면 서버 창구, 비로그인이면 null (기기 DB에만 저장)
+  LedgerRepository(this._dao, {this.remote});
 
   final LedgerDao _dao;
+
+  @override
+  final RemoteLedgerStore? remote;
+
+  @override
+  AppDatabase get db => _dao.attachedDatabase;
 
   // ── 조회 (Stream: DB가 바뀌면 자동으로 새 값이 온다) ─────────────
 
@@ -89,8 +98,10 @@ class LedgerRepository {
     String? memo,
   }) {
     _validate(personName: personName, amount: amount);
-    return _dao.insertEntry(
+    // 함수로 감싸서, 회원일 때는 write의 트랜잭션 안에서 실행되게 한다.
+    Future<int> insert() => _dao.insertEntry(
       LedgerEntriesCompanion.insert(
+        id: newIdValue(),
         direction: direction,
         eventTypeId: eventTypeId,
         eventId: Value(eventId),
@@ -101,18 +112,18 @@ class LedgerRepository {
         memo: Value(_cleanMemo(memo)),
       ),
     );
+    return write(insert, (id, server) async => server.upsert(entries: [(await _dao.getById(id))!]));
   }
 
   /// 기존 기록을 수정한다. 수정 시각(updatedAt)은 자동으로 지금으로 바뀐다.
   Future<bool> update(LedgerEntry entry) {
     _validate(personName: entry.personName, amount: entry.amount);
-    return _dao.updateEntry(
-      entry.copyWith(
-        personName: entry.personName.trim(),
-        memo: Value(_cleanMemo(entry.memo)),
-        updatedAt: DateTime.now(),
-      ),
+    final cleaned = entry.copyWith(
+      personName: entry.personName.trim(),
+      memo: Value(_cleanMemo(entry.memo)),
+      updatedAt: DateTime.now(),
     );
+    return write(() => _dao.updateEntry(cleaned), (_, server) => server.upsert(entries: [cleaned]));
   }
 
   /// 원래 기록([original])의 값을 입력 화면에서 바꾼 값으로 고쳐 저장한다. id·작성 시각은 그대로 유지된다.
@@ -143,21 +154,31 @@ class LedgerRepository {
   );
 
   /// 기록을 삭제한다. 실제로 지워졌으면 true.
-  Future<bool> remove(int id) async => await _dao.deleteEntry(id) > 0;
+  Future<bool> remove(int id) async =>
+      await write(() => _dao.deleteEntry(id), (_, server) => server.delete(entryIds: [id])) > 0;
 
   /// 삭제한 기록을 되돌린다. id·작성 시각까지 그대로라 목록의 원래 자리로 돌아간다.
-  Future<void> restore(LedgerEntry entry) => _dao.restoreEntry(entry);
+  Future<void> restore(LedgerEntry entry) =>
+      write(() => _dao.restoreEntry(entry), (_, server) => server.upsert(entries: [entry]));
 
   /// 샘플 기록을 넣고 넣은 건수를 돌려준다. (설정 → 샘플 데이터 넣기)
-  Future<int> addSamples({DateTime? now}) => SampleData.insertInto(_dao.attachedDatabase, now: now ?? DateTime.now());
+  /// 회원이면 넣은 행사 · 기록을 서버에도 올린다.
+  Future<int> addSamples({DateTime? now}) => write(
+    () => SampleData.insertInto(db, now: now ?? DateTime.now(), newId: remote?.newId),
+    (_, server) async =>
+        server.upsert(events: await db.select(db.events).get(), entries: await db.select(db.ledgerEntries).get()),
+  );
 
   /// 모든 기록과 행사를 지우고 지운 기록 수를 돌려준다. 되돌릴 수 없으므로 화면에서 꼭 확인을 받은 뒤 부른다.
   /// (경조사 종류는 사용자 설정이라 남겨 둔다)
-  Future<int> clearAll() => _dao.attachedDatabase.transaction(() async {
-    final count = await _dao.deleteAll();
-    await _dao.attachedDatabase.delete(_dao.attachedDatabase.events).go();
-    return count;
-  });
+  Future<int> clearAll() => write(
+    () => db.transaction(() async {
+      final count = await _dao.deleteAll();
+      await db.delete(db.events).go();
+      return count;
+    }),
+    (_, server) => server.clearRecords(),
+  );
 
   // ── 내부 도우미 ───────────────────────
 

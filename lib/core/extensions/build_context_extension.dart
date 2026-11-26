@@ -1,3 +1,4 @@
+import 'package:maeum_book/core/errors/network_exception.dart';
 import 'package:maeum_book/core/widgets/app_toast.dart';
 import 'package:material_ui/material_ui.dart';
 
@@ -30,6 +31,14 @@ extension BuildContextX on BuildContext {
   /// [actionLabel]·[onAction]을 넣으면 "되돌리기" 같은 버튼이 붙는다.
   void showToast(String message, {ToastType type = ToastType.success, String? actionLabel, VoidCallback? onAction}) =>
       AppToast.show(this, message, type: type, actionLabel: actionLabel, onAction: onAction);
+
+  /// 실패 토스트. 인터넷 문제([NetworkException])면 연결 안내를, 아니면 [fallback] 문구를 띄운다.
+  ///
+  /// ```dart
+  /// onError: (e) => context.showErrorToast(e, '저장하지 못했어요. 잠시 후 다시 시도해 주세요'),
+  /// ```
+  void showErrorToast(Object error, String fallback) =>
+      showToast(error is NetworkException ? NetworkException.message : fallback, type: ToastType.error);
 
   void hideKeyboard() => FocusScope.of(this).unfocus();
 }

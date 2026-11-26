@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:drift/drift.dart' show DatabaseConnection, driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter/foundation.dart' show TargetPlatform, debugDefaultTargetPlatformOverride;
@@ -5,15 +7,21 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:maeum_book/app.dart';
 import 'package:maeum_book/core/define/test_ids.dart';
+import 'package:maeum_book/core/errors/network_exception.dart';
 import 'package:maeum_book/data/data.dart';
+import 'package:maeum_book/ui/login/auth_session_watcher.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'fakes/fake_auth_repository.dart';
+import 'fakes/fake_remote_ledger_store.dart';
 
 void main() {
-  late AppDatabase database;
+  late AppDatabase database; // 비로그인 기기 DB
+  late AppDatabase memberDatabase; // 회원 계정 사본 DB
   late FakeAuthRepository auth;
+  late FakeRemoteLedgerStore server;
+  late StreamController<bool> online;
   late SharedPreferences prefs;
 
   driftRuntimeOptions.dontWarnAboutMultipleDatabases = true;
@@ -22,7 +30,10 @@ void main() {
   // closeStreamsSynchronously: 화면이 사라질 때 Stream을 바로 닫아, 테스트 종료 시 남는 타이머가 없게 한다.
   setUp(() {
     database = AppDatabase(DatabaseConnection(NativeDatabase.memory(), closeStreamsSynchronously: true));
+    memberDatabase = AppDatabase(DatabaseConnection(NativeDatabase.memory(), closeStreamsSynchronously: true));
     auth = FakeAuthRepository(); // 실제 카카오 · Supabase에 접속하지 않게
+    server = FakeRemoteLedgerStore();
+    online = StreamController<bool>.broadcast();
   });
 
   // 로딩 중에는 스피너가 계속 돌아서 pumpAndSettle이 끝나지 않는다.
@@ -45,7 +56,10 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
-          appDatabaseProvider.overrideWithValue(database),
+          guestDatabaseProvider.overrideWithValue(database),
+          memberDatabaseProvider.overrideWith((ref, userId) => memberDatabase),
+          serverStoreProvider.overrideWithValue(server),
+          isOnlineProvider.overrideWith((ref) => online.stream),
           authRepositoryProvider.overrideWithValue(auth),
           sharedPreferencesProvider.overrideWithValue(prefs),
         ],
@@ -59,6 +73,8 @@ void main() {
   Future<void> closeApp(WidgetTester tester) async {
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.runAsync(database.close);
+    await tester.runAsync(memberDatabase.close);
+    await online.close();
   }
 
   testWidgets('하단 탭 4개로 화면을 전환할 수 있다', (tester) async {
@@ -433,7 +449,7 @@ void main() {
     await closeApp(tester);
   });
 
-  testWidgets('비회원 → 설정에서 로그인: 취소 · 인터넷 오류 · 성공, 비회원 때 기록은 그대로 남는다', (tester) async {
+  testWidgets('비회원 → 설정에서 로그인: 취소 · 인터넷 오류 · 성공 → [옮기기]로 비회원 기록이 계정(서버)으로 간다', (tester) async {
     await pumpApp(tester);
     await seed(tester, name: '비회원기록');
     await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.tabSettings));
@@ -457,48 +473,132 @@ void main() {
     ScaffoldMessenger.of(tester.element(find.text('카카오 로그인'))).removeCurrentSnackBar();
     await tester.pumpAndSettle();
 
-    // 성공 → 설정으로 돌아와 이름 · 연결된 로그인
+    // 성공 → 이 기기에 비로그인 기록이 있으므로 연동 팝업 (새 계정이라 "옮길까요?")
     await tapAndSettle(tester, find.text('카카오 로그인'));
-    expect(find.text('홍길동'), findsOneWidget);
-    expect(find.text('카카오 계정으로 가입'), findsOneWidget);
-    expect(find.text('연결됨'), findsOneWidget);
+    expect(find.text('이 기기의 기록을 계정으로 옮길까요?'), findsOneWidget);
+    await tapAndSettle(tester, find.text('옮기기'));
+    expect(find.text('기록 1건을 계정으로 옮겼어요'), findsOneWidget);
+    expect(server.entries.values.map((e) => e.personName), ['비회원기록']); // 서버(원본)에 올라감
+    expect(find.text('홍길동'), findsOneWidget); // 설정으로 돌아옴
     expect(prefs.getBool('guest_mode'), isNull); // 회원이 됐으므로 비회원 표시는 지움
 
-    // 비회원 때 기록이 그대로
+    // 회원 장부(서버에서 받아 온 사본)에 보인다
     await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.tabSent));
     expect(find.text('비회원기록'), findsOneWidget);
 
     await closeApp(tester);
   });
 
-  testWidgets('로그아웃 · 탈퇴하면 시작 화면으로 가고, 이 기기의 기록은 남는다', (tester) async {
+  testWidgets('연동 팝업에서 [나중에]: 계정에는 없고, 로그아웃 후 비회원으로 보면 그대로 있다', (tester) async {
+    await pumpApp(tester, guest: false);
+    await seed(tester, name: '비회원기록');
+    await tapAndSettle(tester, find.text('카카오 로그인'));
+    await tapAndSettle(tester, find.text('나중에'));
+    expect(find.text('아직 보낸 마음이 없어요'), findsOneWidget); // 회원 장부는 비어 있음
+    expect(server.entries, isEmpty);
+
+    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.tabSettings));
+    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.settingsSignOut));
+    await tapAndSettle(tester, find.text('로그아웃').last);
+    ScaffoldMessenger.of(tester.element(find.text('카카오 로그인'))).removeCurrentSnackBar();
+    await tester.pumpAndSettle();
+    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.loginGuest));
+    expect(find.text('비회원기록'), findsOneWidget);
+
+    await closeApp(tester);
+  });
+
+  testWidgets('회원: 로그아웃하면 이 기기의 계정 사본은 지워지고, 다시 로그인하면 서버에서 돌아온다', (tester) async {
     await auth.signInWithKakao();
     await pumpApp(tester, guest: false);
-    await seed(tester, name: '남을기록');
-    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.tabSettings));
+    final container = ProviderScope.containerOf(tester.element(find.byType(Scaffold).first));
+    await tester.runAsync(
+      () => container
+          .read(ledgerRepositoryProvider)
+          .add(direction: RecordDirection.sent, eventTypeId: 1, personName: '서버기록', amount: 1, date: DateTime(2026)),
+    );
+    await settle(tester);
+    expect(find.text('서버기록'), findsOneWidget);
+    expect(server.entries.length, 1);
 
-    // 로그아웃 → 시작 화면
+    // 로그아웃 → 시작 화면, 기기 사본 비움, 서버는 그대로
+    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.tabSettings));
     await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.settingsSignOut));
     await tapAndSettle(tester, find.text('로그아웃').last);
     expect(find.text('로그인 없이 시작하기'), findsOneWidget);
+    expect(await tester.runAsync(() => memberDatabase.select(memberDatabase.ledgerEntries).get()), isEmpty);
+    expect(server.entries.length, 1);
 
-    // 다시 로그인 → 탈퇴 → 시작 화면
+    // 다시 로그인 → 서버에서 받아 온다 (앱을 지웠다 깔아도 같은 원리)
     await tapAndSettle(tester, find.text('카카오 로그인'));
+    await settle(tester);
+    expect(find.text('서버기록'), findsOneWidget);
+
+    // 탈퇴 → 시작 화면
     await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.tabSettings));
     await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.settingsDeleteAccount));
     await tapAndSettle(tester, find.text('탈퇴하기'));
     expect(auth.deleteCount, 1);
     expect(find.text('로그인 없이 시작하기'), findsOneWidget);
-    ScaffoldMessenger.of(tester.element(find.text('카카오 로그인'))).removeCurrentSnackBar(); // 토스트가 밑줄 버튼을 가림
-    await tester.pumpAndSettle();
-
-    // 비회원으로 들어가면 기록이 그대로
-    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.loginGuest));
-    expect(find.text('남을기록'), findsOneWidget);
 
     await closeApp(tester);
   });
 
+  testWidgets('회원: 인터넷이 없으면 저장되지 않고, 끊김 토스트는 끊길 때마다 1번만 뜬다', (tester) async {
+    await auth.signInWithKakao();
+    await pumpApp(tester, guest: false);
+    final container = ProviderScope.containerOf(tester.element(find.byType(Scaffold).first));
+
+    // 끊김 → 1번
+    online.add(false);
+    await settle(tester);
+    expect(find.text(AuthSessionWatcher.offlineMessage), findsOneWidget);
+    ScaffoldMessenger.of(tester.element(find.byType(Scaffold).first)).removeCurrentSnackBar();
+    await tester.pumpAndSettle();
+
+    // 끊긴 동안 다시 알림이 와도(또는 서버 작업이 느려 실패해도) 다시 띄우지 않는다
+    online.add(false);
+    await settle(tester);
+    expect(find.text(AuthSessionWatcher.offlineMessage), findsNothing);
+
+    // 저장 시도 → NetworkException, 기기에도 남지 않음
+    server.offline = true;
+    Object? error;
+    await tester.runAsync(() async {
+      try {
+        await container
+            .read(ledgerRepositoryProvider)
+            .add(direction: RecordDirection.sent, eventTypeId: 1, personName: '못저장', amount: 1, date: DateTime(2026));
+      } catch (e) {
+        error = e;
+      }
+    });
+    expect(error, isA<NetworkException>());
+    await settle(tester);
+    expect(find.text('못저장'), findsNothing);
+
+    // 다시 연결 → 다음 끊김에 또 1번
+    server.offline = false;
+    online.add(true);
+    await settle(tester);
+    online.add(false);
+    await settle(tester);
+    expect(find.text(AuthSessionWatcher.offlineMessage), findsOneWidget);
+
+    await closeApp(tester);
+  });
+
+  testWidgets('비회원은 인터넷이 없어도 끊김 토스트 없이 저장된다', (tester) async {
+    await pumpApp(tester);
+    online.add(false);
+    await settle(tester);
+    expect(find.text(AuthSessionWatcher.offlineMessage), findsNothing);
+    await seed(tester, name: '오프라인저장');
+    await settle(tester);
+    expect(find.text('오프라인저장'), findsOneWidget);
+
+    await closeApp(tester);
+  });
   testWidgets('로그인이 만료되면 시작 화면으로 가고 이유를 알려 준다', (tester) async {
     await auth.signInWithKakao();
     await pumpApp(tester, guest: false);

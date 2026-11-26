@@ -26,9 +26,7 @@ class EventDetailView extends BaseAsyncView<EventDetailViewModel, EventDetailSta
       isDestructive: true,
     );
     if (!confirmed || !context.mounted) return;
-    final deleted = await viewModel.deleteEvent(
-      onError: (_) => context.showToast('처리하지 못했어요. 다시 시도해 주세요', type: ToastType.error),
-    );
+    final deleted = await viewModel.deleteEvent(onError: (e) => context.showErrorToast(e, '처리하지 못했어요. 다시 시도해 주세요'));
     if (deleted && context.mounted) {
       context.showToast('행사를 지웠어요', type: ToastType.info);
       context.pop();
