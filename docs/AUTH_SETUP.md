@@ -144,6 +144,11 @@
 
 이 표가 없으면 회원이 저장할 때 오류가 납니다.
 
+**표 · 컬럼 설명 달기 (선택):** [`supabase/migrations/20261126020000_ledger_comments.sql`](../supabase/migrations/20261126020000_ledger_comments.sql)도 같은 방법으로 Run 하면 대시보드에 한글 설명이 보입니다. (여러 번 실행해도 됨)
+- **Table Editor** → 표 → 컬럼 이름 옆 ▾ → **Edit column** 의 Description
+- **Database** → **Tables** → 표 → 컬럼 목록의 설명 칸
+- **API Docs** → Tables and Views → 표 이름
+
 ## 4. Apple 로그인
 
 App Store 심사 규정(4.8): 카카오 같은 소셜 로그인을 넣으면 **Apple 로그인도 함께 제공**해야 합니다. (iOS 앱만 해당. Android에서는 Apple 버튼을 숨깁니다.)
