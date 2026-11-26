@@ -49,7 +49,14 @@ class EventCard extends ConsumerWidget {
                     children: [
                       AppText.bodySmall('${summary.count}명', color: AppColors.textSecondary),
                       const AppText.bodySmall(' · ', color: AppColors.textHint),
-                      AppText.amount(summary.total.won, color: AppColors.received),
+                      // 금액이 아주 크면(수십억) 자리가 모자라 넘친다 → 모자랄 때만 글자를 줄여 다 보이게 (숫자는 자르지 않음)
+                      Flexible(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.centerLeft,
+                          child: AppText.amount(summary.total.won, color: AppColors.received),
+                        ),
+                      ),
                     ],
                   ),
                 ],

@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maeum_book/app.dart';
+import 'package:maeum_book/core/define/app_define.dart';
 import 'package:maeum_book/core/define/test_ids.dart';
 import 'package:maeum_book/core/errors/network_exception.dart';
 import 'package:maeum_book/core/theme/app_theme.dart';
@@ -115,6 +116,17 @@ void main() {
     await closeApp(tester);
   });
 
+  testWidgets('설정의 화면 모드는 준비 중 안내만 띄운다', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabSettings));
+    await settle(tester);
+    await tester.scrollUntilVisible(find.bySemanticsIdentifier(TestIds.settingsThemeMode), 200);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsThemeMode));
+    await tester.pump();
+    expect(find.text(AppDefine.comingSoonMessage), findsOneWidget);
+
+    await closeApp(tester);
+  });
   test('카드는 안의 터치 효과를 둥근 모서리대로 자른다', () {
     expect(AppTheme.light.cardTheme.clipBehavior, Clip.antiAlias);
   });

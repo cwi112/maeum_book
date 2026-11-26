@@ -158,8 +158,10 @@ class _StatsCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                AppText.title(title),
-                if (subtitle != null) AppText.caption(subtitle!).paddingOnly(left: AppSpacing.sm, bottom: 3),
+                // 좁은 화면 · 큰 글씨에서 제목 + 설명이 한 줄을 넘지 않게 둘 다 줄어들 수 있게 한다.
+                Flexible(child: AppText.title(title, maxLines: 1)),
+                if (subtitle != null)
+                  Flexible(child: AppText.caption(subtitle!, maxLines: 1).paddingOnly(left: AppSpacing.sm, bottom: 3)),
               ],
             ),
             const SizedBox(height: AppSpacing.lg),
