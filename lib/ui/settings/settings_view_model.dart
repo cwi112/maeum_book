@@ -30,21 +30,27 @@ class SettingsViewModel extends BaseViewModel<SettingsState> {
 
   AuthRepository get _authRepository => ref.read(authRepositoryProvider);
 
-  /// 로그아웃. 성공하면 true.
-  Future<bool> signOut({ErrorCallback? onError}) async =>
-      await runTask(() async {
-        await _authRepository.signOut();
-        return true;
-      }, onError: onError) ??
-      false;
+  /// 로그아웃. 성공하면 true. (인터넷이 없어도 기기에서는 로그아웃된다)
+  Future<bool> signOut({void Function(AuthFailure failure)? onFailure}) =>
+      _runAuth(_authRepository.signOut, onFailure: onFailure);
 
   /// 회원 탈퇴 (서버 계정 삭제). 기기 안의 기록은 그대로 둔다. 성공하면 true.
-  Future<bool> deleteAccount({ErrorCallback? onError}) async =>
-      await runTask(() async {
-        await _authRepository.deleteAccount();
-        return true;
-      }, onError: onError) ??
-      false;
+  Future<bool> deleteAccount({void Function(AuthFailure failure)? onFailure}) =>
+      _runAuth(_authRepository.deleteAccount, onFailure: onFailure);
+
+  /// 계정 작업을 실행하고, 실패하면 이유([AuthFailure])를 알린다.
+  Future<bool> _runAuth(Future<void> Function() action, {void Function(AuthFailure failure)? onFailure}) async {
+    try {
+      await action();
+      return true;
+    } on AuthFailure catch (failure) {
+      if (!failure.isCanceled) onFailure?.call(failure);
+      return false;
+    } catch (error) {
+      onFailure?.call(AuthFailure(AuthFailureType.unknown, error));
+      return false;
+    }
+  }
 
   /// 최신 버전인지 확인한다. 이미 확인 중이면 null.
   Future<AppUpdateResult?> checkUpdate() async {

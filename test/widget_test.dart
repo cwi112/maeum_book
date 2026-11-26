@@ -414,11 +414,21 @@ void main() {
     expect(find.text('카카오 로그인'), findsOneWidget);
     expect(find.text('Apple로 로그인'), findsNothing);
 
-    // 취소하면 화면에 그대로 남는다.
-    auth.cancelNext = true;
+    // 취소하면 아무 안내 없이 화면에 그대로 남는다.
+    auth.failNext = AuthFailureType.canceled;
     await tester.tap(find.text('카카오 로그인'));
     await tester.pumpAndSettle();
     expect(find.text('카카오 로그인'), findsOneWidget);
+    expect(find.byType(SnackBar), findsNothing);
+
+    // 인터넷이 없으면 이유를 알려 주고 화면에 남는다.
+    auth.failNext = AuthFailureType.network;
+    await tester.tap(find.text('카카오 로그인'));
+    await tester.pumpAndSettle();
+    expect(find.text(AuthFailureType.network.message), findsOneWidget);
+    expect(find.text('카카오 로그인'), findsOneWidget);
+    ScaffoldMessenger.of(tester.element(find.text('카카오 로그인'))).removeCurrentSnackBar();
+    await tester.pumpAndSettle();
 
     // 로그인 성공 → 설정으로 돌아와 이름이 보인다.
     await tester.tap(find.text('카카오 로그인'));
@@ -448,6 +458,44 @@ void main() {
     await tester.pumpAndSettle();
     expect(auth.deleteCount, 1);
     expect(find.text('로그인'), findsOneWidget);
+
+    await closeApp(tester);
+  });
+
+  testWidgets('로그인이 만료되면 어느 화면에서든 안내가 뜨고, [다시 로그인]을 누르면 로그인 화면으로 간다', (tester) async {
+    await pumpApp(tester);
+    await tester.runAsync(auth.signInWithKakao);
+    await settle(tester);
+
+    // 보내요 탭에 있을 때 서버가 로그인을 만료시킴
+    auth.expireSession();
+    await settle(tester);
+    await tester.pump(const Duration(milliseconds: 300));
+    expect(find.text(AuthFailureType.sessionExpired.message), findsOneWidget);
+
+    await tester.tap(find.text('다시 로그인'));
+    await tester.pumpAndSettle();
+    expect(find.text('카카오 로그인'), findsOneWidget);
+
+    await closeApp(tester);
+  });
+
+  testWidgets('탈퇴할 때 로그인이 만료돼 있으면 다시 로그인을 안내하고 계정은 그대로다', (tester) async {
+    await pumpApp(tester);
+    await tester.runAsync(auth.signInWithKakao);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabSettings));
+    await settle(tester);
+
+    auth.failNext = AuthFailureType.sessionExpired;
+    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsDeleteAccount));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('탈퇴하기'));
+    await settle(tester);
+    await tester.pumpAndSettle();
+
+    expect(auth.deleteCount, 0);
+    expect(find.text(AuthFailureType.sessionExpired.message), findsOneWidget);
+    expect(find.text('다시 로그인'), findsOneWidget);
 
     await closeApp(tester);
   });

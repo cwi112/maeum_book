@@ -152,12 +152,22 @@ class _AccountCard extends ConsumerWidget {
 
   final SettingsViewModel viewModel;
 
-  static void _showError(BuildContext context) => context.showToast('처리하지 못했어요. 다시 시도해 주세요', type: ToastType.error);
+  /// 실패 이유에 맞는 문구를 띄운다. 로그인이 만료됐으면 [다시 로그인] 버튼을 붙인다.
+  static void _showFailure(BuildContext context, AuthFailure failure) {
+    if (!context.mounted) return;
+    final expired = failure.type == AuthFailureType.sessionExpired;
+    context.showToast(
+      failure.message,
+      type: expired ? ToastType.info : ToastType.error,
+      actionLabel: expired ? '다시 로그인' : null,
+      onAction: expired ? () => context.push(AppRoutes.login) : null,
+    );
+  }
 
   Future<void> _signOut(BuildContext context) async {
     final confirmed = await AppDialog.confirm(context, title: '로그아웃할까요?', confirmLabel: '로그아웃');
     if (!confirmed || !context.mounted) return;
-    if (await viewModel.signOut(onError: (_) => _showError(context)) && context.mounted) {
+    if (await viewModel.signOut(onFailure: (f) => _showFailure(context, f)) && context.mounted) {
       context.showToast('로그아웃했어요', type: ToastType.info);
     }
   }
@@ -171,7 +181,7 @@ class _AccountCard extends ConsumerWidget {
       isDestructive: true,
     );
     if (!confirmed || !context.mounted) return;
-    if (await viewModel.deleteAccount(onError: (_) => _showError(context)) && context.mounted) {
+    if (await viewModel.deleteAccount(onFailure: (f) => _showFailure(context, f)) && context.mounted) {
       context.showToast('탈퇴했어요. 그동안 고마웠어요', type: ToastType.info);
     }
   }

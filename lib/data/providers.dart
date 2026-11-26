@@ -55,6 +55,13 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) => SupabaseAuthRep
 /// 지금 로그인한 사용자 (로그인 안 했으면 null). 로그인 · 로그아웃하면 이 값을 쓰는 화면이 자동으로 다시 그려진다.
 final currentUserProvider = StreamProvider<AppUser?>((ref) => ref.watch(authRepositoryProvider).watchUser());
 
+/// 사용자가 직접 하지 않은 로그아웃(만료 · 연결 해제)이 일어날 때마다 1씩 커지는 번호. → 앱 전체에서 다시 로그인 안내
+/// (같은 값이면 Riverpod이 알리지 않으므로, 매번 다른 번호를 보낸다)
+final sessionExpiredProvider = StreamProvider<int>((ref) {
+  var count = 0;
+  return ref.watch(authRepositoryProvider).watchSessionExpired().map((_) => ++count);
+});
+
 /// 모든 경조사 종류 (여러 화면이 함께 씀: 입력 칩, 목록의 종류 이름, 필터, 통계).
 ///
 /// StreamProvider라 종류를 추가·이름 변경·삭제하면 이 값을 쓰는 모든 화면이 자동으로 다시 그려진다.
