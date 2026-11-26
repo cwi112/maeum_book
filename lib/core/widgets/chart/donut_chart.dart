@@ -29,7 +29,7 @@ class ChartSlice {
 ///
 /// ## 동작
 /// - 조각 크기는 전체 합에서 차지하는 비율로 자동 계산된다. (fl_chart의 PieChart)
-/// - 조각을 누르면 그 조각이 살짝 커지고, 범례의 해당 줄이 굵게 표시된다.
+/// - 조각을 누르면 그 조각이 살짝 커지고, 범례의 해당 줄이 굵게 표시된다. 그래프 밖을 누르면 풀린다.
 /// - 값이 0인 조각은 그래프·범례에서 모두 뺀다.
 ///
 /// 그래프 라이브러리(fl_chart)는 이 파일에서만 쓴다. 다른 그래프 라이브러리로 바꾸더라도 이 파일만 고치면 된다.
@@ -59,60 +59,66 @@ class _DonutChartState extends State<DonutChart> {
     final total = slices.fold<int>(0, (sum, slice) => sum + slice.value);
     final radius = widget.size / 2;
 
-    return Column(
-      children: [
-        SizedBox.square(
-          dimension: widget.size,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              PieChart(
-                PieChartData(
-                  sectionsSpace: 2, // 조각 사이 틈
-                  centerSpaceRadius: radius * 0.62, // 가운데 빈 원 크기
-                  startDegreeOffset: -90, // 12시 방향부터 시작
-                  pieTouchData: PieTouchData(
-                    touchCallback: (event, response) {
-                      if (!event.isInterestedForInteractions) return;
-                      setState(() => _touchedIndex = response?.touchedSection?.touchedSectionIndex);
-                    },
-                  ),
-                  sections: [
-                    for (var i = 0; i < slices.length; i++)
-                      PieChartSectionData(
-                        value: slices[i].value.toDouble(),
-                        color: slices[i].color,
-                        radius: radius * (i == _touchedIndex ? 0.42 : 0.36),
-                        showTitle: false,
-                      ),
-                  ],
-                ),
-              ),
-              // 가운데 빈 원 안에 들어가도록 폭을 제한하고, 금액이 크면 글자를 줄인다.
-              SizedBox(
-                width: radius * 1.15,
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (widget.centerLabel != null) AppText.caption(widget.centerLabel!),
-                      if (widget.centerValue != null) AppText.amount(widget.centerValue!),
+    // 그래프 밖(화면의 다른 곳)을 누르면 고른 조각을 풀어 범례 굵은 글씨도 원래대로 돌린다.
+    return TapRegion(
+      onTapOutside: (_) {
+        if (_touchedIndex != null) setState(() => _touchedIndex = null);
+      },
+      child: Column(
+        children: [
+          SizedBox.square(
+            dimension: widget.size,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                PieChart(
+                  PieChartData(
+                    sectionsSpace: 2, // 조각 사이 틈
+                    centerSpaceRadius: radius * 0.62, // 가운데 빈 원 크기
+                    startDegreeOffset: -90, // 12시 방향부터 시작
+                    pieTouchData: PieTouchData(
+                      touchCallback: (event, response) {
+                        if (!event.isInterestedForInteractions) return;
+                        setState(() => _touchedIndex = response?.touchedSection?.touchedSectionIndex);
+                      },
+                    ),
+                    sections: [
+                      for (var i = 0; i < slices.length; i++)
+                        PieChartSectionData(
+                          value: slices[i].value.toDouble(),
+                          color: slices[i].color,
+                          radius: radius * (i == _touchedIndex ? 0.42 : 0.36),
+                          showTitle: false,
+                        ),
                     ],
                   ),
                 ),
-              ),
-            ],
+                // 가운데 빈 원 안에 들어가도록 폭을 제한하고, 금액이 크면 글자를 줄인다.
+                SizedBox(
+                  width: radius * 1.15,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (widget.centerLabel != null) AppText.caption(widget.centerLabel!),
+                        if (widget.centerValue != null) AppText.amount(widget.centerValue!),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.lg),
-        for (var i = 0; i < slices.length; i++)
-          _LegendRow(
-            slice: slices[i],
-            percent: total == 0 ? 0 : slices[i].value * 100 / total,
-            highlighted: i == _touchedIndex,
-          ),
-      ],
+          const SizedBox(height: AppSpacing.lg),
+          for (var i = 0; i < slices.length; i++)
+            _LegendRow(
+              slice: slices[i],
+              percent: total == 0 ? 0 : slices[i].value * 100 / total,
+              highlighted: i == _touchedIndex,
+            ),
+        ],
+      ),
     );
   }
 }

@@ -124,6 +124,18 @@ void main() {
       expect(server.files, isEmpty);
     });
 
+    test('앨범에서 돌아오며 장부를 받아 오는 사이에 사진을 넣어도, 넣은 사진이 사라지지 않는다 (1.2.1 버그)', () async {
+      final eventId = await addEvent(remote: server);
+      await server.upsert(types: await db.select(db.eventTypes).get());
+      // 앱이 앨범에서 돌아오면 장부를 받아 오는데(pull), 그 사이에 고른 사진이 저장된다.
+      server.duringFetch = () => repo(remote: server).add(eventId, jpeg(400, 300));
+
+      await LedgerSync.pull(db, server);
+
+      expect(await db.eventPhotoDao.getAll(), hasLength(1)); // 기기에도 그대로 (전에는 0장으로 보였다)
+      expect(server.photos, hasLength(1));
+    });
+
     test('서버에서 받아 오면(pull) 사진 정보도 기기 사본에 들어온다', () async {
       final eventId = await addEvent(remote: server);
       final photo = await repo(remote: server).add(eventId, jpeg(400, 300));

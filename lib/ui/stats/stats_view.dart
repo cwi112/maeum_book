@@ -204,7 +204,11 @@ class _PersonRankRow extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              AppText.subtitle(person.name, maxLines: 1),
+              // 이름 옆에 관계를 붙여 동명이인을 구분한다. (예: 김민준 · 친구)
+              AppText.subtitle(
+                person.relation == null ? person.name : '${person.name} · ${person.relation!.label}',
+                maxLines: 1,
+              ),
               AppText.caption('보냄 ${person.sentTotal.manWon} · 받음 ${person.receivedTotal.manWon}'),
             ],
           ).expanded(),

@@ -4,15 +4,17 @@
 
 ```powershell
 .\scripts\release.ps1 1.3.0        # 1) TestFlight로 배포 → 테스터 확인
-.\scripts\submit-store.ps1 1.3.0   # 2) 확인한 버전을 App Store 심사 제출 + Google Play 업로드
+.\scripts\submit-store.ps1 1.3.0   # 2) 확인한 버전을 App Store 심사 제출 (Google Play 준비 후엔 -Platform all)
 ```
 
 ```
-release.ps1 ──▶ v태그 ──▶ Codemagic ios-testflight ──▶ TestFlight (테스터 확인)
-                                     │
-submit-store.ps1 ──▶ Codemagic ios-appstore ──▶ App Store 심사 제출 ──▶ 통과 ──▶ [이 버전 출시] 버튼 (사람)
-                  └▶ Codemagic android-play ──▶ Play 내부 테스트 초안 ──▶ [프로덕션 승격 · 출시] (사람)
+release.ps1 ──▶ v1.3.0 태그 ──▶ Codemagic ios-testflight ──▶ TestFlight (테스터 확인)
+                                      │ 같은 커밋
+submit-store.ps1 ──▶ store-ios-v1.3.0 태그 ──▶ Codemagic ios-appstore ──▶ App Store 심사 제출 ──▶ 통과 ──▶ [이 버전 출시] (사람)
+                 └─▶ store-v1.3.0 태그(-Platform all) ──▶ + android-play ──▶ Play 내부 테스트 초안 ──▶ [프로덕션 승격] (사람)
 ```
+
+두 스크립트 모두 **태그만 push**한다. GitHub이 태그 소식을 Codemagic에 알려 줘서(웹훅) 빌드가 시작되므로, 토큰 같은 따로 준비할 것이 없다.
 
 **마지막 출시 버튼은 일부러 사람이 누르게 했다.** 심사를 통과해도 바로 모든 사용자에게 나가지 않는다.
 
@@ -76,23 +78,13 @@ submit-store.ps1 ──▶ Codemagic ios-appstore ──▶ App Store 심사 제
 3. **앱 콘텐츠**: 개인정보처리방침 URL(위와 같음), 광고 없음, 데이터 보안 설문(위 App Privacy와 같은 내용 + "전송 중 암호화됨" · "삭제 요청 가능"), 콘텐츠 등급 설문, 타깃 연령 18세 이상
 4. **업로드 키를 Codemagic에**: Codemagic → Code signing identities → Android keystores → `C:\Users\dnjsd\keys\maeum_book`의 키 파일 · 비밀번호 · 별칭, 이름 **maeum_book_upload**
 5. **첫 AAB는 직접 업로드**: Google Play는 API로 올리기 전에 한 번은 웹에서 올려야 한다.
-   - Codemagic에서 `android-play` 워크플로를 v태그로 실행하면 업로드 단계만 실패하고 AAB 파일은 결과물로 남는다 → 내려받아 Play Console → 내부 테스트 → 새 버전에 올린다.
+   - `.\scripts\submit-store.ps1 <버전> -Platform android`로 빌드하면 업로드 단계만 실패하고 AAB 파일은 Codemagic 결과물로 남는다 → 내려받아 Play Console → 내부 테스트 → 새 버전에 올린다.
 6. **서비스 계정 (자동 업로드용)**: Google Cloud → 서비스 계정 만들기 → JSON 키 → Play Console → 사용자 및 권한 → 그 계정 초대(출시 권한) → Codemagic → 환경 변수 그룹 **google_play**에 `GCLOUD_SERVICE_ACCOUNT_CREDENTIALS` = JSON 내용 (Secure 체크)
 
 **두 번째 업데이트부터 `submit-store.ps1`이 내부 테스트 트랙에 초안으로 올린다.** Play Console에서 프로덕션으로 승격해 출시한다.
 
 ---
 
-## 처음 한 번: submit-store.ps1 준비
-
-```powershell
-# Codemagic → User settings → Integrations → Codemagic API 토큰, 앱 화면 주소의 앱 ID
-[Environment]::SetEnvironmentVariable('CODEMAGIC_TOKEN', '<토큰>', 'User')
-[Environment]::SetEnvironmentVariable('CODEMAGIC_APP_ID', '<앱 ID>', 'User')
-```
-토큰은 내 PC 사용자 환경 변수에만 둔다. 저장소 · 채팅에 올리지 않는다.
-
----
 
 ## 출시 전 마지막 점검
 
