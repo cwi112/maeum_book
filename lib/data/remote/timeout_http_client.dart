@@ -47,6 +47,11 @@ class TimeoutHttpClient extends http.BaseClient {
       if (!abort.isCompleted) abort.complete();
     });
 
+    // ⚠️ 본문(finalize)을 **먼저** 꺼낸 다음 헤더를 복사해야 한다.
+    // 사진 업로드(MultipartRequest)는 finalize()를 부를 때 "content-type: multipart/form-data; boundary=…"를
+    // 만든다. 순서를 거꾸로 하면 이 헤더가 빠져서 서버가 파일을 읽지 못한다. (1.2.0에서 회원 사진 추가가 실패한 원인)
+    final body = request.finalize();
+
     // 원래 요청을 "끊을 수 있는 요청"으로 옮겨 담는다. (내용은 그대로 흘려보냄)
     final abortable = http.AbortableStreamedRequest(request.method, request.url, abortTrigger: abort.future)
       ..headers.addAll(request.headers)
@@ -57,7 +62,7 @@ class TimeoutHttpClient extends http.BaseClient {
     // 본문을 다 옮긴 뒤 반드시 닫아야 서버가 "요청 끝"을 안다. (닫지 않으면 서버가 계속 기다린다)
     unawaited(
       abortable.sink
-          .addStream(request.finalize())
+          .addStream(body)
           .then<void>((_) => abortable.sink.close(), onError: (Object error) => abortable.sink.close()),
     );
 
