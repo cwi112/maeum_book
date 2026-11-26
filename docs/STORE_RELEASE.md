@@ -8,14 +8,15 @@
 ```
 
 ```
-release.ps1 ──▶ v1.3.0 태그 ──▶ (API) Codemagic ios-testflight ──▶ 끝날 때까지 기다려 결과 표시 ──▶ TestFlight
-                                      │ 같은 태그(같은 코드)
-submit-store.ps1 ──▶ (API) Codemagic ios-appstore ──▶ 결과 표시 ──▶ App Store 심사 ──▶ 통과 ──▶ [이 버전 출시] (사람)
-                 └─▶ (-Platform all) android-play ──▶ 결과 표시 ──▶ Play 내부 테스트 초안 ──▶ [프로덕션 승격] (사람)
+release.ps1 ──▶ v1.3.0 태그 push ──▶ Codemagic ios-testflight 자동 시작 ──▶ TestFlight
+                                      │ 같은 커밋
+submit-store.ps1 ──▶ store-ios-v1.3.0 태그 push ──▶ Codemagic ios-appstore 자동 시작 ──▶ App Store 심사 ──▶ [이 버전 출시] (사람)
+                 └─▶ store-v1.3.0 태그(-Platform all) ──▶ + android-play ──▶ Play 내부 테스트 초안 ──▶ [프로덕션 승격] (사람)
 ```
 
-두 스크립트 모두 **Codemagic API 토큰**으로 빌드를 시작하고, **끝날 때까지 기다려 성공 · 실패를 터미널에 알려 준다.**
-Codemagic 사이트에 들어가 확인할 필요가 없고, 실패하면 로그 링크가 바로 나온다.
+빌드는 **태그 push로 Codemagic이 자동 시작**한다. (GitHub이 태그 소식을 Codemagic에 알려 준다)
+스크립트는 **토큰으로 그 빌드를 찾아 끝날 때까지 지켜보고**, 성공 · 실패(실패면 이유까지)를 터미널에 알려 준다.
+Codemagic 사이트에서도 같은 빌드를 실시간으로 볼 수 있다.
 
 ### Codemagic 토큰 (PC마다 첫 배포 때 한 번)
 따로 준비할 것은 없다. 이 PC에 토큰이 없으면 스크립트가 **그 자리에서 물어보고** 이 PC에 저장한다.

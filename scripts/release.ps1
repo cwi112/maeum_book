@@ -5,9 +5,8 @@
 #   1. main 최신화 → release/v<버전> 브랜치에서 pubspec.yaml 버전을 <버전>+<빌드번호+1>로 올림
 #      app_version.json의 latestVersion도 <버전>으로 올림 (앱의 업데이트 확인용)
 #   2. PR 생성 → CI 통과 확인 → 병합
-#   3. main에 v<버전> 태그 push (배포 기록용)
-#   4. Codemagic API로 ios-testflight 빌드 시작 → 끝날 때까지 기다려 성공 · 실패를 알려 줌
-#      (Codemagic 토큰 필요: scripts/lib/Codemagic.ps1 맨 위 설명)
+#   3. main에 v<버전> 태그 push → Codemagic이 자동으로 ios-testflight 빌드 시작 (웹훅)
+#   4. 토큰으로 그 빌드를 찾아 끝날 때까지 기다려 성공 · 실패를 알려 줌
 param(
     [Parameter(Mandatory = $true)][string]$Version
 )
@@ -86,13 +85,17 @@ gh pr merge $branch --merge --delete-branch; Assert-LastExit 'PR 병합'
 git checkout main; Assert-LastExit 'main 체크아웃'
 git pull --ff-only; Assert-LastExit 'main 최신화'
 
+$tagPushedAt = Get-Date
 git tag -a $tag -m "릴리스 $tag"; Assert-LastExit '태그 생성'
 git push origin $tag; Assert-LastExit '태그 push'
 
-# Codemagic에 iOS 빌드(TestFlight)를 시작하고 끝날 때까지 기다린다. (토큰은 맨 위에서 확인함)
+# 태그를 보고 Codemagic이 자동으로 시작한 iOS 빌드(TestFlight)를 찾아, 끝날 때까지 기다린다.
 Write-Host ""
-Write-Host "배포 시작: $tag ($Version+$build)"
-$started = Start-CodemagicBuild $codemagic 'ios-testflight' $tag
+Write-Host "배포 시작: $tag ($Version+$build) - Codemagic이 빌드를 만들기를 기다립니다"
+$started = Find-CodemagicBuild $codemagic 'ios-testflight' $tag $tagPushedAt
+if (-not $started) {
+    throw "5분이 지나도 Codemagic 빌드가 생기지 않았습니다. Codemagic 화면에서 Start new build → Build tag → $tag 로 직접 시작하세요."
+}
 Write-Host '  빌드가 끝날 때까지 기다립니다. (보통 15~25분, Ctrl+C로 그만 기다려도 빌드는 계속됨)'
 if (Wait-CodemagicBuilds $codemagic @($started)) {
     Write-Host ""
