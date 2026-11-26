@@ -1,14 +1,22 @@
+import 'dart:io';
+import 'dart:typed_data';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maeum_book/core/define/app_define.dart';
 import 'package:maeum_book/data/database/app_database.dart';
 import 'package:maeum_book/data/models/app_user.dart';
+import 'package:maeum_book/data/photos/photo_files.dart';
+import 'package:maeum_book/data/photos/photo_picker_service.dart';
+import 'package:maeum_book/data/photos/photo_processor.dart';
 import 'package:maeum_book/data/remote/remote_ledger_store.dart';
 import 'package:maeum_book/data/repositories/app_update_repository.dart';
 import 'package:maeum_book/data/repositories/auth_repository.dart';
+import 'package:maeum_book/data/repositories/event_photo_repository.dart';
 import 'package:maeum_book/data/repositories/event_repository.dart';
 import 'package:maeum_book/data/repositories/event_type_repository.dart';
 import 'package:maeum_book/data/repositories/ledger_repository.dart';
 import 'package:maeum_book/data/repositories/sample_mode.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
 /// 데이터 계층의 Riverpod provider 모음.
@@ -65,9 +73,61 @@ final remoteStoreProvider = Provider<RemoteLedgerStore?>((ref) {
   return ref.watch(serverStoreProvider);
 });
 
+// ── 행사 사진 파일 ───────────────────────
+
+/// 사진 폴더들의 뿌리: `<앱 문서 폴더>/photos`. 테스트에서는 임시 폴더로 바꿔 끼운다.
+final photoRootProvider = Provider<Future<Directory> Function()>(
+  (ref) =>
+      () async => Directory('${(await getApplicationDocumentsDirectory()).path}/photos'),
+);
+
+PhotoFiles _photoFolder(Ref ref, String name) =>
+    PhotoFiles(() async => Directory('${(await ref.read(photoRootProvider)()).path}/$name'));
+
+/// 비회원 사진 (원본)
+final guestPhotoFilesProvider = Provider<PhotoFiles>((ref) => _photoFolder(ref, 'guest'));
+
+/// 회원 사진 캐시 (원본은 서버). 계정마다 폴더가 따로다.
+final memberPhotoFilesProvider = Provider.family<PhotoFiles, String>(_photoFolder);
+
+/// 샘플 둘러보기 사진 (시작 · 끝낼 때 비운다)
+final samplePhotoFilesProvider = Provider<PhotoFiles>((ref) => _photoFolder(ref, 'sample'));
+
+/// 지금 장부의 사진 폴더 ([appDatabaseProvider]와 같은 규칙)
+final photoFilesProvider = Provider<PhotoFiles>((ref) {
+  if (ref.watch(sampleModeProvider)) return ref.watch(samplePhotoFilesProvider);
+  final userId = ref.watch(currentUserIdProvider);
+  return userId == null ? ref.watch(guestPhotoFilesProvider) : ref.watch(memberPhotoFilesProvider(userId));
+});
+
+/// 사진 줄이기. 테스트에서는 빠른 가짜로 바꿔 끼운다.
+final photoProcessorProvider = Provider<PhotoProcessor>((ref) => const PhotoProcessor());
+
+/// 카메라 · 앨범. 테스트에서는 가짜로 바꿔 끼운다.
+final photoPickerProvider = Provider<PhotoPickerService>((ref) => PhotoPickerService());
+
+/// 행사 사진 Repository.
+final eventPhotoRepositoryProvider = Provider<EventPhotoRepository>(
+  (ref) => EventPhotoRepository(
+    ref.watch(appDatabaseProvider).eventPhotoDao,
+    files: ref.watch(photoFilesProvider),
+    remote: ref.watch(remoteStoreProvider),
+    processor: ref.watch(photoProcessorProvider),
+  ),
+);
+
+/// 사진 한 장의 그림 (photoId, 작은 사진인지). 기기에 없으면 회원은 서버에서 받는다. 못 읽으면 null.
+final eventPhotoImageProvider = FutureProvider.autoDispose.family<Uint8List?, (int, bool)>(
+  (ref, key) => ref.watch(eventPhotoRepositoryProvider).loadImage(key.$1, thumb: key.$2),
+);
+
 /// 경조사 기록 Repository.
 final ledgerRepositoryProvider = Provider<LedgerRepository>(
-  (ref) => LedgerRepository(ref.watch(appDatabaseProvider).ledgerDao, remote: ref.watch(remoteStoreProvider)),
+  (ref) => LedgerRepository(
+    ref.watch(appDatabaseProvider).ledgerDao,
+    remote: ref.watch(remoteStoreProvider),
+    photoFiles: ref.watch(photoFilesProvider),
+  ),
 );
 
 /// 경조사 종류 Repository.
@@ -77,7 +137,11 @@ final eventTypeRepositoryProvider = Provider<EventTypeRepository>(
 
 /// 행사 Repository.
 final eventRepositoryProvider = Provider<EventRepository>(
-  (ref) => EventRepository(ref.watch(appDatabaseProvider).eventDao, remote: ref.watch(remoteStoreProvider)),
+  (ref) => EventRepository(
+    ref.watch(appDatabaseProvider).eventDao,
+    remote: ref.watch(remoteStoreProvider),
+    photoFiles: ref.watch(photoFilesProvider),
+  ),
 );
 
 /// 앱 버전 확인 Repository. 테스트에서는 가짜로 바꿔 끼운다.

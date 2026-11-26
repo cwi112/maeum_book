@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart' show TargetPlatform, debugPrint, defaul
 import 'package:flutter/services.dart' show PlatformException;
 import 'package:http/http.dart' as http;
 import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' as kakao;
+import 'package:maeum_book/core/errors/network_exception.dart';
 import 'package:maeum_book/data/models/app_user.dart';
 import 'package:maeum_book/data/models/auth_failure.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
@@ -61,7 +62,8 @@ abstract interface class AuthRepository {
   Future<void> signOut();
 
   /// 계정과 서버 데이터를 지운다. (기기 안의 장부는 지우지 않는다)
-  Future<void> deleteAccount();
+  /// [beforeDelete]: 계정을 지우기 직전에 할 일. (서버 Storage의 사진 파일은 계정과 함께 지워지지 않아서 먼저 지운다)
+  Future<void> deleteAccount({Future<void> Function()? beforeDelete});
 }
 
 /// Supabase를 쓰는 실제 구현.
@@ -266,12 +268,14 @@ class SupabaseAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<void> deleteAccount() => _guard(() async {
+  Future<void> deleteAccount({Future<void> Function()? beforeDelete}) => _guard(() async {
     if (_auth.currentUser == null) throw const AuthFailure(AuthFailureType.sessionExpired);
     final wasKakao = currentUser?.isLinked('kakao') ?? false;
 
     // 오래 켜 둔 앱이면 접속 토큰이 만료됐을 수 있어 먼저 새로 받는다. 거절되면 sessionExpired.
     if (_auth.currentSession?.isExpired ?? false) await _auth.refreshSession().timeout(_timeout);
+
+    await beforeDelete?.call();
 
     // DB 함수 delete_my_account(): 로그인한 본인 계정만 지운다. (supabase/migrations 참고)
     await _client.rpc<void>('delete_my_account').timeout(_timeout);
@@ -309,6 +313,7 @@ class SupabaseAuthRepository implements AuthRepository {
 
       // 네트워크
       SocketException() || TimeoutException() || http.ClientException() => of(AuthFailureType.network),
+      NetworkException() => of(AuthFailureType.network),
       AuthRetryableFetchException() => of(AuthFailureType.network),
 
       // 카카오: 취소 (카카오톡 로그인 창 닫기 · 계정 로그인 창 닫기 · 동의 화면에서 취소)

@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:maeum_book/data/database/app_database.dart';
+import 'package:maeum_book/data/photos/photo_files.dart';
 import 'package:maeum_book/data/remote/remote_ledger_store.dart';
 
 /// 비로그인 기록 수 (연동 팝업에 보여줄 값)
@@ -35,6 +36,7 @@ abstract final class LedgerSync {
 
   /// 기기 사본을 [snapshot]으로 바꾼다. 한 트랜잭션이라 화면은 바뀐 결과로 한 번만 다시 그려진다.
   static Future<void> replaceLocal(AppDatabase db, RemoteSnapshot snapshot) => db.transaction(() async {
+    await db.delete(db.eventPhotos).go();
     await db.delete(db.ledgerEntries).go();
     await db.delete(db.events).go();
     await db.delete(db.eventTypes).go();
@@ -42,7 +44,8 @@ abstract final class LedgerSync {
       batch
         ..insertAll(db.eventTypes, snapshot.types)
         ..insertAll(db.events, snapshot.events)
-        ..insertAll(db.ledgerEntries, snapshot.entries);
+        ..insertAll(db.ledgerEntries, snapshot.entries)
+        ..insertAll(db.eventPhotos, snapshot.photos);
     });
   });
 
@@ -63,10 +66,17 @@ abstract final class LedgerSync {
   /// - 경조사 종류는 **이름으로 맞춘다.** 계정에 같은 이름이 있으면 그 종류로, 없으면 새로 만든다.
   /// - 다 올린 뒤에 비로그인 기록을 지운다. (계정 기록이 됐으므로. 지우지 않으면 다음 로그인 때 또 옮기게 된다)
   ///   올리는 중에 실패하면 지우지 않는다. 다시 시도하면 새 id로 다시 올리므로, 앞서 일부 올라간 기록이 겹칠 수 있다.
-  static Future<int> importGuest({required AppDatabase guestDb, required RemoteLedgerStore remote}) async {
+  ///
+  /// 행사 사진([guestPhotos] 폴더의 파일)도 새 번호로 서버 Storage에 올리고, 다 옮기면 기기에서 지운다.
+  static Future<int> importGuest({
+    required AppDatabase guestDb,
+    required RemoteLedgerStore remote,
+    PhotoFiles? guestPhotos,
+  }) async {
     final types = await guestDb.select(guestDb.eventTypes).get();
     final events = await guestDb.select(guestDb.events).get();
     final entries = await guestDb.select(guestDb.ledgerEntries).get();
+    final photos = await guestDb.select(guestDb.eventPhotos).get();
     if (events.isEmpty && entries.isEmpty) return 0;
 
     // 1) 종류: 이름으로 계정 종류와 맞추고, 없는 이름만 새로 만든다.
@@ -95,10 +105,11 @@ abstract final class LedgerSync {
     final newEvents = [
       for (final e in events) e.copyWith(id: eventIdMap[e.id], eventTypeId: typeIdMap[e.eventTypeId] ?? e.eventTypeId),
     ];
+    final entryIdMap = {for (final e in entries) e.id: remote.newId()};
     final newEntries = [
       for (final e in entries)
         e.copyWith(
-          id: remote.newId(),
+          id: entryIdMap[e.id],
           eventTypeId: typeIdMap[e.eventTypeId] ?? e.eventTypeId,
           eventId: Value(e.eventId == null ? null : eventIdMap[e.eventId]),
         ),
@@ -106,11 +117,32 @@ abstract final class LedgerSync {
 
     await remote.upsert(types: newTypes, events: newEvents, entries: newEntries);
 
-    // 3) 옮겼으니 비로그인 기록은 지운다. (경조사 종류는 남겨 둔다)
+    // 3) 사진: 파일을 새 번호로 먼저 올리고 정보를 올린다. (파일이 없어진 사진은 건너뜀)
+    final newPhotos = <EventPhoto>[];
+    for (final photo in photos) {
+      final image = await guestPhotos?.read(photo.id, thumb: false);
+      final thumb = await guestPhotos?.read(photo.id, thumb: true);
+      final eventId = eventIdMap[photo.eventId];
+      if (image == null || thumb == null || eventId == null) continue;
+      final id = remote.newId();
+      await remote.uploadPhoto(id, image: image, thumb: thumb);
+      newPhotos.add(
+        photo.copyWith(
+          id: id,
+          eventId: eventId,
+          entryId: Value(photo.entryId == null ? null : entryIdMap[photo.entryId]),
+        ),
+      );
+    }
+    if (newPhotos.isNotEmpty) await remote.upsert(photos: newPhotos);
+
+    // 4) 옮겼으니 비로그인 기록은 지운다. (경조사 종류는 남겨 둔다) 사진 정보는 행사와 함께 지워진다.
     await guestDb.transaction(() async {
+      await guestDb.delete(guestDb.eventPhotos).go();
       await guestDb.delete(guestDb.ledgerEntries).go();
       await guestDb.delete(guestDb.events).go();
     });
+    await guestPhotos?.clear();
     return entries.length;
   }
 }

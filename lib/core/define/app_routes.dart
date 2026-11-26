@@ -37,6 +37,10 @@ abstract final class AppRoutes {
   /// 행사 수정 예) `/event/3/edit`
   static String eventEdit(int id) => '/event/$id/edit';
 
+  /// 행사 사진 전체 화면 예) `/event/3/photos?index=2` (index: 처음 보여 줄 사진 순서)
+  static const String eventPhotosPattern = '/event/:id/photos';
+  static String eventPhotos(int id, {int index = 0}) => '/event/$id/photos?index=$index';
+
   // ── 설정 하위 ──────────────────────────
   static const String eventTypes = '/settings/event-types';
 

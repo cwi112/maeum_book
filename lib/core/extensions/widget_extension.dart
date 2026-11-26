@@ -26,6 +26,9 @@ extension WidgetX on Widget {
 
   Widget expanded({int flex = 1}) => Expanded(flex: flex, child: this);
 
+  /// 남는 자리만큼 차지하되, 모자라면 줄어든다. (Row 안의 긴 글자)
+  Widget flexible({int flex = 1}) => Flexible(flex: flex, child: this);
+
   Widget onTap(VoidCallback? onTap) => GestureDetector(onTap: onTap, behavior: HitTestBehavior.opaque, child: this);
 }
 

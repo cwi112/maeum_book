@@ -79,6 +79,7 @@ class LoginViewModel extends BaseViewModel<LoginMethod?> {
     final count = await LedgerSync.importGuest(
       guestDb: ref.read(guestDatabaseProvider),
       remote: ref.read(serverStoreProvider),
+      guestPhotos: ref.read(guestPhotoFilesProvider),
     );
     await ref.read(memberSyncProvider.notifier).pull();
     return count;

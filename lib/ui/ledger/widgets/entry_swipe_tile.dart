@@ -9,7 +9,16 @@ import 'package:maeum_book/ui/ledger/widgets/ledger_entry_tile.dart';
 ///
 /// 실제 삭제·복원은 화면의 ViewModel이 하도록 [onRemove]·[onRestore]로 받는다. (이 위젯은 화면 동작만 담당)
 class EntrySwipeTile extends ConsumerWidget {
-  const EntrySwipeTile({super.key, required this.entry, required this.onRemove, required this.onRestore});
+  const EntrySwipeTile({
+    super.key,
+    required this.entry,
+    required this.onRemove,
+    required this.onRestore,
+    this.hasPhoto = false,
+  });
+
+  /// 이 사람이 보낸 화환 · 꽃 사진이 있으면 true (이름 옆 꽃 표시)
+  final bool hasPhoto;
 
   final LedgerEntry entry;
 
@@ -43,7 +52,12 @@ class EntrySwipeTile extends ConsumerWidget {
         SwipeAction.edit(onPressed: openEdit, testId: TestIds.entryEdit(entry.id)),
         SwipeAction.delete(onPressed: () => _delete(context), testId: TestIds.entryDelete(entry.id)),
       ],
-      child: LedgerEntryTile(entry: entry, typeName: typeName, onTap: openEdit).testId(TestIds.entryTile(entry.id)),
+      child: LedgerEntryTile(
+        entry: entry,
+        typeName: typeName,
+        hasPhoto: hasPhoto,
+        onTap: openEdit,
+      ).testId(TestIds.entryTile(entry.id)),
     );
   }
 }

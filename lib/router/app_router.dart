@@ -79,6 +79,14 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: AppRoutes.eventDetailPattern,
         builder: (context, state) => EventDetailView(eventId: int.tryParse(state.pathParameters['id']!) ?? -1),
       ),
+      // 행사 사진 전체 화면: ?index=2 → 세 번째 사진부터
+      GoRoute(
+        path: AppRoutes.eventPhotosPattern,
+        builder: (context, state) => EventPhotoView(
+          eventId: int.tryParse(state.pathParameters['id']!) ?? -1,
+          initialIndex: int.tryParse(state.uri.queryParameters['index'] ?? '') ?? 0,
+        ),
+      ),
       GoRoute(
         path: AppRoutes.eventEditPattern,
         builder: (context, state) => EventFormView(eventId: int.tryParse(state.pathParameters['id']!) ?? -1),

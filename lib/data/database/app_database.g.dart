@@ -1173,12 +1173,352 @@ class LedgerEntriesCompanion extends UpdateCompanion<LedgerEntry> {
   }
 }
 
+class $EventPhotosTable extends EventPhotos with TableInfo<$EventPhotosTable, EventPhoto> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $EventPhotosTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('PRIMARY KEY AUTOINCREMENT'),
+  );
+  static const VerificationMeta _eventIdMeta = const VerificationMeta('eventId');
+  @override
+  late final GeneratedColumn<int> eventId = GeneratedColumn<int>(
+    'event_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('REFERENCES events (id) ON DELETE CASCADE'),
+  );
+  static const VerificationMeta _senderNameMeta = const VerificationMeta('senderName');
+  @override
+  late final GeneratedColumn<String> senderName = GeneratedColumn<String>(
+    'sender_name',
+    aliasedName,
+    true,
+    additionalChecks: GeneratedColumn.checkTextLength(),
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _entryIdMeta = const VerificationMeta('entryId');
+  @override
+  late final GeneratedColumn<int> entryId = GeneratedColumn<int>(
+    'entry_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways('REFERENCES ledger_entries (id) ON DELETE SET NULL'),
+  );
+  static const VerificationMeta _memoMeta = const VerificationMeta('memo');
+  @override
+  late final GeneratedColumn<String> memo = GeneratedColumn<String>(
+    'memo',
+    aliasedName,
+    true,
+    additionalChecks: GeneratedColumn.checkTextLength(),
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [id, eventId, senderName, entryId, memo, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'event_photos';
+  @override
+  VerificationContext validateIntegrity(Insertable<EventPhoto> instance, {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('event_id')) {
+      context.handle(_eventIdMeta, eventId.isAcceptableOrUnknown(data['event_id']!, _eventIdMeta));
+    } else if (isInserting) {
+      context.missing(_eventIdMeta);
+    }
+    if (data.containsKey('sender_name')) {
+      context.handle(_senderNameMeta, senderName.isAcceptableOrUnknown(data['sender_name']!, _senderNameMeta));
+    }
+    if (data.containsKey('entry_id')) {
+      context.handle(_entryIdMeta, entryId.isAcceptableOrUnknown(data['entry_id']!, _entryIdMeta));
+    }
+    if (data.containsKey('memo')) {
+      context.handle(_memoMeta, memo.isAcceptableOrUnknown(data['memo']!, _memoMeta));
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta, createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  EventPhoto map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return EventPhoto(
+      id: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}id'])!,
+      eventId: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}event_id'])!,
+      senderName: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}sender_name']),
+      entryId: attachedDatabase.typeMapping.read(DriftSqlType.int, data['${effectivePrefix}entry_id']),
+      memo: attachedDatabase.typeMapping.read(DriftSqlType.string, data['${effectivePrefix}memo']),
+      createdAt: attachedDatabase.typeMapping.read(DriftSqlType.dateTime, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $EventPhotosTable createAlias(String alias) {
+    return $EventPhotosTable(attachedDatabase, alias);
+  }
+}
+
+class EventPhoto extends DataClass implements Insertable<EventPhoto> {
+  final int id;
+  final int eventId;
+  final String? senderName;
+  final int? entryId;
+  final String? memo;
+  final DateTime createdAt;
+  const EventPhoto({
+    required this.id,
+    required this.eventId,
+    this.senderName,
+    this.entryId,
+    this.memo,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['event_id'] = Variable<int>(eventId);
+    if (!nullToAbsent || senderName != null) {
+      map['sender_name'] = Variable<String>(senderName);
+    }
+    if (!nullToAbsent || entryId != null) {
+      map['entry_id'] = Variable<int>(entryId);
+    }
+    if (!nullToAbsent || memo != null) {
+      map['memo'] = Variable<String>(memo);
+    }
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  EventPhotosCompanion toCompanion(bool nullToAbsent) {
+    return EventPhotosCompanion(
+      id: Value(id),
+      eventId: Value(eventId),
+      senderName: senderName == null && nullToAbsent ? const Value.absent() : Value(senderName),
+      entryId: entryId == null && nullToAbsent ? const Value.absent() : Value(entryId),
+      memo: memo == null && nullToAbsent ? const Value.absent() : Value(memo),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory EventPhoto.fromJson(Map<String, dynamic> json, {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return EventPhoto(
+      id: serializer.fromJson<int>(json['id']),
+      eventId: serializer.fromJson<int>(json['eventId']),
+      senderName: serializer.fromJson<String?>(json['senderName']),
+      entryId: serializer.fromJson<int?>(json['entryId']),
+      memo: serializer.fromJson<String?>(json['memo']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'eventId': serializer.toJson<int>(eventId),
+      'senderName': serializer.toJson<String?>(senderName),
+      'entryId': serializer.toJson<int?>(entryId),
+      'memo': serializer.toJson<String?>(memo),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  EventPhoto copyWith({
+    int? id,
+    int? eventId,
+    Value<String?> senderName = const Value.absent(),
+    Value<int?> entryId = const Value.absent(),
+    Value<String?> memo = const Value.absent(),
+    DateTime? createdAt,
+  }) => EventPhoto(
+    id: id ?? this.id,
+    eventId: eventId ?? this.eventId,
+    senderName: senderName.present ? senderName.value : this.senderName,
+    entryId: entryId.present ? entryId.value : this.entryId,
+    memo: memo.present ? memo.value : this.memo,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  EventPhoto copyWithCompanion(EventPhotosCompanion data) {
+    return EventPhoto(
+      id: data.id.present ? data.id.value : this.id,
+      eventId: data.eventId.present ? data.eventId.value : this.eventId,
+      senderName: data.senderName.present ? data.senderName.value : this.senderName,
+      entryId: data.entryId.present ? data.entryId.value : this.entryId,
+      memo: data.memo.present ? data.memo.value : this.memo,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EventPhoto(')
+          ..write('id: $id, ')
+          ..write('eventId: $eventId, ')
+          ..write('senderName: $senderName, ')
+          ..write('entryId: $entryId, ')
+          ..write('memo: $memo, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, eventId, senderName, entryId, memo, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is EventPhoto &&
+          other.id == this.id &&
+          other.eventId == this.eventId &&
+          other.senderName == this.senderName &&
+          other.entryId == this.entryId &&
+          other.memo == this.memo &&
+          other.createdAt == this.createdAt);
+}
+
+class EventPhotosCompanion extends UpdateCompanion<EventPhoto> {
+  final Value<int> id;
+  final Value<int> eventId;
+  final Value<String?> senderName;
+  final Value<int?> entryId;
+  final Value<String?> memo;
+  final Value<DateTime> createdAt;
+  const EventPhotosCompanion({
+    this.id = const Value.absent(),
+    this.eventId = const Value.absent(),
+    this.senderName = const Value.absent(),
+    this.entryId = const Value.absent(),
+    this.memo = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  EventPhotosCompanion.insert({
+    this.id = const Value.absent(),
+    required int eventId,
+    this.senderName = const Value.absent(),
+    this.entryId = const Value.absent(),
+    this.memo = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  }) : eventId = Value(eventId);
+  static Insertable<EventPhoto> custom({
+    Expression<int>? id,
+    Expression<int>? eventId,
+    Expression<String>? senderName,
+    Expression<int>? entryId,
+    Expression<String>? memo,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (eventId != null) 'event_id': eventId,
+      if (senderName != null) 'sender_name': senderName,
+      if (entryId != null) 'entry_id': entryId,
+      if (memo != null) 'memo': memo,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  EventPhotosCompanion copyWith({
+    Value<int>? id,
+    Value<int>? eventId,
+    Value<String?>? senderName,
+    Value<int?>? entryId,
+    Value<String?>? memo,
+    Value<DateTime>? createdAt,
+  }) {
+    return EventPhotosCompanion(
+      id: id ?? this.id,
+      eventId: eventId ?? this.eventId,
+      senderName: senderName ?? this.senderName,
+      entryId: entryId ?? this.entryId,
+      memo: memo ?? this.memo,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (eventId.present) {
+      map['event_id'] = Variable<int>(eventId.value);
+    }
+    if (senderName.present) {
+      map['sender_name'] = Variable<String>(senderName.value);
+    }
+    if (entryId.present) {
+      map['entry_id'] = Variable<int>(entryId.value);
+    }
+    if (memo.present) {
+      map['memo'] = Variable<String>(memo.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('EventPhotosCompanion(')
+          ..write('id: $id, ')
+          ..write('eventId: $eventId, ')
+          ..write('senderName: $senderName, ')
+          ..write('entryId: $entryId, ')
+          ..write('memo: $memo, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $EventTypesTable eventTypes = $EventTypesTable(this);
   late final $EventsTable events = $EventsTable(this);
   late final $LedgerEntriesTable ledgerEntries = $LedgerEntriesTable(this);
+  late final $EventPhotosTable eventPhotos = $EventPhotosTable(this);
   late final Index idxLedgerEntriesDirectionDate = Index(
     'idx_ledger_entries_direction_date',
     'CREATE INDEX idx_ledger_entries_direction_date ON ledger_entries (direction, date)',
@@ -1186,6 +1526,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final LedgerDao ledgerDao = LedgerDao(this as AppDatabase);
   late final EventTypeDao eventTypeDao = EventTypeDao(this as AppDatabase);
   late final EventDao eventDao = EventDao(this as AppDatabase);
+  late final EventPhotoDao eventPhotoDao = EventPhotoDao(this as AppDatabase);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables => allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
@@ -1193,6 +1534,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     eventTypes,
     events,
     ledgerEntries,
+    eventPhotos,
     idxLedgerEntriesDirectionDate,
   ];
   @override
@@ -1200,6 +1542,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     WritePropagation(
       on: TableUpdateQuery.onTableName('events', limitUpdateKind: UpdateKind.delete),
       result: [TableUpdate('ledger_entries', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('events', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('event_photos', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName('ledger_entries', limitUpdateKind: UpdateKind.delete),
+      result: [TableUpdate('event_photos', kind: UpdateKind.update)],
     ),
   ]);
 }
@@ -1506,6 +1856,19 @@ final class $$EventsTableReferences extends BaseReferences<_$AppDatabase, $Event
     final cache = $_typedResult.readTableOrNull(_ledgerEntriesRefsTable($_db));
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
   }
+
+  static MultiTypedResultKey<$EventPhotosTable, List<EventPhoto>> _eventPhotosRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(db.eventPhotos, aliasName: 'events__id__event_photos__event_id');
+
+  $$EventPhotosTableProcessedTableManager get eventPhotosRefs {
+    final manager = $$EventPhotosTableTableManager(
+      $_db,
+      $_db.eventPhotos,
+    ).filter((f) => f.eventId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_eventPhotosRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
+  }
 }
 
 class $$EventsTableFilterComposer extends Composer<_$AppDatabase, $EventsTable> {
@@ -1557,6 +1920,24 @@ class $$EventsTableFilterComposer extends Composer<_$AppDatabase, $EventsTable> 
           $$LedgerEntriesTableFilterComposer(
             $db: $db,
             $table: $db.ledgerEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> eventPhotosRefs(Expression<bool> Function($$EventPhotosTableFilterComposer f) f) {
+    final $$EventPhotosTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.eventPhotos,
+      getReferencedColumn: (t) => t.eventId,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EventPhotosTableFilterComposer(
+            $db: $db,
+            $table: $db.eventPhotos,
             $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
             joinBuilder: joinBuilder,
             $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
@@ -1662,6 +2043,24 @@ class $$EventsTableAnnotationComposer extends Composer<_$AppDatabase, $EventsTab
     );
     return f(composer);
   }
+
+  Expression<T> eventPhotosRefs<T extends Object>(Expression<T> Function($$EventPhotosTableAnnotationComposer a) f) {
+    final $$EventPhotosTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.eventPhotos,
+      getReferencedColumn: (t) => t.eventId,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EventPhotosTableAnnotationComposer(
+            $db: $db,
+            $table: $db.eventPhotos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$EventsTableTableManager
@@ -1677,7 +2076,7 @@ class $$EventsTableTableManager
           $$EventsTableUpdateCompanionBuilder,
           (LedgerEvent, $$EventsTableReferences),
           LedgerEvent,
-          PrefetchHooks Function({bool eventTypeId, bool ledgerEntriesRefs})
+          PrefetchHooks Function({bool eventTypeId, bool ledgerEntriesRefs, bool eventPhotosRefs})
         > {
   $$EventsTableTableManager(_$AppDatabase db, $EventsTable table)
     : super(
@@ -1722,10 +2121,10 @@ class $$EventsTableTableManager
           withReferenceMapper: (p0) => p0
               .map((e) => (e.readTable<$EventsTable, LedgerEvent>(table), $$EventsTableReferences(db, table, e)))
               .toList(),
-          prefetchHooksCallback: ({eventTypeId = false, ledgerEntriesRefs = false}) {
+          prefetchHooksCallback: ({eventTypeId = false, ledgerEntriesRefs = false, eventPhotosRefs = false}) {
             return PrefetchHooks(
               db: db,
-              explicitlyWatchedTables: [if (ledgerEntriesRefs) db.ledgerEntries],
+              explicitlyWatchedTables: [if (ledgerEntriesRefs) db.ledgerEntries, if (eventPhotosRefs) db.eventPhotos],
               addJoins:
                   <
                     T extends TableManagerState<
@@ -1764,6 +2163,15 @@ class $$EventsTableTableManager
                       referencedColumn: 'event_id',
                       typedResults: items,
                     ),
+                  if (eventPhotosRefs)
+                    await $_getPrefetchedDataByColumns<LedgerEvent, $EventsTable, EventPhoto, $EventPhotosTable>(
+                      currentTable: table,
+                      referencedTable: $$EventsTableReferences._eventPhotosRefsTable(db),
+                      managerFromTypedResult: (p0) => $$EventsTableReferences(db, table, p0).eventPhotosRefs,
+                      currentColumn: 'id',
+                      referencedColumn: 'event_id',
+                      typedResults: items,
+                    ),
                 ];
               },
             );
@@ -1784,7 +2192,7 @@ typedef $$EventsTableProcessedTableManager =
       $$EventsTableUpdateCompanionBuilder,
       (LedgerEvent, $$EventsTableReferences),
       LedgerEvent,
-      PrefetchHooks Function({bool eventTypeId, bool ledgerEntriesRefs})
+      PrefetchHooks Function({bool eventTypeId, bool ledgerEntriesRefs, bool eventPhotosRefs})
     >;
 typedef $$LedgerEntriesTableCreateCompanionBuilder = LedgerEntriesCompanion Function({
   Value<int> id,
@@ -1837,6 +2245,19 @@ final class $$LedgerEntriesTableReferences extends BaseReferences<_$AppDatabase,
     final item = $_typedResult.readTableOrNull(_eventIdTable($_db));
     if (item == null) return manager;
     return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static MultiTypedResultKey<$EventPhotosTable, List<EventPhoto>> _eventPhotosRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(db.eventPhotos, aliasName: 'ledger_entries__id__event_photos__entry_id');
+
+  $$EventPhotosTableProcessedTableManager get eventPhotosRefs {
+    final manager = $$EventPhotosTableTableManager(
+      $_db,
+      $_db.eventPhotos,
+    ).filter((f) => f.entryId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_eventPhotosRefsTable($_db));
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: cache));
   }
 }
 
@@ -1907,6 +2328,24 @@ class $$LedgerEntriesTableFilterComposer extends Composer<_$AppDatabase, $Ledger
           ),
     );
     return composer;
+  }
+
+  Expression<bool> eventPhotosRefs(Expression<bool> Function($$EventPhotosTableFilterComposer f) f) {
+    final $$EventPhotosTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.eventPhotos,
+      getReferencedColumn: (t) => t.entryId,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EventPhotosTableFilterComposer(
+            $db: $db,
+            $table: $db.eventPhotos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
   }
 }
 
@@ -2044,6 +2483,24 @@ class $$LedgerEntriesTableAnnotationComposer extends Composer<_$AppDatabase, $Le
     );
     return composer;
   }
+
+  Expression<T> eventPhotosRefs<T extends Object>(Expression<T> Function($$EventPhotosTableAnnotationComposer a) f) {
+    final $$EventPhotosTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.eventPhotos,
+      getReferencedColumn: (t) => t.entryId,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EventPhotosTableAnnotationComposer(
+            $db: $db,
+            $table: $db.eventPhotos,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$LedgerEntriesTableTableManager
@@ -2059,7 +2516,7 @@ class $$LedgerEntriesTableTableManager
           $$LedgerEntriesTableUpdateCompanionBuilder,
           (LedgerEntry, $$LedgerEntriesTableReferences),
           LedgerEntry,
-          PrefetchHooks Function({bool eventTypeId, bool eventId})
+          PrefetchHooks Function({bool eventTypeId, bool eventId, bool eventPhotosRefs})
         > {
   $$LedgerEntriesTableTableManager(_$AppDatabase db, $LedgerEntriesTable table)
     : super(
@@ -2129,10 +2586,10 @@ class $$LedgerEntriesTableTableManager
                 ),
               )
               .toList(),
-          prefetchHooksCallback: ({eventTypeId = false, eventId = false}) {
+          prefetchHooksCallback: ({eventTypeId = false, eventId = false, eventPhotosRefs = false}) {
             return PrefetchHooks(
               db: db,
-              explicitlyWatchedTables: [],
+              explicitlyWatchedTables: [if (eventPhotosRefs) db.eventPhotos],
               addJoins:
                   <
                     T extends TableManagerState<
@@ -2169,7 +2626,17 @@ class $$LedgerEntriesTableTableManager
                     return state;
                   },
               getPrefetchedDataCallback: (items) async {
-                return [];
+                return [
+                  if (eventPhotosRefs)
+                    await $_getPrefetchedDataByColumns<LedgerEntry, $LedgerEntriesTable, EventPhoto, $EventPhotosTable>(
+                      currentTable: table,
+                      referencedTable: $$LedgerEntriesTableReferences._eventPhotosRefsTable(db),
+                      managerFromTypedResult: (p0) => $$LedgerEntriesTableReferences(db, table, p0).eventPhotosRefs,
+                      currentColumn: 'id',
+                      referencedColumn: 'entry_id',
+                      typedResults: items,
+                    ),
+                ];
               },
             );
           },
@@ -2189,7 +2656,337 @@ typedef $$LedgerEntriesTableProcessedTableManager =
       $$LedgerEntriesTableUpdateCompanionBuilder,
       (LedgerEntry, $$LedgerEntriesTableReferences),
       LedgerEntry,
-      PrefetchHooks Function({bool eventTypeId, bool eventId})
+      PrefetchHooks Function({bool eventTypeId, bool eventId, bool eventPhotosRefs})
+    >;
+typedef $$EventPhotosTableCreateCompanionBuilder = EventPhotosCompanion Function({
+  Value<int> id,
+  required int eventId,
+  Value<String?> senderName,
+  Value<int?> entryId,
+  Value<String?> memo,
+  Value<DateTime> createdAt,
+});
+typedef $$EventPhotosTableUpdateCompanionBuilder = EventPhotosCompanion Function({
+  Value<int> id,
+  Value<int> eventId,
+  Value<String?> senderName,
+  Value<int?> entryId,
+  Value<String?> memo,
+  Value<DateTime> createdAt,
+});
+
+final class $$EventPhotosTableReferences extends BaseReferences<_$AppDatabase, $EventPhotosTable, EventPhoto> {
+  $$EventPhotosTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $EventsTable _eventIdTable(_$AppDatabase db) => db.events.createAlias('event_photos__event_id__events__id');
+
+  $$EventsTableProcessedTableManager get eventId {
+    final $_column = $_itemColumn<int>('event_id')!;
+
+    final manager = $$EventsTableTableManager($_db, $_db.events).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_eventIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+
+  static $LedgerEntriesTable _entryIdTable(_$AppDatabase db) =>
+      db.ledgerEntries.createAlias('event_photos__entry_id__ledger_entries__id');
+
+  $$LedgerEntriesTableProcessedTableManager? get entryId {
+    final $_column = $_itemColumn<int>('entry_id');
+    if ($_column == null) return null;
+    final manager = $$LedgerEntriesTableTableManager($_db, $_db.ledgerEntries).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_entryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(manager.$state.copyWith(prefetchedData: [item]));
+  }
+}
+
+class $$EventPhotosTableFilterComposer extends Composer<_$AppDatabase, $EventPhotosTable> {
+  $$EventPhotosTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get senderName =>
+      $composableBuilder(column: $table.senderName, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<String> get memo => $composableBuilder(column: $table.memo, builder: (column) => ColumnFilters(column));
+
+  ColumnFilters<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => ColumnFilters(column));
+
+  $$EventsTableFilterComposer get eventId {
+    final $$EventsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.eventId,
+      referencedTable: $db.events,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EventsTableFilterComposer(
+            $db: $db,
+            $table: $db.events,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LedgerEntriesTableFilterComposer get entryId {
+    final $$LedgerEntriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.entryId,
+      referencedTable: $db.ledgerEntries,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LedgerEntriesTableFilterComposer(
+            $db: $db,
+            $table: $db.ledgerEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$EventPhotosTableOrderingComposer extends Composer<_$AppDatabase, $EventPhotosTable> {
+  $$EventPhotosTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(column: $table.id, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get senderName =>
+      $composableBuilder(column: $table.senderName, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<String> get memo =>
+      $composableBuilder(column: $table.memo, builder: (column) => ColumnOrderings(column));
+
+  ColumnOrderings<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => ColumnOrderings(column));
+
+  $$EventsTableOrderingComposer get eventId {
+    final $$EventsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.eventId,
+      referencedTable: $db.events,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EventsTableOrderingComposer(
+            $db: $db,
+            $table: $db.events,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LedgerEntriesTableOrderingComposer get entryId {
+    final $$LedgerEntriesTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.entryId,
+      referencedTable: $db.ledgerEntries,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LedgerEntriesTableOrderingComposer(
+            $db: $db,
+            $table: $db.ledgerEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$EventPhotosTableAnnotationComposer extends Composer<_$AppDatabase, $EventPhotosTable> {
+  $$EventPhotosTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id => $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get senderName => $composableBuilder(column: $table.senderName, builder: (column) => column);
+
+  GeneratedColumn<String> get memo => $composableBuilder(column: $table.memo, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt => $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  $$EventsTableAnnotationComposer get eventId {
+    final $$EventsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.eventId,
+      referencedTable: $db.events,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$EventsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.events,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$LedgerEntriesTableAnnotationComposer get entryId {
+    final $$LedgerEntriesTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.entryId,
+      referencedTable: $db.ledgerEntries,
+      getReferencedColumn: (t) => t.id,
+      builder: (joinBuilder, {$addJoinBuilderToRootComposer, $removeJoinBuilderFromRootComposer}) =>
+          $$LedgerEntriesTableAnnotationComposer(
+            $db: $db,
+            $table: $db.ledgerEntries,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer: $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$EventPhotosTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $EventPhotosTable,
+          EventPhoto,
+          $$EventPhotosTableFilterComposer,
+          $$EventPhotosTableOrderingComposer,
+          $$EventPhotosTableAnnotationComposer,
+          $$EventPhotosTableCreateCompanionBuilder,
+          $$EventPhotosTableUpdateCompanionBuilder,
+          (EventPhoto, $$EventPhotosTableReferences),
+          EventPhoto,
+          PrefetchHooks Function({bool eventId, bool entryId})
+        > {
+  $$EventPhotosTableTableManager(_$AppDatabase db, $EventPhotosTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () => $$EventPhotosTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () => $$EventPhotosTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () => $$EventPhotosTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> eventId = const Value.absent(),
+                Value<String?> senderName = const Value.absent(),
+                Value<int?> entryId = const Value.absent(),
+                Value<String?> memo = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => EventPhotosCompanion(
+                id: id,
+                eventId: eventId,
+                senderName: senderName,
+                entryId: entryId,
+                memo: memo,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int eventId,
+                Value<String?> senderName = const Value.absent(),
+                Value<int?> entryId = const Value.absent(),
+                Value<String?> memo = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => EventPhotosCompanion.insert(
+                id: id,
+                eventId: eventId,
+                senderName: senderName,
+                entryId: entryId,
+                memo: memo,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (e.readTable<$EventPhotosTable, EventPhoto>(table), $$EventPhotosTableReferences(db, table, e)),
+              )
+              .toList(),
+          prefetchHooksCallback: ({eventId = false, entryId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (eventId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.eventId,
+                        referencedTable: $$EventPhotosTableReferences._eventIdTable(db),
+                        referencedColumn: $$EventPhotosTableReferences._eventIdTable(db).id,
+                      ) as T;
+                    }
+                    if (entryId) {
+                      state = state.withJoin(
+                        currentTable: table,
+                        currentColumn: table.entryId,
+                        referencedTable: $$EventPhotosTableReferences._entryIdTable(db),
+                        referencedColumn: $$EventPhotosTableReferences._entryIdTable(db).id,
+                      ) as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$EventPhotosTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $EventPhotosTable,
+      EventPhoto,
+      $$EventPhotosTableFilterComposer,
+      $$EventPhotosTableOrderingComposer,
+      $$EventPhotosTableAnnotationComposer,
+      $$EventPhotosTableCreateCompanionBuilder,
+      $$EventPhotosTableUpdateCompanionBuilder,
+      (EventPhoto, $$EventPhotosTableReferences),
+      EventPhoto,
+      PrefetchHooks Function({bool eventId, bool entryId})
     >;
 
 class $AppDatabaseManager {
@@ -2198,4 +2995,5 @@ class $AppDatabaseManager {
   $$EventTypesTableTableManager get eventTypes => $$EventTypesTableTableManager(_db, _db.eventTypes);
   $$EventsTableTableManager get events => $$EventsTableTableManager(_db, _db.events);
   $$LedgerEntriesTableTableManager get ledgerEntries => $$LedgerEntriesTableTableManager(_db, _db.ledgerEntries);
+  $$EventPhotosTableTableManager get eventPhotos => $$EventPhotosTableTableManager(_db, _db.eventPhotos);
 }

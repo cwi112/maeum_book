@@ -1,11 +1,13 @@
 import 'package:maeum_book/core/core.dart';
 import 'package:maeum_book/data/data.dart';
 import 'package:maeum_book/ui/event/event_detail_view_model.dart';
+import 'package:maeum_book/ui/event/widgets/event_photo_strip.dart';
 import 'package:maeum_book/ui/ledger/widgets/entry_swipe_tile.dart';
 
 /// 행사 상세: 행사 정보와 그 행사에 마음을 준 사람들. 경로 `/event/3`
 ///
 /// - 위: 행사 종류·날짜·메모, 받은 합계와 인원
+/// - 화환 · 사진 줄: 찍기 / 앨범에서 고르기, 누르면 전체 화면 (보낸 분 · 메모)
 /// - 목록: 준 사람들 (금액 큰 순). 왼쪽으로 밀어 수정·삭제, 삭제 후 되돌리기
 /// - 오른쪽 위 메뉴: 행사 수정 / 행사 삭제(안의 기록도 함께 삭제, 확인 창)
 /// - 아래 버튼: 이 행사로 미리 골라진 "받은 마음 기록" 화면을 연다
@@ -31,6 +33,45 @@ class EventDetailView extends BaseAsyncView<EventDetailViewModel, EventDetailSta
       context.showToast('행사를 지웠어요', type: ToastType.info);
       context.pop();
     }
+  }
+
+  /// 사진 추가: 찍기 / 앨범에서 고르기 → 줄여서 저장 → "n장 넣었어요"
+  Future<void> _addPhotos(BuildContext context, EventDetailViewModel viewModel) async {
+    final source = await showModalBottomSheet<PhotoSource>(
+      context: context,
+      showDragHandle: true,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.photo_camera_outlined),
+              title: const Text('사진 찍기'),
+              onTap: () => Navigator.of(sheetContext).pop(PhotoSource.camera),
+            ).testId(TestIds.photoCamera),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('앨범에서 고르기'),
+              subtitle: const Text('여러 장을 한 번에 고를 수 있어요'),
+              onTap: () => Navigator.of(sheetContext).pop(PhotoSource.album),
+            ).testId(TestIds.photoAlbum),
+          ],
+        ),
+      ),
+    );
+    if (source == null || !context.mounted) return;
+    final added = await viewModel.addPhotos(
+      source,
+      onError: (e) {
+        if (!context.mounted) return;
+        if (e is PhotoLimitException) {
+          context.showToast(e.toString(), type: ToastType.info);
+        } else {
+          context.showErrorToast(e, '사진을 넣지 못했어요. 다시 시도해 주세요');
+        }
+      },
+    );
+    if (added > 0 && context.mounted) context.showToast('사진 $added장을 넣었어요. 사진을 눌러 보낸 분을 적어 보세요');
   }
 
   @override
@@ -84,6 +125,18 @@ class EventDetailView extends BaseAsyncView<EventDetailViewModel, EventDetailSta
                 ),
               ),
             ).paddingOnly(left: AppSpacing.screen, top: AppSpacing.sm, right: AppSpacing.screen, bottom: AppSpacing.md),
+            // 화환 · 꽃 사진 줄
+            EventPhotoStrip(
+              photos: state.photos,
+              isAdding: state.isAddingPhotos,
+              onAdd: () => _addPhotos(context, viewModel),
+              onOpen: (index) => context.push(AppRoutes.eventPhotos(event.id, index: index)),
+            ),
+            if (ref.watch(currentUserIdProvider) == null && !ref.watch(sampleModeProvider))
+              const AppText.caption('로그인하지 않으면 사진은 이 기기에만 있어요. 앱을 지우면 사라져요')
+                  .paddingOnly(left: AppSpacing.screen, top: AppSpacing.xs, right: AppSpacing.screen),
+            const SizedBox(height: AppSpacing.md),
+            const Divider(indent: AppSpacing.screen, endIndent: AppSpacing.screen),
             if (state.entries.isEmpty)
               const EmptyView(
                 icon: Icons.volunteer_activism_outlined,
@@ -95,6 +148,7 @@ class EventDetailView extends BaseAsyncView<EventDetailViewModel, EventDetailSta
                 EntrySwipeTile(
                   key: ValueKey(entry.id),
                   entry: entry,
+                  hasPhoto: state.entryIdsWithPhoto.contains(entry.id),
                   onRemove: viewModel.removeEntry,
                   onRestore: viewModel.restoreEntry,
                 ),

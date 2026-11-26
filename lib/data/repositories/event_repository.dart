@@ -1,13 +1,17 @@
 import 'package:drift/drift.dart';
 import 'package:maeum_book/data/database/app_database.dart';
 import 'package:maeum_book/data/models/models.dart';
+import 'package:maeum_book/data/photos/photo_files.dart';
 import 'package:maeum_book/data/remote/remote_ledger_store.dart';
 import 'package:maeum_book/data/repositories/remote_first_write.dart';
 
 /// 행사(내가 연 경조사)를 다루는 Repository. (받아요 탭)
 class EventRepository with RemoteFirstWrite {
   /// [remote]: 로그인했으면 서버 창구, 비로그인이면 null
-  EventRepository(this._dao, {this.remote});
+  /// [photoFiles]: 이 장부의 사진 폴더. 행사를 지울 때 그 행사 사진 파일도 지운다.
+  EventRepository(this._dao, {this.remote, this.photoFiles});
+
+  final PhotoFiles? photoFiles;
 
   final EventDao _dao;
 
@@ -70,9 +74,17 @@ class EventRepository with RemoteFirstWrite {
     );
   }
 
-  /// 행사를 지운다. **안의 받은 기록도 모두 지워진다.** 화면에서 꼭 확인을 받은 뒤 부른다.
-  Future<bool> remove(int id) async =>
-      await write(() => _dao.deleteEvent(id), (_, server) => server.delete(eventIds: [id])) > 0;
+  /// 행사를 지운다. **안의 받은 기록 · 사진도 모두 지워진다.** 화면에서 꼭 확인을 받은 뒤 부른다.
+  Future<bool> remove(int id) async {
+    // 사진 정보는 행사와 함께 지워지므로(cascade), 파일을 지우려면 번호를 먼저 알아 둔다.
+    final photoIds = [for (final photo in await db.eventPhotoDao.getByEvent(id)) photo.id];
+    final removed = await write(() => _dao.deleteEvent(id), (_, server) async {
+      await server.delete(eventIds: [id]);
+      if (photoIds.isNotEmpty) await server.deletePhotoFiles(photoIds);
+    });
+    if (photoIds.isNotEmpty) await photoFiles?.delete(photoIds);
+    return removed > 0;
+  }
 
   String _cleanTitle(String title) {
     final trimmed = title.trim();

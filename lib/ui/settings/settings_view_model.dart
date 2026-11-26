@@ -26,13 +26,17 @@ class SettingsViewModel extends BaseViewModel<SettingsState> {
   /// 샘플 둘러보기를 시작한다: 메모리 임시 DB로 바꾸고 샘플 기록을 채운다. 성공하면 넣은 건수, 실패하면 null.
   /// 기기 DB 파일 · 서버에는 아무것도 쓰지 않는다. (저장 · 통신 비용 없음)
   Future<int?> startSampleTour({ErrorCallback? onError}) {
+    ref.read(samplePhotoFilesProvider).clear(); // 지난 둘러보기에서 넣은 사진은 비운다
     ref.read(sampleModeProvider.notifier).enter();
     // enter 뒤에 읽어야 임시 DB를 쓰는 Repository가 나온다.
     return runTask(ref.read(ledgerRepositoryProvider).addSamples, onError: onError);
   }
 
   /// 샘플 둘러보기를 끝낸다: 임시 DB를 지우고 내 장부로 돌아간다.
-  void endSampleTour() => ref.read(sampleModeProvider.notifier).exit();
+  void endSampleTour() {
+    ref.read(sampleModeProvider.notifier).exit();
+    ref.read(samplePhotoFilesProvider).clear();
+  }
 
   /// 모든 기록을 지운다. 성공하면 지운 건수, 실패하면 null. (화면에서 확인 창을 거친 뒤 호출)
   Future<int?> clearAll({ErrorCallback? onError}) => runTask(_repository.clearAll, onError: onError);
@@ -90,8 +94,12 @@ class SettingsViewModel extends BaseViewModel<SettingsState> {
       _runAuth(_authRepository.signOut, onFailure: onFailure, thenClearLocalCopy: true);
 
   /// 회원 탈퇴: 계정과 서버의 장부를 모두 지운다. 이 기기의 계정 사본도 지운다. (비로그인 기록은 그대로) 성공하면 true.
-  Future<bool> deleteAccount({void Function(AuthFailure failure)? onFailure}) =>
-      _runAuth(_authRepository.deleteAccount, onFailure: onFailure, thenClearLocalCopy: true);
+  Future<bool> deleteAccount({void Function(AuthFailure failure)? onFailure}) => _runAuth(
+    // 서버 Storage의 사진 파일은 계정을 지워도 남아서, 계정을 지우기 직전에 먼저 지운다.
+    () => _authRepository.deleteAccount(beforeDelete: ref.read(serverStoreProvider).deleteAllPhotoFiles),
+    onFailure: onFailure,
+    thenClearLocalCopy: true,
+  );
 
   /// 지금 계정에 다른 로그인 방법을 연결한다. 성공하면 true.
   Future<bool> link(LoginMethod provider, {void Function(AuthFailure failure)? onFailure}) async {
@@ -116,7 +124,9 @@ class SettingsViewModel extends BaseViewModel<SettingsState> {
     final memberDb = userId == null ? null : ref.read(memberDatabaseProvider(userId));
     try {
       await action();
-      if (thenClearLocalCopy && memberDb != null) await MemberSyncNotifier.clearLocalCopy(memberDb);
+      if (thenClearLocalCopy && memberDb != null) {
+        await MemberSyncNotifier.clearLocalCopy(memberDb, photos: ref.read(memberPhotoFilesProvider(userId!)));
+      }
       return true;
     } on AuthFailure catch (failure) {
       if (!failure.isCanceled) onFailure?.call(failure);

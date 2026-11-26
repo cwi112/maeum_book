@@ -2,14 +2,17 @@ import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
 import 'package:maeum_book/core/define/app_define.dart';
 import 'package:maeum_book/data/database/daos/event_dao.dart';
+import 'package:maeum_book/data/database/daos/event_photo_dao.dart';
 import 'package:maeum_book/data/database/daos/event_type_dao.dart';
 import 'package:maeum_book/data/database/daos/ledger_dao.dart';
+import 'package:maeum_book/data/database/tables/event_photos_table.dart';
 import 'package:maeum_book/data/database/tables/event_types_table.dart';
 import 'package:maeum_book/data/database/tables/events_table.dart';
 import 'package:maeum_book/data/database/tables/ledger_entries_table.dart';
 import 'package:maeum_book/data/models/models.dart';
 
 export 'package:maeum_book/data/database/daos/event_dao.dart';
+export 'package:maeum_book/data/database/daos/event_photo_dao.dart';
 export 'package:maeum_book/data/database/daos/event_type_dao.dart';
 export 'package:maeum_book/data/database/daos/ledger_dao.dart';
 export 'package:maeum_book/data/database/tables/event_types_table.dart' show DefaultEventTypes;
@@ -27,7 +30,10 @@ part 'app_database.g.dart';
 ///
 /// ## 앱 전체에서 하나만 쓴다
 /// DB 연결을 여러 개 만들면 데이터가 꼬일 수 있어서, [appDatabaseProvider]를 통해 **하나만** 만들어 공유한다.
-@DriftDatabase(tables: [LedgerEntries, EventTypes, Events], daos: [LedgerDao, EventTypeDao, EventDao])
+@DriftDatabase(
+  tables: [LedgerEntries, EventTypes, Events, EventPhotos],
+  daos: [LedgerDao, EventTypeDao, EventDao, EventPhotoDao],
+)
 class AppDatabase extends _$AppDatabase {
   /// [executor]를 넘기지 않으면 휴대폰 저장소의 DB 파일을 연다.
   /// 테스트에서는 `NativeDatabase.memory()`를 넘겨 메모리에만 있는 임시 DB로 실행한다.
@@ -40,11 +46,12 @@ class AppDatabase extends _$AppDatabase {
   /// - v1: 최초 (기록 테이블)
   /// - v2: 관계(relation) 컬럼 추가
   /// - v3: 경조사 종류를 테이블로(event_types), 행사 테이블(events) 추가, 받은 기록을 행사에 연결
+  /// - v4: 행사 사진 테이블(event_photos) 추가
   ///
   /// 출시 후에 테이블·컬럼을 바꾸면 이 숫자를 1 올리고 [migration]의 `onUpgrade`에 변경 방법을 적어야 한다.
   /// 그래야 이미 앱을 쓰던 사람의 기존 데이터가 지워지지 않고 새 구조로 옮겨진다.
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -97,6 +104,9 @@ class AppDatabase extends _$AppDatabase {
           WHERE direction = 'received'
         ''');
       }
+
+      // v4: 행사 사진 테이블 추가 (기존 데이터는 그대로)
+      if (from < 4) await m.createTable(eventPhotos);
     },
     // DB를 열 때마다: 외래 키(행사 삭제 시 안의 기록도 삭제 등) 규칙을 켠다.
     // 마이그레이션이 끝난 뒤에 실행되므로, 표를 다시 만드는 도중에 규칙 때문에 실패하지 않는다.
