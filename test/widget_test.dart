@@ -369,4 +369,29 @@ void main() {
 
     await closeApp(tester);
   });
+
+  testWidgets('목록을 끝까지 내린 상태에서 기록이 모두 지워지면 그림자가 사라지고 기록 버튼이 다시 보인다', (tester) async {
+    await pumpApp(tester);
+    for (var i = 0; i < 25; i++) {
+      await seed(tester, name: '사람$i', amount: 10000 + i);
+    }
+    bool hasShadow() => tester
+        .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
+        .any((c) => ((c.decoration as BoxDecoration?)?.boxShadow ?? const []).isNotEmpty);
+
+    await tester.fling(find.byType(ListView), const Offset(0, -5000), 3000); // 끝까지 → 버튼 숨김
+    await tester.pumpAndSettle();
+    expect(hasShadow(), isTrue);
+
+    await tester.runAsync(() => database.delete(database.ledgerEntries).go()); // 설정의 "모두 지우기"와 같은 상황
+    await settle(tester);
+    await tester.pumpAndSettle();
+
+    expect(find.text('아직 보낸 마음이 없어요'), findsOneWidget);
+    expect(hasShadow(), isFalse);
+    expect(find.text('보낸 마음 기록'), findsOneWidget);
+    expect(tester.widget<AnimatedOpacity>(find.byType(AnimatedOpacity).last).opacity, 1);
+
+    await closeApp(tester);
+  });
 }

@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:maeum_book/core/define/app_define.dart';
 import 'package:maeum_book/data/database/app_database.dart';
+import 'package:maeum_book/data/repositories/app_update_repository.dart';
 import 'package:maeum_book/data/repositories/event_repository.dart';
 import 'package:maeum_book/data/repositories/event_type_repository.dart';
 import 'package:maeum_book/data/repositories/ledger_repository.dart';
@@ -37,6 +39,11 @@ final eventTypeRepositoryProvider = Provider<EventTypeRepository>(
 /// 행사 Repository.
 final eventRepositoryProvider = Provider<EventRepository>(
   (ref) => EventRepository(ref.watch(appDatabaseProvider).eventDao),
+);
+
+/// 앱 버전 확인 Repository. 테스트에서는 가짜로 바꿔 끼운다.
+final appUpdateRepositoryProvider = Provider<AppUpdateRepository>(
+  (ref) => AppUpdateRepository(versionUrl: AppDefine.versionCheckUrl),
 );
 
 /// 모든 경조사 종류 (여러 화면이 함께 씀: 입력 칩, 목록의 종류 이름, 필터, 통계).

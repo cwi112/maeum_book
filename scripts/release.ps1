@@ -3,6 +3,7 @@
 #
 # 하는 일:
 #   1. main 최신화 → release/v<버전> 브랜치에서 pubspec.yaml 버전을 <버전>+<빌드번호+1>로 올림
+#      app_version.json의 latestVersion도 <버전>으로 올림 (앱의 업데이트 확인용)
 #   2. PR 생성 → CI 통과 확인 → 병합
 #   3. main에 v<버전> 태그 push
 #      → GitHub Actions: 서명된 APK를 GitHub Release에 업로드 (Android)
@@ -39,6 +40,12 @@ $newLine = "version: $Version+$build"
 $pubspec = $pubspec.Remove($m.Index, $m.Length).Insert($m.Index, $newLine)
 [IO.File]::WriteAllText($pubspecPath, $pubspec, (New-Object System.Text.UTF8Encoding $false))
 Write-Host "버전: $oldVersion+$($build - 1) → $Version+$build"
+
+# 앱의 "설정 > 앱 정보"가 읽는 최신 버전 정보도 함께 올린다. (main에 병합되면 앱이 새 버전을 알게 됨)
+$versionJsonPath = Join-Path (Get-Location) 'app_version.json'
+$versionJson = [IO.File]::ReadAllText($versionJsonPath)
+$versionJson = [regex]::Replace($versionJson, '"latestVersion"\s*:\s*"[^"]*"', "`"latestVersion`": `"$Version`"")
+[IO.File]::WriteAllText($versionJsonPath, $versionJson, (New-Object System.Text.UTF8Encoding $false))
 
 $branch = "release/$tag"
 git checkout -b $branch; Assert-LastExit '브랜치 생성'

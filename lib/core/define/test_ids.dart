@@ -94,6 +94,7 @@ abstract final class TestIds {
   // ── 설정 ───────────────────────────────
   static const String settingsSeed = 'settings_seed';
   static const String settingsClear = 'settings_clear';
+  static const String settingsAppInfo = 'settings_app_info';
 
   // ── 통계 ───────────────────────────────
   static const String statsBalanceChart = 'stats_balance_chart';

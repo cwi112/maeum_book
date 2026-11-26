@@ -9,6 +9,7 @@ export 'database/app_database.dart'
     show AppDatabase, DefaultEventTypes, EventType, LedgerEntry, LedgerEvent, LedgerEntriesCompanion;
 export 'models/models.dart';
 export 'providers.dart';
+export 'repositories/app_update_repository.dart';
 export 'repositories/event_repository.dart';
 export 'repositories/event_type_repository.dart';
 export 'repositories/ledger_repository.dart';

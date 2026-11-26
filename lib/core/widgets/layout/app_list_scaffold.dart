@@ -87,10 +87,42 @@ class _AppListScaffoldState extends State<AppListScaffold> {
     return false; // 알림을 위로 계속 전달 (앱바 등도 받을 수 있게)
   }
 
+  /// 처음 상태(그림자 없음, 글자 버튼)로 되돌린다.
+  void _reset() {
+    if (!_scrolled && _fabMode == _FabMode.extended) return;
+    setState(() {
+      _scrolled = false;
+      _fabMode = _FabMode.extended;
+    });
+  }
+
+  /// 목록 내용의 크기가 바뀔 때(기록이 지워져 짧아질 때 등) 오는 알림.
+  /// 스크롤할 거리가 없어졌으면 사용자가 스크롤하지 않아도 처음 상태로 되돌린다.
+  bool _onMetricsChanged(ScrollMetricsNotification notification) {
+    if (notification.depth != 0) return false;
+    final metrics = notification.metrics;
+    if (metrics.maxScrollExtent <= 0 || metrics.pixels <= 0) _reset();
+    return false;
+  }
+
+  /// 목록이 빈 화면 안내로 바뀌면 스크롤 알림이 더 오지 않는다.
+  /// 그래서 스크롤 중이던 상태(그림자 · 숨겨진 버튼)가 그대로 남지 않도록 body 종류가 바뀔 때 되돌린다.
+  @override
+  void didUpdateWidget(AppListScaffold oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.body.runtimeType != widget.body.runtimeType) {
+      _scrolled = false;
+      _fabMode = _FabMode.extended;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final top = widget.top;
-    final body = NotificationListener<ScrollNotification>(onNotification: _onScroll, child: widget.body);
+    final body = NotificationListener<ScrollMetricsNotification>(
+      onNotification: _onMetricsChanged,
+      child: NotificationListener<ScrollNotification>(onNotification: _onScroll, child: widget.body),
+    );
 
     return Scaffold(
       appBar: AppBar(

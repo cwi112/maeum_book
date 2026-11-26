@@ -11,8 +11,9 @@ abstract final class AppDefine {
   // ── 앱 정보 ────────────────────────────
   static const String appName = '마음장부';
 
-  /// 화면에 보여줄 버전. pubspec.yaml의 version과 맞춘다.
-  static const String appVersion = '1.0.0';
+  /// 최신 버전 정보 JSON 주소. 저장소 main 브랜치의 app_version.json (릴리스 스크립트가 갱신).
+  /// 지금 설치된 버전은 여기 적지 않고 기기에서 읽는다. (pubspec.yaml version → 빌드 시 앱에 들어감)
+  static const String versionCheckUrl = 'https://raw.githubusercontent.com/cwi112/maeum_book/main/app_version.json';
 
   // ── 데이터베이스 ───────────────────────
   /// 기기에 저장되는 DB 파일 이름 (실제 파일: maeum_book.sqlite)

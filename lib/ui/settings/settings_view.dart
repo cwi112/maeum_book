@@ -1,11 +1,13 @@
 import 'package:maeum_book/core/core.dart';
+import 'package:maeum_book/data/data.dart';
 import 'package:maeum_book/ui/settings/settings_view_model.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// 설정 탭.
 ///
 /// - 데이터: 샘플 데이터 넣기, 모든 기록 지우기(확인 창 필수, 되돌릴 수 없음)
-/// - 준비 중: 알림, 백업
-/// - 앱 정보
+/// - 준비 중: 알림, 백업 (누르면 "곧 추가될 기능" 토스트)
+/// - 앱 정보: 설치된 버전 표시, 누르면 최신 버전 확인 → 업데이트 안내
 class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
   const SettingsView({super.key});
 
@@ -30,6 +32,38 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
     if (!confirmed || !context.mounted) return;
     final count = await viewModel.clearAll(onError: (_) => _showError(context));
     if (count != null && context.mounted) context.showToast('기록 $count개를 지웠어요', type: ToastType.info);
+  }
+
+  static void _showComingSoon(BuildContext context) =>
+      context.showToast(AppDefine.comingSoonMessage, type: ToastType.info);
+
+  /// 앱 정보를 누르면: 최신 버전인지 확인하고, 아니면 업데이트할 곳(지금은 TestFlight)으로 보낸다.
+  Future<void> _checkUpdate(BuildContext context, SettingsViewModel viewModel) async {
+    final result = await viewModel.checkUpdate();
+    if (result == null || !context.mounted) return;
+    switch (result) {
+      case AppUpToDate():
+        context.showToast('최신 버전을 쓰고 있어요');
+      case AppUpdateCheckFailed():
+        context.showToast('버전을 확인하지 못했어요. 인터넷 연결을 확인해 주세요', type: ToastType.error);
+      case AppUpdateAvailable(:final latestVersion, :final url):
+        if (url == null) {
+          context.showToast('새 버전 $latestVersion이 나왔어요', type: ToastType.info);
+          return;
+        }
+        final confirmed = await AppDialog.confirm(
+          context,
+          title: '새 버전이 나왔어요',
+          message: '버전 $latestVersion으로 업데이트할 수 있어요.\n업데이트하러 갈까요?',
+          confirmLabel: '업데이트',
+          cancelLabel: '나중에',
+        );
+        if (!confirmed) return;
+        final opened = await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+        if (!opened && context.mounted) {
+          context.showToast('업데이트 화면을 열지 못했어요', type: ToastType.error);
+        }
+    }
   }
 
   @override
@@ -69,13 +103,23 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
             ),
           ),
           const _SectionLabel('준비 중'),
-          // TODO: 기능이 생기면 onTap을 연결한다.
-          const Card(
+          // TODO: 기능이 생기면 onTap을 실제 화면으로 바꾼다. 지금은 눌러도 "준비 중" 안내만 띄운다.
+          Card(
             child: Column(
               children: [
-                ListTile(leading: Icon(Icons.notifications_none), title: Text('알림'), subtitle: Text('준비 중')),
-                Divider(indent: AppSpacing.screen, endIndent: AppSpacing.screen),
-                ListTile(leading: Icon(Icons.cloud_outlined), title: Text('백업'), subtitle: Text('준비 중')),
+                ListTile(
+                  leading: const Icon(Icons.notifications_none),
+                  title: const Text('알림'),
+                  subtitle: const Text('준비 중'),
+                  onTap: () => _showComingSoon(context),
+                ),
+                const Divider(indent: AppSpacing.screen, endIndent: AppSpacing.screen),
+                ListTile(
+                  leading: const Icon(Icons.cloud_outlined),
+                  title: const Text('백업'),
+                  subtitle: const Text('준비 중'),
+                  onTap: () => _showComingSoon(context),
+                ),
               ],
             ),
           ),
@@ -84,8 +128,12 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
             child: ListTile(
               leading: const Icon(Icons.info_outline),
               title: const Text('앱 정보'),
-              subtitle: Text('버전 ${state.appVersion}'),
-            ),
+              subtitle: Text(state.appVersion == null ? '버전 확인 중' : '버전 ${state.appVersion}'),
+              trailing: state.isCheckingUpdate
+                  ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                  : const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+              onTap: () => _checkUpdate(context, viewModel),
+            ).testId(TestIds.settingsAppInfo),
           ),
         ],
       ),
