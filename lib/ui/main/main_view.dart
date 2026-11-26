@@ -11,8 +11,12 @@ class MainView extends StatelessWidget {
 
   final StatefulNavigationShell navigationShell;
 
-  /// 탭을 누르면 해당 탭으로 이동한다. 이미 선택된 탭을 다시 누르면 그 탭의 첫 화면으로 돌아간다.
-  void _onTap(int index) => navigationShell.goBranch(index, initialLocation: index == navigationShell.currentIndex);
+  /// 탭을 누르면 해당 탭으로 이동한다. 이미 선택된 탭을 다시 누르면 아무것도 하지 않는다.
+  /// (다시 그리거나 첫 화면으로 되돌리지 않아서 보던 위치 · 검색어가 그대로 유지된다)
+  void _onTap(int index) {
+    if (index == navigationShell.currentIndex) return;
+    navigationShell.goBranch(index);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,21 +35,25 @@ class MainView extends StatelessWidget {
                 icon: Icon(Icons.outbox_outlined),
                 selectedIcon: Icon(Icons.outbox),
                 label: '보내요',
+                tooltip: '', // 길게 눌렀을 때 뜨는 툴팁 끄기 (빈 문자열 = 툴팁 없음)
               ).testId(TestIds.tabSent),
               const NavigationDestination(
                 icon: Icon(Icons.move_to_inbox_outlined),
                 selectedIcon: Icon(Icons.move_to_inbox),
                 label: '받아요',
+                tooltip: '', // 길게 눌렀을 때 뜨는 툴팁 끄기 (빈 문자열 = 툴팁 없음)
               ).testId(TestIds.tabReceived),
               const NavigationDestination(
                 icon: Icon(Icons.insert_chart_outlined),
                 selectedIcon: Icon(Icons.insert_chart),
                 label: '통계',
+                tooltip: '', // 길게 눌렀을 때 뜨는 툴팁 끄기 (빈 문자열 = 툴팁 없음)
               ).testId(TestIds.tabStats),
               const NavigationDestination(
                 icon: Icon(Icons.settings_outlined),
                 selectedIcon: Icon(Icons.settings),
                 label: '설정',
+                tooltip: '', // 길게 눌렀을 때 뜨는 툴팁 끄기 (빈 문자열 = 툴팁 없음)
               ).testId(TestIds.tabSettings),
             ],
           ),
