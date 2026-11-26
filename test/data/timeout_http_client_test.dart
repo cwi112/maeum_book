@@ -33,6 +33,34 @@ void main() {
     client.close();
   });
 
+  test('사진 업로드(multipart)도 구분자가 담긴 content-type과 파일 내용이 그대로 간다', () async {
+    // Supabase Storage 업로드와 같은 방식. content-type은 finalize() 때 만들어진다.
+    final upload = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+    final received = Completer<(String?, String)>();
+    upload.listen((request) async {
+      final body = await utf8.decoder.bind(request).join();
+      received.complete((request.headers.value('content-type'), body));
+      request.response.statusCode = 200;
+      await request.response.close();
+    });
+
+    final client = TimeoutHttpClient(timeoutFor: (_) => const Duration(seconds: 5));
+    final request = http.MultipartRequest(
+      'POST',
+      Uri.parse('http://127.0.0.1:${upload.port}/storage/v1/object/a/1.jpg'),
+    )..files.add(http.MultipartFile.fromBytes('', utf8.encode('사진내용'), filename: '1.jpg'));
+    final response = await client.send(request);
+    expect(response.statusCode, 200);
+
+    final (contentType, body) = await received.future;
+    expect(contentType, startsWith('multipart/form-data; boundary='));
+    final boundary = contentType!.split('boundary=').last;
+    expect(body, contains('--$boundary'));
+    expect(body, contains('사진내용'));
+    client.close();
+    await upload.close(force: true);
+  });
+
   test('시간이 지나면 요청이 끊기고(RequestAbortedException), 서버 쪽 연결도 닫힌다', () async {
     // 요청을 받고 답하지 않는 서버. 앱이 연결을 끊으면 소켓이 닫혀서(onDone) 바로 알 수 있다.
     final silent = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
