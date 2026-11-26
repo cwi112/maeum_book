@@ -94,6 +94,7 @@ abstract final class TestIds {
   // ── 설정 ───────────────────────────────
   static const String settingsSeed = 'settings_seed';
   static const String settingsClear = 'settings_clear';
+  static const String sampleTourEnd = 'sample_tour_end';
   static const String settingsAppInfo = 'settings_app_info';
   static const String settingsAccount = 'settings_account';
   static const String settingsSignOut = 'settings_sign_out';

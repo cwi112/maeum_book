@@ -16,6 +16,7 @@ export 'repositories/event_repository.dart';
 export 'repositories/event_type_repository.dart';
 export 'repositories/guest_mode.dart';
 export 'repositories/ledger_repository.dart';
+export 'repositories/sample_mode.dart';
 export 'seed/sample_data.dart';
 export 'sync/ledger_sync.dart';
 export 'sync/member_sync.dart';

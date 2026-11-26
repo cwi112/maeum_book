@@ -7,7 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 /// 설정 탭.
 ///
-/// - 데이터: 샘플 데이터 넣기, 모든 기록 지우기(확인 창 필수, 되돌릴 수 없음)
+/// - 데이터: 샘플 데이터로 둘러보기(메모리 전용, 앱을 끄면 사라짐), 모든 기록 지우기(확인 창 필수, 되돌릴 수 없음)
 /// - 준비 중: 알림, 백업 (누르면 "곧 추가될 기능" 토스트)
 /// - 앱 정보: 설치된 버전 표시, 누르면 최신 버전 확인 → 업데이트 안내
 class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
@@ -18,9 +18,11 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
 
   static void _showError(BuildContext context, Object error) => context.showErrorToast(error, '처리하지 못했어요. 다시 시도해 주세요');
 
-  Future<void> _addSamples(BuildContext context, SettingsViewModel viewModel) async {
-    final count = await viewModel.addSamples(onError: (e) => _showError(context, e));
-    if (count != null && context.mounted) context.showToast('샘플 기록 $count개를 넣었어요');
+  Future<void> _startSampleTour(BuildContext context, SettingsViewModel viewModel) async {
+    final count = await viewModel.startSampleTour(onError: (e) => _showError(context, e));
+    if (count != null && context.mounted) {
+      context.showToast('샘플 기록 $count개로 둘러보는 중이에요. 앱을 끄면 사라져요', type: ToastType.info);
+    }
   }
 
   Future<void> _clearAll(BuildContext context, SettingsViewModel viewModel) async {
@@ -70,6 +72,7 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
 
   @override
   Widget buildView(BuildContext context, WidgetRef ref, SettingsState state, SettingsViewModel viewModel) {
+    final sampleMode = ref.watch(sampleModeProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('설정')),
       body: ListView(
@@ -91,18 +94,29 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
           Card(
             child: Column(
               children: [
-                ListTile(
-                  leading: const Icon(Icons.auto_awesome_outlined),
-                  title: const Text('샘플 데이터 넣기'),
-                  subtitle: const Text('화면과 통계를 미리 보고 싶을 때'),
-                  onTap: () => _addSamples(context, viewModel),
-                ).testId(TestIds.settingsSeed),
-                const Divider(indent: AppSpacing.screen, endIndent: AppSpacing.screen),
-                ListTile(
-                  leading: const Icon(Icons.delete_sweep_outlined, color: AppColors.error),
-                  title: const AppText.body('모든 기록 지우기', color: AppColors.error),
-                  onTap: () => _clearAll(context, viewModel),
-                ).testId(TestIds.settingsClear),
+                // 샘플은 메모리에만 둔다: 기기 DB · 서버에 쓰지 않고, 끝내거나 앱을 끄면 사라진다.
+                if (sampleMode)
+                  ListTile(
+                    leading: const Icon(Icons.close_rounded),
+                    title: const Text('샘플 둘러보기 끝내기'),
+                    subtitle: const Text('샘플을 지우고 내 기록으로 돌아가요'),
+                    onTap: viewModel.endSampleTour,
+                  ).testId(TestIds.settingsSeed)
+                else ...[
+                  ListTile(
+                    leading: const Icon(Icons.auto_awesome_outlined),
+                    title: const Text('샘플 데이터로 둘러보기'),
+                    subtitle: const Text('내 기록과 섞이지 않고, 앱을 끄면 사라져요'),
+                    onTap: () => _startSampleTour(context, viewModel),
+                  ).testId(TestIds.settingsSeed),
+                  const Divider(indent: AppSpacing.screen, endIndent: AppSpacing.screen),
+                  // 샘플 중에는 숨긴다. (샘플만 지우는데 "모든 기록"이 지워지는 줄 알고 놀라지 않게)
+                  ListTile(
+                    leading: const Icon(Icons.delete_sweep_outlined, color: AppColors.error),
+                    title: const AppText.body('모든 기록 지우기', color: AppColors.error),
+                    onTap: () => _clearAll(context, viewModel),
+                  ).testId(TestIds.settingsClear),
+                ],
               ],
             ),
           ),

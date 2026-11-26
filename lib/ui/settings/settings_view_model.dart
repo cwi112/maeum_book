@@ -23,8 +23,16 @@ class SettingsViewModel extends BaseViewModel<SettingsState> {
     if (version != null && ref.mounted) state = state.copyWith(appVersion: version);
   }
 
-  /// 샘플 기록을 넣는다. 성공하면 넣은 건수, 실패하면 null.
-  Future<int?> addSamples({ErrorCallback? onError}) => runTask(_repository.addSamples, onError: onError);
+  /// 샘플 둘러보기를 시작한다: 메모리 임시 DB로 바꾸고 샘플 기록을 채운다. 성공하면 넣은 건수, 실패하면 null.
+  /// 기기 DB 파일 · 서버에는 아무것도 쓰지 않는다. (저장 · 통신 비용 없음)
+  Future<int?> startSampleTour({ErrorCallback? onError}) {
+    ref.read(sampleModeProvider.notifier).enter();
+    // enter 뒤에 읽어야 임시 DB를 쓰는 Repository가 나온다.
+    return runTask(ref.read(ledgerRepositoryProvider).addSamples, onError: onError);
+  }
+
+  /// 샘플 둘러보기를 끝낸다: 임시 DB를 지우고 내 장부로 돌아간다.
+  void endSampleTour() => ref.read(sampleModeProvider.notifier).exit();
 
   /// 모든 기록을 지운다. 성공하면 지운 건수, 실패하면 null. (화면에서 확인 창을 거친 뒤 호출)
   Future<int?> clearAll({ErrorCallback? onError}) => runTask(_repository.clearAll, onError: onError);

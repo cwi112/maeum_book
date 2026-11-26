@@ -8,6 +8,7 @@ import 'package:maeum_book/data/repositories/auth_repository.dart';
 import 'package:maeum_book/data/repositories/event_repository.dart';
 import 'package:maeum_book/data/repositories/event_type_repository.dart';
 import 'package:maeum_book/data/repositories/ledger_repository.dart';
+import 'package:maeum_book/data/repositories/sample_mode.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 
 /// 데이터 계층의 Riverpod provider 모음.
@@ -22,6 +23,7 @@ import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
 /// |---|---|---|
 /// | 비로그인 | `maeum_book.sqlite` (원본) | 안 씀 |
 /// | 로그인 | `maeum_book_<사용자 id>.sqlite` (계정별 사본) | **원본** |
+/// | 샘플 둘러보기 | 메모리 임시 DB (파일 없음, 앱을 끄면 사라짐) | 안 씀 |
 ///
 /// 로그인 · 로그아웃하면 [currentUserIdProvider]가 바뀌고, DB · Repository · 화면이 그 계정 것으로 자동으로 다시 만들어진다.
 /// 테스트에서는 [guestDatabaseProvider] · [memberDatabaseProvider] · [serverStoreProvider]를 메모리 DB · 가짜 서버로 바꿔 끼운다.
@@ -46,8 +48,9 @@ final memberDatabaseProvider = Provider.family<AppDatabase, String>((ref, userId
   return database;
 });
 
-/// 지금 화면들이 쓰는 DB: 비로그인이면 비로그인 DB, 로그인이면 그 계정의 사본 DB.
+/// 지금 화면들이 쓰는 DB: 샘플 둘러보기 중이면 메모리 임시 DB, 아니면 비로그인 DB 또는 그 계정의 사본 DB.
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
+  if (ref.watch(sampleModeProvider)) return ref.watch(sampleDatabaseProvider);
   final userId = ref.watch(currentUserIdProvider);
   return userId == null ? ref.watch(guestDatabaseProvider) : ref.watch(memberDatabaseProvider(userId));
 });
@@ -56,10 +59,11 @@ final appDatabaseProvider = Provider<AppDatabase>((ref) {
 /// (main.dart에서 Supabase.initialize를 먼저 해야 한다)
 final serverStoreProvider = Provider<RemoteLedgerStore>((ref) => SupabaseRemoteLedgerStore(Supabase.instance.client));
 
-/// Repository가 쓰는 서버 창구. 로그인했을 때만 있고, 비로그인이면 null (기기 DB에만 저장).
-final remoteStoreProvider = Provider<RemoteLedgerStore?>(
-  (ref) => ref.watch(currentUserIdProvider) == null ? null : ref.watch(serverStoreProvider),
-);
+/// Repository가 쓰는 서버 창구. 로그인했을 때만 있고, 비로그인 · 샘플 둘러보기 중이면 null (서버에 안 씀).
+final remoteStoreProvider = Provider<RemoteLedgerStore?>((ref) {
+  if (ref.watch(sampleModeProvider) || ref.watch(currentUserIdProvider) == null) return null;
+  return ref.watch(serverStoreProvider);
+});
 
 /// 경조사 기록 Repository.
 final ledgerRepositoryProvider = Provider<LedgerRepository>(
