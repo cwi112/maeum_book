@@ -14,7 +14,12 @@ Future<void> main() async {
   await KakaoSdk.init(nativeAppKey: AppEnv.kakaoNativeAppKey);
 
   // Supabase 준비: 지난번 로그인 정보(세션)도 기기에서 불러온다(자동 로그인). 인터넷이 없어도 앱은 그대로 켜진다.
-  await Supabase.initialize(url: AppEnv.supabaseUrl, publishableKey: AppEnv.supabasePublishableKey);
+  // httpClient: 시간이 지나면 요청을 실제로 끊는 연결 (TimeoutHttpClient). 표 15초 · 사진 40초 · 로그인 20초
+  await Supabase.initialize(
+    url: AppEnv.supabaseUrl,
+    publishableKey: AppEnv.supabasePublishableKey,
+    httpClient: TimeoutHttpClient(),
+  );
 
   // 비회원 모드 같은 간단한 설정값 (첫 화면을 정하려고 앱을 그리기 전에 미리 읽는다)
   final prefs = await SharedPreferences.getInstance();

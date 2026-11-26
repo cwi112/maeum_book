@@ -35,11 +35,15 @@ class LoginView extends BaseView<LoginViewModel, LoginMethod?> {
   static void _leave(BuildContext context) => _isStartScreen(context) ? context.go(AppRoutes.initial) : context.pop();
 
   Future<void> _signIn(BuildContext context, LoginViewModel viewModel, LoginMethod method) async {
-    final success = await viewModel.signIn(
-      method,
-      onFailure: (failure) {
-        if (context.mounted) context.showToast(failure.message, type: ToastType.error);
-      },
+    // 로그인 버튼 안에서 스피너가 돌고, 끝날 때까지 다른 버튼 · 뒤로 가기는 막힌다.
+    final success = await context.withLoading(
+      style: LoadingStyle.button,
+      () => viewModel.signIn(
+        method,
+        onFailure: (failure) {
+          if (context.mounted) context.showToast(failure.message, type: ToastType.error);
+        },
+      ),
     );
     if (!success || !context.mounted) return;
     final imported = await _offerGuestImport(context, viewModel);
@@ -58,7 +62,7 @@ class LoginView extends BaseView<LoginViewModel, LoginMethod?> {
   ///
   /// [나중에]를 고르면 비로그인 기록은 이 기기에 그대로 남고(로그아웃 후 비회원으로 보면 보임), 다음 로그인 때 다시 묻는다.
   static Future<int?> _offerGuestImport(BuildContext context, LoginViewModel viewModel) async {
-    final offer = await viewModel.checkGuestRecords();
+    final offer = await context.withLoading(viewModel.checkGuestRecords, message: '기록을 확인하는 중이에요');
     if (offer == null || !context.mounted) return null;
     final count = offer.localEntries > 0 ? '기록 ${offer.localEntries}건' : '행사 ${offer.localEvents}개';
     final merge = offer.serverEntries > 0;
@@ -73,7 +77,7 @@ class LoginView extends BaseView<LoginViewModel, LoginMethod?> {
     );
     if (!confirmed || !context.mounted) return null;
     try {
-      final moved = await viewModel.importGuestRecords();
+      final moved = await context.withLoading(viewModel.importGuestRecords, message: '기록을 옮기는 중이에요');
       if (context.mounted) context.showToast('기록 $moved건을 계정으로 옮겼어요');
       return moved;
     } catch (error) {

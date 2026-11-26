@@ -16,6 +16,7 @@ export 'photos/photo_picker_service.dart';
 export 'photos/photo_processor.dart';
 export 'providers.dart';
 export 'remote/remote_ledger_store.dart';
+export 'remote/timeout_http_client.dart';
 export 'repositories/app_update_repository.dart';
 export 'repositories/auth_repository.dart';
 export 'repositories/event_photo_repository.dart';

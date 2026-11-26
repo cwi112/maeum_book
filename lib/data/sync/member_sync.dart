@@ -52,11 +52,21 @@ class MemberSyncNotifier extends Notifier<int> {
   }
 
   /// 받아 온 뒤, 다른 기기에서 지운 사진의 캐시 파일을 정리한다.
-  static Future<void> _pullAndTidy(AppDatabase db, RemoteLedgerStore remote, PhotoFiles photos) async {
+  ///
+  /// 앱을 켠 뒤 처음 받아 왔을 때 한 번은, 서버에 남은 주인 없는 사진 파일(올리다 앱이 꺼진 것)도 정리한다.
+  /// 정리는 화면을 막지 않고 뒤에서 하며, 실패해도 다음 실행 때 다시 하면 되므로 조용히 넘어간다.
+  Future<void> _pullAndTidy(AppDatabase db, RemoteLedgerStore remote, PhotoFiles photos) async {
     await LedgerSync.pull(db, remote);
     final ids = {for (final photo in await db.eventPhotoDao.getAll()) photo.id};
     await photos.retainOnly(ids);
+    if (!_orphansCleaned) {
+      _orphansCleaned = true;
+      unawaited(remote.deleteOrphanPhotoFiles(ids).then<void>((_) {}, onError: (Object _) => _orphansCleaned = false));
+    }
   }
+
+  /// 이번 실행에서 주인 없는 사진 파일을 정리했는지
+  bool _orphansCleaned = false;
 
   /// 로그아웃 · 탈퇴 뒤 이 기기에 남은 계정 사본을 지운다. (서버 원본은 그대로. 다음 사람이 이 기기에서 볼 수 없게)
   /// [photos]: 그 계정의 사진 캐시 폴더 (같이 비운다)

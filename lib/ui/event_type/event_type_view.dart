@@ -31,7 +31,10 @@ class EventTypeView extends BaseAsyncView<EventTypeViewModel, List<EventType>> {
       confirmLabel: '추가',
     );
     if (name == null || !context.mounted) return;
-    final added = await viewModel.add(name, onError: (e) => _showError(context, e));
+    final added = await context.withLoading(
+      () => viewModel.add(name, onError: (e) => _showError(context, e)),
+      message: '종류를 추가하는 중이에요',
+    );
     if (added && context.mounted) context.showToast("'$name' 종류를 추가했어요");
   }
 
@@ -44,7 +47,10 @@ class EventTypeView extends BaseAsyncView<EventTypeViewModel, List<EventType>> {
       confirmLabel: '바꾸기',
     );
     if (name == null || name == type.name || !context.mounted) return;
-    await viewModel.rename(type.id, name, onError: (e) => _showError(context, e));
+    await context.withLoading(
+      () => viewModel.rename(type.id, name, onError: (e) => _showError(context, e)),
+      message: '이름을 바꾸는 중이에요',
+    );
   }
 
   Future<void> _delete(BuildContext context, EventTypeViewModel viewModel, EventType type) async {
@@ -62,7 +68,10 @@ class EventTypeView extends BaseAsyncView<EventTypeViewModel, List<EventType>> {
       isDestructive: true,
     );
     if (!confirmed || !context.mounted) return;
-    final removed = await viewModel.remove(type, onError: (e) => _showError(context, e));
+    final removed = await context.withLoading(
+      () => viewModel.remove(type, onError: (e) => _showError(context, e)),
+      message: '종류를 지우는 중이에요',
+    );
     if (removed && context.mounted) context.showToast("'${type.name}' 종류를 지웠어요", type: ToastType.info);
   }
 

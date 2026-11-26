@@ -31,13 +31,15 @@ class EntrySwipeTile extends ConsumerWidget {
   Future<void> _delete(BuildContext context) async {
     void showError(Object e) => context.showErrorToast(e, '처리하지 못했어요. 다시 시도해 주세요');
 
-    final removed = await onRemove(entry.id, onError: showError);
+    // 지운 줄은 화면에서 사라지므로, 되돌리기 때 쓸 로딩 막을 미리 잡아 둔다.
+    final loading = context.loadingRunner;
+    final removed = await loading(() => onRemove(entry.id, onError: showError), message: '지우는 중이에요');
     if (!removed || !context.mounted) return;
     context.showToast(
       '${entry.personName}님 기록을 삭제했어요',
       type: ToastType.info,
       actionLabel: '되돌리기',
-      onAction: () => onRestore(entry, onError: showError),
+      onAction: () => loading(() => onRestore(entry, onError: showError), message: '되돌리는 중이에요'),
     );
   }
 

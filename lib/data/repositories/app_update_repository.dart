@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform;
 import 'package:http/http.dart' as http;
 import 'package:maeum_book/data/models/app_update_info.dart';
+import 'package:maeum_book/data/remote/timeout_http_client.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
 /// 앱 버전 확인 Repository.
@@ -10,7 +11,8 @@ import 'package:package_info_plus/package_info_plus.dart';
 /// - 지금 설치된 버전: 기기에서 읽는다. (pubspec.yaml의 version이 빌드할 때 앱에 들어간다)
 /// - 최신 버전: [versionUrl]의 JSON을 읽는다. 릴리스 스크립트(scripts/release.ps1)가 배포할 때 이 파일도 함께 올린다.
 class AppUpdateRepository {
-  AppUpdateRepository({required this.versionUrl, http.Client? client}) : _client = client ?? http.Client();
+  AppUpdateRepository({required this.versionUrl, http.Client? client})
+    : _client = client ?? TimeoutHttpClient(timeoutFor: (_) => AppTimeouts.versionCheck);
 
   final String versionUrl;
   final http.Client _client;
@@ -20,7 +22,7 @@ class AppUpdateRepository {
 
   /// 서버의 최신 버전 정보를 읽는다. 5초 안에 응답이 없거나 실패하면 예외.
   Future<AppUpdateInfo> fetchLatest() async {
-    final response = await _client.get(Uri.parse(versionUrl)).timeout(const Duration(seconds: 5));
+    final response = await _client.get(Uri.parse(versionUrl)); // 5초가 지나면 요청을 끊는다 (TimeoutHttpClient)
     if (response.statusCode != 200) throw Exception('버전 정보를 읽지 못했어요 (${response.statusCode})');
     return AppUpdateInfo.fromJson(jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>);
   }

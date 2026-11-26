@@ -28,7 +28,10 @@ class EventDetailView extends BaseAsyncView<EventDetailViewModel, EventDetailSta
       isDestructive: true,
     );
     if (!confirmed || !context.mounted) return;
-    final deleted = await viewModel.deleteEvent(onError: (e) => context.showErrorToast(e, '처리하지 못했어요. 다시 시도해 주세요'));
+    final deleted = await context.withLoading(
+      () => viewModel.deleteEvent(onError: (e) => context.showErrorToast(e, '처리하지 못했어요. 다시 시도해 주세요')),
+      message: '행사를 지우는 중이에요',
+    );
     if (deleted && context.mounted) {
       context.showToast('행사를 지웠어요', type: ToastType.info);
       context.pop();
@@ -60,16 +63,20 @@ class EventDetailView extends BaseAsyncView<EventDetailViewModel, EventDetailSta
       ),
     );
     if (source == null || !context.mounted) return;
-    final added = await viewModel.addPhotos(
-      source,
-      onError: (e) {
-        if (!context.mounted) return;
-        if (e is PhotoLimitException) {
-          context.showToast(e.toString(), type: ToastType.info);
-        } else {
-          context.showErrorToast(e, '사진을 넣지 못했어요. 다시 시도해 주세요');
-        }
-      },
+    // 사진 추가 칸 안에서 스피너가 돌고, 저장이 끝날 때까지 다른 곳은 눌리지 않는다.
+    final added = await context.withLoading(
+      style: LoadingStyle.button,
+      () => viewModel.addPhotos(
+        source,
+        onError: (e) {
+          if (!context.mounted) return;
+          if (e is PhotoLimitException) {
+            context.showToast(e.toString(), type: ToastType.info);
+          } else {
+            context.showErrorToast(e, '사진을 넣지 못했어요. 다시 시도해 주세요');
+          }
+        },
+      ),
     );
     if (added > 0 && context.mounted) context.showToast('사진 $added장을 넣었어요. 사진을 눌러 보낸 분을 적어 보세요');
   }

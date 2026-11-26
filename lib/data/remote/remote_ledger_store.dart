@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:maeum_book/core/errors/network_exception.dart';
 import 'package:maeum_book/data/database/app_database.dart';
 import 'package:maeum_book/data/models/models.dart';
+import 'package:maeum_book/data/remote/timeout_http_client.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// 서버에 있는 한 사람의 장부 전체
@@ -69,6 +70,12 @@ abstract interface class RemoteLedgerStore {
 
   /// 내 사진 파일을 모두 지운다. (모든 기록 지우기 · 회원 탈퇴 전에)
   Future<void> deleteAllPhotoFiles();
+
+  /// 사진 정보가 없는 파일(주인 없는 파일)을 지우고 지운 수를 돌려준다. [keep]: 남길 사진 번호
+  ///
+  /// 사진 파일을 올린 직후 정보를 올리기 전에 앱이 꺼지면 파일만 남아 저장 공간을 차지한다.
+  /// 다른 기기에서 지금 막 올리는 중인 사진을 지우지 않도록, 만든 지 [minAge]가 지난 파일만 지운다.
+  Future<int> deleteOrphanPhotoFiles(Set<int> keep, {Duration minAge = const Duration(hours: 1)});
 }
 
 /// Supabase로 만든 실제 구현
@@ -78,10 +85,11 @@ class SupabaseRemoteLedgerStore implements RemoteLedgerStore {
   final SupabaseClient _client;
   final Random _random;
 
-  static const _timeout = Duration(seconds: 15);
+  /// 요청 자체는 TimeoutHttpClient가 시간이 되면 끊는다. 여기 시간은 그보다 조금 긴 "마지막 안전장치"다.
+  static final _timeout = AppTimeouts.data + const Duration(seconds: 5);
 
-  /// 사진 파일은 크기가 있어서 더 기다린다.
-  static const _fileTimeout = Duration(seconds: 40);
+  /// 사진 파일은 크기가 있어서 더 기다린다. (원본 · 작은 사진 두 번 보내므로 두 배)
+  static final _fileTimeout = AppTimeouts.file * 2 + const Duration(seconds: 5);
 
   static const photoBucket = 'event-photos';
 
@@ -193,10 +201,36 @@ class SupabaseRemoteLedgerStore implements RemoteLedgerStore {
     }
   }, timeout: _fileTimeout);
 
+  @override
+  Future<int> deleteOrphanPhotoFiles(Set<int> keep, {Duration minAge = const Duration(hours: 1)}) => _run(() async {
+    final folder = _folder;
+    final now = DateTime.now().toUtc();
+    final orphans = <String>[];
+    var offset = 0;
+    while (true) {
+      final files = await _bucket.list(
+        path: folder,
+        searchOptions: SearchOptions(limit: 1000, offset: offset),
+      );
+      for (final file in files) {
+        final id = int.tryParse(file.name.split(RegExp(r'[_.]')).first);
+        final created = DateTime.tryParse(file.createdAt ?? '');
+        final oldEnough = created == null || now.difference(created) >= minAge;
+        if (id != null && !keep.contains(id) && oldEnough) orphans.add('$folder/${file.name}');
+      }
+      if (files.length < 1000) break;
+      offset += files.length;
+    }
+    for (var i = 0; i < orphans.length; i += 1000) {
+      await _bucket.remove(orphans.sublist(i, min(i + 1000, orphans.length)));
+    }
+    return orphans.length;
+  }, timeout: _fileTimeout * 2);
+
   /// 인터넷 문제는 [NetworkException]으로 바꿔서 화면이 알맞은 안내를 띄우게 한다.
-  Future<T> _run<T>(Future<T> Function() action, {Duration timeout = _timeout}) async {
+  Future<T> _run<T>(Future<T> Function() action, {Duration? timeout}) async {
     try {
-      return await action().timeout(timeout);
+      return await action().timeout(timeout ?? _timeout);
     } on SocketException catch (e) {
       throw NetworkException(e);
     } on TimeoutException catch (e) {
