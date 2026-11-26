@@ -107,6 +107,7 @@ abstract final class TestIds {
   static const String settingsClear = 'settings_clear';
   static const String sampleTourEnd = 'sample_tour_end';
   static const String settingsAppInfo = 'settings_app_info';
+  static const String settingsPrivacyPolicy = 'settings_privacy_policy';
   static const String settingsThemeMode = 'settings_theme_mode';
   static const String settingsExcelExport = 'settings_excel_export';
   static const String excelShare = 'excel_share'; // 엑셀 내보내기 창: 공유하기

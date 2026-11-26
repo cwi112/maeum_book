@@ -4,8 +4,11 @@
 # | 워크플로 | 언제 | 하는 일 |
 # |---|---|---|
 # | ios-testflight | v* 태그 push (scripts/release.ps1) | 테스트 → IPA → TestFlight 업로드 |
-# | ios-appstore   | 수동 (scripts/submit-store.ps1 또는 Codemagic 화면) | 테스트 → IPA → App Store 심사 제출. 출시 버튼은 사람이 |
-# | android-play   | 수동 (scripts/submit-store.ps1 또는 Codemagic 화면) | 테스트 → AAB → Google Play 내부 테스트 트랙에 초안 |
+# | ios-appstore   | store-v* · store-ios-v* 태그 push (scripts/submit-store.ps1) | 테스트 → IPA → App Store 심사 제출. 출시 버튼은 사람이 |
+# | android-play   | store-v* · store-android-v* 태그 push (scripts/submit-store.ps1) | 테스트 → AAB → Google Play 내부 테스트 초안 |
+#
+# 모두 태그 push로 시작한다. GitHub이 태그 소식을 Codemagic에 알려 주므로(웹훅) Codemagic API 토큰이 필요 없다.
+# (v* 패턴은 v로 "시작하는" 태그만 잡으므로 store-v1.2.1에는 ios-testflight가 돌지 않는다)
 #
 # 사전 준비 (Codemagic 웹에서 한 번만):
 #   - App Store Connect API 키: Settings → Integrations → Developer Portal, 이름 maeum_book_asc
@@ -81,7 +84,16 @@ workflows:
     name: iOS App Store 심사 제출
     max_build_duration: 60
     instance_type: mac_mini_m2
-    # 자동으로 돌지 않는다. scripts/submit-store.ps1 <버전> 또는 Codemagic 화면에서 v태그를 골라 시작한다.
+
+    # store-v1.2.1(iOS · Android 함께) 또는 store-ios-v1.2.1 태그가 push되면 시작한다. (scripts/submit-store.ps1)
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'store-v*'
+          include: true
+        - pattern: 'store-ios-v*'
+          include: true
 
     integrations:
       app_store_connect: maeum_book_asc
@@ -107,7 +119,16 @@ workflows:
     name: Android Google Play (내부 테스트)
     max_build_duration: 60
     instance_type: linux_x2
-    # 자동으로 돌지 않는다. scripts/submit-store.ps1 <버전> 또는 Codemagic 화면에서 v태그를 골라 시작한다.
+
+    # store-v1.2.1(iOS · Android 함께) 또는 store-android-v1.2.1 태그가 push되면 시작한다. (scripts/submit-store.ps1)
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: 'store-v*'
+          include: true
+        - pattern: 'store-android-v*'
+          include: true
 
     environment:
       android_signing:

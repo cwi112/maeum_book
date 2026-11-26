@@ -18,6 +18,7 @@ class EventPhotoStrip extends StatelessWidget {
     required this.isAdding,
     required this.onAdd,
     required this.onOpen,
+    this.entryNames = const {},
   });
 
   final List<EventPhoto> photos;
@@ -28,6 +29,10 @@ class EventPhotoStrip extends StatelessWidget {
 
   /// 사진을 누르면 그 사진의 순서(0부터)
   final ValueChanged<int> onOpen;
+
+  /// 받은 기록 번호 → 지금 이름. 사진이 받은 기록과 연결돼 있으면 그 기록의 **지금 이름**을 보여 준다.
+  /// (기록에서 이름을 고치면 사진 아래 이름도 따라 바뀐다)
+  final Map<int, String> entryNames;
 
   static const double _size = 84;
 
@@ -60,7 +65,12 @@ class EventPhotoStrip extends StatelessWidget {
                 return _AddTile(size: _size, isAdding: isAdding, disabled: full, onTap: onAdd);
               }
               final photo = photos[index - 1];
-              return _PhotoTile(size: _size, photo: photo, onTap: () => onOpen(index - 1));
+              return _PhotoTile(
+                size: _size,
+                photo: photo,
+                senderName: entryNames[photo.entryId] ?? photo.senderName,
+                onTap: () => onOpen(index - 1),
+              );
             },
           ),
         ),
@@ -109,10 +119,11 @@ class _AddTile extends StatelessWidget {
 }
 
 class _PhotoTile extends StatelessWidget {
-  const _PhotoTile({required this.size, required this.photo, required this.onTap});
+  const _PhotoTile({required this.size, required this.photo, required this.senderName, required this.onTap});
 
   final double size;
   final EventPhoto photo;
+  final String? senderName;
   final VoidCallback onTap;
 
   @override
@@ -134,7 +145,7 @@ class _PhotoTile extends StatelessWidget {
             ),
           ).testId(TestIds.eventPhoto(photo.id)),
           const SizedBox(height: 4),
-          AppText.caption(photo.senderName ?? '보낸 분 미입력', maxLines: 1),
+          AppText.caption(senderName ?? '보낸 분 미입력', maxLines: 1),
         ],
       ),
     );

@@ -4,7 +4,8 @@ import 'package:maeum_book/ui/event/event_photo_view_model.dart';
 
 /// 사진의 보낸 분 · 메모를 고치는 창 (아래에서 올라옴).
 ///
-/// - 보낸 분: 직접 입력하거나, 이 행사의 받은 기록 이름 칩을 눌러 고른다. (고르면 그 기록과 연결 → 목록에 🌸)
+/// - 보낸 분: 직접 입력하거나, 이 행사의 받은 기록 칩을 눌러 고른다. (고르면 그 기록과 연결 → 목록에 🌸)
+///   동명이인이면 칩에 관계 · 금액이 붙는다.
 /// - 칩을 고른 뒤 이름을 고쳐 쓰면 연결은 풀린다. (다른 사람일 수 있으니)
 /// - 저장을 누르면 고친 값([PhotoInfo])을, 닫으면 null을 돌려준다.
 class PhotoInfoSheet extends StatefulWidget {
@@ -47,9 +48,18 @@ class _PhotoInfoSheetState extends State<PhotoInfoSheet> {
 
   @override
   Widget build(BuildContext context) {
-    // 같은 이름이 여러 번 있으면 칩은 한 번만
-    final seen = <String>{};
-    final choices = widget.entries.where((entry) => seen.add(entry.personName)).toList();
+    // 받은 기록 하나당 칩 하나. 사진은 이름이 아니라 **기록 번호**로 연결되므로 동명이인도 정확히 구분된다.
+    // 같은 이름이 여럿이면 칩에 관계(없으면 금액)를 붙여 누구인지 알 수 있게 한다. 예) 김민준 (친구) · 김민준 (10만원)
+    final choices = widget.entries;
+    final nameCounts = <String, int>{};
+    for (final entry in choices) {
+      nameCounts[entry.personName] = (nameCounts[entry.personName] ?? 0) + 1;
+    }
+    String chipLabel(LedgerEntry entry) {
+      if ((nameCounts[entry.personName] ?? 0) < 2) return entry.personName;
+      return '${entry.personName} (${entry.relation?.label ?? entry.amount.manWon})';
+    }
+
     return Padding(
       padding: EdgeInsets.only(bottom: MediaQuery.viewInsetsOf(context).bottom),
       child: SafeArea(
@@ -82,7 +92,7 @@ class _PhotoInfoSheetState extends State<PhotoInfoSheet> {
                   children: [
                     for (final entry in choices)
                       ChoiceChip(
-                        label: Text(entry.personName),
+                        label: Text(chipLabel(entry)),
                         selected: _entryId == entry.id,
                         onSelected: (_) => _pick(entry),
                       ),

@@ -28,6 +28,23 @@ void main() {
     memo: memo,
   );
 
+  test('사람별 합계: 이름이 같아도 관계가 다르면 다른 사람으로 센다 (동명이인)', () async {
+    Future<void> addWith(String name, Relation relation, int amount) => repository.add(
+      direction: RecordDirection.sent,
+      eventTypeId: 1,
+      personName: name,
+      amount: amount,
+      date: DateTime(2026, 11, 24),
+      relation: relation,
+    );
+    await addWith('김민준', Relation.friend, 100000);
+    await addWith('김민준', Relation.friend, 50000);
+    await addWith('김민준', Relation.work, 30000);
+
+    final people = await repository.fetchTopPeople();
+    expect(people.map((p) => (p.relation, p.sentTotal)), [(Relation.friend, 150000), (Relation.work, 30000)]);
+  });
+
   test('저장한 기록이 방향별로 최신 날짜순으로 조회된다', () async {
     await add(RecordDirection.sent, '김철수', 50000, date: DateTime(2026, 1, 1));
     await add(RecordDirection.sent, '이영희', 100000, date: DateTime(2026, 5, 1));

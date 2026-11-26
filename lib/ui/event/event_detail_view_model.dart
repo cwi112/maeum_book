@@ -29,8 +29,8 @@ class EventDetailState {
 
   int get total => entries.fold(0, (sum, entry) => sum + entry.amount);
 
-  /// 사진의 보낸 분으로 연결된 받은 기록들 (목록에 🌸 표시)
-  Set<int> get entryIdsWithPhoto => {for (final photo in photos) ?photo.entryId};
+  /// 이 받은 기록과 연결된 사진 수 (목록에 🌸 표시 · 지울 때 확인 창)
+  int photoCountOf(int entryId) => photos.where((photo) => photo.entryId == entryId).length;
 
   EventDetailState copyWith({bool? isAddingPhotos}) => EventDetailState(
     event: event,
@@ -73,8 +73,18 @@ class EventDetailViewModel extends BaseAsyncViewModel<EventDetailState> {
       await runTask(() => _events.remove(eventId), onError: onError) ?? false;
 
   /// 받은 기록 하나 삭제 / 되돌리기 (EntrySwipeTile이 사용)
+  ///
+  /// 이 기록과 연결된 화환 사진도 함께 지운다. (화면에서 확인 창을 거친 뒤)
+  /// 사진은 기록 이름이 아니라 **기록 번호**로 연결돼 있어서, 같은 이름의 다른 사람 사진은 지워지지 않는다.
   Future<bool> removeEntry(int id, {ErrorCallback? onError}) async =>
-      await runTask(() => _ledger.remove(id), onError: onError) ?? false;
+      await runTask(() async {
+        final linked = (state.value?.photos ?? const <EventPhoto>[]).where((photo) => photo.entryId == id).toList();
+        for (final photo in linked) {
+          await _photos.remove(photo);
+        }
+        return _ledger.remove(id);
+      }, onError: onError) ??
+      false;
 
   Future<bool> restoreEntry(LedgerEntry entry, {ErrorCallback? onError}) async =>
       await runTask(() async {

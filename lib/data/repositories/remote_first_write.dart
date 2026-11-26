@@ -19,13 +19,16 @@ mixin RemoteFirstWrite {
   Future<T> write<T>(Future<T> Function() local, Future<void> Function(T result, RemoteLedgerStore remote) push) async {
     final server = remote;
     if (server == null) return local();
-    final result = await db.transaction(() async {
+    return db.transaction(() async {
       final result = await local();
       await push(result, server);
+      // 서버에서 받아 오는 중이었다면 다시 받게 한다. (LedgerSync.pull)
+      // ⚠️ 트랜잭션 **안에서** 올린다. 끝난 뒤에 올리면, 이 저장이 끝나기를 기다리던 "장부 덮어쓰기"가
+      // 숫자가 바뀌기 전에 먼저 실행돼서 방금 저장한 것(예: 앨범에서 고른 사진)을 지울 수 있다.
+      // 저장이 실패해 되돌려져도 숫자만 하나 더 올라갈 뿐이라 괜찮다. (한 번 더 받아 올 뿐)
+      LocalWrites.bump();
       return result;
     });
-    LocalWrites.bump(); // 서버에서 받아 오는 중이었다면 다시 받게 한다 (LedgerSync.pull)
-    return result;
   }
 
   /// 새 행의 id. 비로그인은 기기 DB가 1, 2, 3… 자동으로, 회원은 서버와 겹치지 않는 임의의 수.

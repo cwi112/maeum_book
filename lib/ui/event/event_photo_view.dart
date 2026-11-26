@@ -101,7 +101,8 @@ class _PhotoPagerState extends State<_PhotoPager> {
       appBar: AppBar(
         backgroundColor: Colors.black,
         foregroundColor: Colors.white,
-        title: Text('${_index + 1} / ${_photos.length}'),
+        // 앱 공통 제목 서식(진한 갈색 · 큰 글씨)은 검은 배경에서 잘 안 보여서 흰색 · 조금 작게 따로 정한다.
+        title: AppText.subtitle('${_index + 1} / ${_photos.length}', color: Colors.white),
         actions: [
           IconButton(
             onPressed: () => _editInfo(photo),
@@ -142,7 +143,8 @@ class _InfoBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sender = photo.senderName;
+    // 받은 기록과 연결돼 있으면 그 기록의 지금 이름 (기록에서 이름을 고쳐도 따라 바뀜)
+    final sender = entry?.personName ?? photo.senderName;
     return Material(
       color: Colors.black,
       child: InkWell(

@@ -136,6 +136,7 @@ class EventDetailView extends BaseAsyncView<EventDetailViewModel, EventDetailSta
             EventPhotoStrip(
               photos: state.photos,
               isAdding: state.isAddingPhotos,
+              entryNames: {for (final entry in state.entries) entry.id: entry.personName},
               onAdd: () => _addPhotos(context, viewModel),
               onOpen: (index) => context.pushOnce(AppRoutes.eventPhotos(event.id, index: index)),
             ),
@@ -155,7 +156,7 @@ class EventDetailView extends BaseAsyncView<EventDetailViewModel, EventDetailSta
                 EntrySwipeTile(
                   key: ValueKey(entry.id),
                   entry: entry,
-                  hasPhoto: state.entryIdsWithPhoto.contains(entry.id),
+                  linkedPhotoCount: state.photoCountOf(entry.id),
                   onRemove: viewModel.removeEntry,
                   onRestore: viewModel.restoreEntry,
                 ),

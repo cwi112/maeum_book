@@ -58,6 +58,7 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
   }
 
   /// 사람별로 보낸 총액·받은 총액을 구독한다. 주고받은 금액이 큰 사람부터 정렬한다.
+  /// 동명이인이 합쳐지지 않게 **이름 + 관계**로 묶는다. ([PersonSummary] 참고)
   ///
   /// 조건부 합계(`CASE WHEN`)는 SQL로 직접 쓰는 편이 읽기 쉬워서 [customSelect]를 사용했다.
   /// `readsFrom`에 테이블을 알려 줘야 그 테이블이 바뀔 때 Stream이 다시 실행된다.
@@ -66,11 +67,12 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
       '''
       SELECT
         person_name,
+        relation,
         SUM(CASE WHEN direction = 'sent' THEN amount ELSE 0 END)     AS sent_total,
         SUM(CASE WHEN direction = 'received' THEN amount ELSE 0 END) AS received_total,
         COUNT(*)                                                     AS entry_count
       FROM ledger_entries
-      GROUP BY person_name
+      GROUP BY person_name, relation
       ORDER BY (sent_total + received_total) DESC, person_name ASC
       ''',
       readsFrom: {ledgerEntries},
@@ -79,6 +81,7 @@ class LedgerDao extends DatabaseAccessor<AppDatabase> with _$LedgerDaoMixin {
         for (final row in rows)
           PersonSummary(
             name: row.read<String>('person_name'),
+            relation: Relation.values.asNameMap()[row.readNullable<String>('relation')],
             sentTotal: row.read<int>('sent_total'),
             receivedTotal: row.read<int>('received_total'),
             count: row.read<int>('entry_count'),

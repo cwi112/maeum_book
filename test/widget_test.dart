@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:drift/drift.dart' show DatabaseConnection, driftRuntimeOptions;
+import 'package:drift/drift.dart' show DatabaseConnection, Value, driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter/foundation.dart' show TargetPlatform, debugDefaultTargetPlatformOverride;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +13,7 @@ import 'package:maeum_book/core/define/test_ids.dart';
 import 'package:maeum_book/core/errors/network_exception.dart';
 import 'package:maeum_book/core/theme/app_theme.dart';
 import 'package:maeum_book/data/data.dart';
+import 'package:maeum_book/data/database/app_database.dart' show EventPhotosCompanion;
 import 'package:maeum_book/ui/login/auth_session_watcher.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -615,6 +616,64 @@ void main() {
     await waitFiles();
     expect(find.text('1 / 1'), findsOneWidget);
     expect(Directory('${photoRoot.path}/guest').listSync(), hasLength(2));
+
+    await closeApp(tester);
+  });
+
+  testWidgets('동명이인: 사진이 연결된 김민준만 꽃 표시 · 지울 때 확인 창 · 그 사진만 함께 지워진다', (tester) async {
+    await pumpApp(tester);
+    final ledger = LedgerRepository(database.ledgerDao);
+    final eventId = (await tester.runAsync(
+      () => EventRepository(database.eventDao).add(title: '우리 결혼식', eventTypeId: 1, date: DateTime(2026, 5, 10)),
+    ))!;
+    Future<int> addGiver(Relation relation, int amount) async => (await tester.runAsync(
+      () => ledger.add(
+        direction: RecordDirection.received,
+        eventTypeId: 1,
+        eventId: eventId,
+        personName: '김민준',
+        amount: amount,
+        date: DateTime(2026, 5, 10),
+        relation: relation,
+      ),
+    ))!;
+    final friend = await addGiver(Relation.friend, 100000);
+    final coworker = await addGiver(Relation.work, 50000);
+    // 친구 김민준이 보낸 화환 사진 1장
+    await tester.runAsync(
+      () => database.eventPhotoDao.insertPhoto(
+        EventPhotosCompanion.insert(eventId: eventId, senderName: const Value('김민준'), entryId: Value(friend)),
+      ),
+    );
+
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabReceived));
+    await settle(tester);
+    await tester.tap(find.text('우리 결혼식'));
+    await settle(tester);
+    expect(find.byIcon(Icons.local_florist), findsOneWidget); // 이름이 같아도 연결된 한 분만
+
+    // 사진이 없는 직장 김민준은 확인 창 없이 바로 지워지고 되돌리기가 있다.
+    await tester.drag(find.bySemanticsIdentifier(TestIds.entryTile(coworker)), const Offset(-300, 0));
+    await settle(tester);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.entryDelete(coworker)));
+    await settle(tester);
+    expect(find.text('되돌리기'), findsOneWidget);
+    expect(await tester.runAsync(() => database.eventPhotoDao.getAll()), hasLength(1)); // 친구 김민준 사진은 그대로
+    ScaffoldMessenger.of(tester.element(find.text('우리 결혼식').first)).removeCurrentSnackBar();
+    await settle(tester);
+
+    // 사진이 연결된 친구 김민준: 확인 창 → 사진까지 지움, 되돌리기 없음
+    await tester.drag(find.bySemanticsIdentifier(TestIds.entryTile(friend)), const Offset(-300, 0));
+    await settle(tester);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.entryDelete(friend)));
+    await settle(tester);
+    expect(find.textContaining('사진 1장도 함께 지워지고'), findsOneWidget);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.dialogConfirm));
+    await settle(tester);
+    await settle(tester);
+    expect(find.text('김민준님 기록과 사진 1장을 지웠어요'), findsOneWidget);
+    expect(await tester.runAsync(() => database.eventPhotoDao.getAll()), isEmpty);
+    expect(find.text('되돌리기'), findsNothing);
 
     await closeApp(tester);
   });

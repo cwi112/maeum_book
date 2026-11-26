@@ -11,7 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 /// - 데이터: 샘플 데이터로 둘러보기(메모리 전용, 앱을 끄면 사라짐), 모든 기록 지우기(확인 창 필수, 되돌릴 수 없음)
 /// - 데이터: 엑셀로 내보내기(공유하기 · 내 휴대폰에 저장)
 /// - 준비 중: 알림, 백업, 화면 모드(라이트 · 다크 · 시스템) (누르면 "곧 추가될 기능" 토스트)
-/// - 앱 정보: 설치된 버전 표시, 누르면 최신 버전 확인 → 업데이트 안내
+/// - 앱 정보: 설치된 버전 표시, 누르면 최신 버전 확인 → 업데이트 안내 · 개인정보 처리방침(웹 페이지)
 class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
   const SettingsView({super.key});
 
@@ -84,6 +84,12 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
 
   static void _showComingSoon(BuildContext context) =>
       context.showToast(AppDefine.comingSoonMessage, type: ToastType.info);
+
+  /// 개인정보 처리방침 웹 페이지를 브라우저로 연다.
+  static Future<void> _openPrivacyPolicy(BuildContext context) async {
+    final opened = await launchUrl(Uri.parse(AppDefine.privacyPolicyUrl), mode: LaunchMode.externalApplication);
+    if (!opened && context.mounted) context.showToast('페이지를 열지 못했어요', type: ToastType.error);
+  }
 
   /// 앱 정보를 누르면: 최신 버전인지 확인하고, 아니면 업데이트할 곳(지금은 TestFlight)으로 보낸다.
   Future<void> _checkUpdate(BuildContext context, SettingsViewModel viewModel) async {
@@ -206,15 +212,27 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
           ),
           const _SectionLabel('정보'),
           Card(
-            child: ListTile(
-              leading: const Icon(Icons.info_outline),
-              title: const Text('앱 정보'),
-              subtitle: Text(state.appVersion == null ? '버전 확인 중' : '버전 ${state.appVersion}'),
-              trailing: state.isCheckingUpdate
-                  ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                  : const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
-              onTap: () => _checkUpdate(context, viewModel),
-            ).testId(TestIds.settingsAppInfo),
+            child: Column(
+              children: [
+                ListTile(
+                  leading: const Icon(Icons.info_outline),
+                  title: const Text('앱 정보'),
+                  subtitle: Text(state.appVersion == null ? '버전 확인 중' : '버전 ${state.appVersion}'),
+                  trailing: state.isCheckingUpdate
+                      ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                      : const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+                  onTap: () => _checkUpdate(context, viewModel),
+                ).testId(TestIds.settingsAppInfo),
+                const Divider(indent: AppSpacing.screen, endIndent: AppSpacing.screen),
+                // 스토어 규정: 개인정보 처리방침은 스토어 등록 정보와 **앱 안**에서 모두 쉽게 볼 수 있어야 한다.
+                ListTile(
+                  leading: const Icon(Icons.privacy_tip_outlined),
+                  title: const Text('개인정보 처리방침'),
+                  trailing: const Icon(Icons.open_in_new_rounded, size: 20, color: AppColors.textHint),
+                  onTap: () => _openPrivacyPolicy(context),
+                ).testId(TestIds.settingsPrivacyPolicy),
+              ],
+            ),
           ),
         ],
       ),
