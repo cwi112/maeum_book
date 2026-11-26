@@ -1,5 +1,6 @@
 import 'package:maeum_book/core/core.dart';
 import 'package:maeum_book/router/app_router.dart';
+import 'package:maeum_book/ui/login/auth_session_watcher.dart';
 
 /// 앱의 최상위 위젯: 제목, 테마, 화면 이동(라우터)을 정한다.
 ///
@@ -20,10 +21,13 @@ class App extends ConsumerWidget {
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       // 모든 화면(다이얼로그 포함)을 감싸서, 빈 공간을 터치하면 키보드를 닫는다.
       // 입력칸·버튼을 누르면 그 위젯이 터치를 먼저 가져가므로 키보드는 그대로 둔다.
-      builder: (context, child) => GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-        child: child,
+      // AuthSessionWatcher: 로그인이 만료되면 어느 화면에서든 다시 로그인을 안내한다.
+      builder: (context, child) => AuthSessionWatcher(
+        child: GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+          child: child,
+        ),
       ),
     );
   }

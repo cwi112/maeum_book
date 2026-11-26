@@ -13,9 +13,9 @@ class LoginViewModel extends BaseViewModel<LoginMethod?> {
 
   AuthRepository get _repository => ref.read(authRepositoryProvider);
 
-  /// 로그인한다. 성공하면 true, 취소 · 실패하면 false. 실패(취소 제외)는 [onError]로 알린다.
-  Future<bool> signIn(LoginMethod method, {ErrorCallback? onError}) async {
-    if (state != null) return false;
+  /// 로그인한다. 성공하면 true. 실패하면 false를 돌려주고, 취소가 아니면 [onFailure]로 이유를 알린다.
+  Future<bool> signIn(LoginMethod method, {void Function(AuthFailure failure)? onFailure}) async {
+    if (state != null) return false; // 이미 로그인 진행 중 (버튼 연타)
     state = method;
     try {
       switch (method) {
@@ -25,10 +25,11 @@ class LoginViewModel extends BaseViewModel<LoginMethod?> {
           await _repository.signInWithApple();
       }
       return true;
-    } on LoginCanceledException {
-      return false; // 사용자가 닫은 것이므로 오류로 보지 않는다.
+    } on AuthFailure catch (failure) {
+      if (!failure.isCanceled) onFailure?.call(failure); // 사용자가 닫은 것은 오류로 보지 않는다.
+      return false;
     } catch (error) {
-      onError?.call(error);
+      onFailure?.call(AuthFailure(AuthFailureType.unknown, error));
       return false;
     } finally {
       if (ref.mounted) state = null;
