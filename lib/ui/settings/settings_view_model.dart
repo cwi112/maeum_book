@@ -37,6 +37,51 @@ class SettingsViewModel extends BaseViewModel<SettingsState> {
   /// 모든 기록을 지운다. 성공하면 지운 건수, 실패하면 null. (화면에서 확인 창을 거친 뒤 호출)
   Future<int?> clearAll({ErrorCallback? onError}) => runTask(_repository.clearAll, onError: onError);
 
+  // ── 엑셀로 내보내기 ─────────────────────
+
+  /// 지금 장부(비회원 기기 기록 · 회원 계정 사본 · 샘플 중 지금 보이는 것)로 엑셀 파일을 만든다.
+  /// 기록이 하나도 없으면 null. 만들다 실패하면 [onError]로 알리고 null.
+  ///
+  /// 파일은 휴대폰 안에서 만들고 서버에 올리지 않는다. 회원도 기기에 받아 둔 사본에서 읽어서 인터넷이 필요 없다.
+  Future<ExcelExportFile?> prepareExcel({ErrorCallback? onError, DateTime? now}) async {
+    if (state.isExporting) return null;
+    state = state.copyWith(isExporting: true);
+    try {
+      final entries = await _repository.fetchAllForExport();
+      if (entries.isEmpty) return null;
+      final events = await ref.read(eventRepositoryProvider).fetchAll();
+      final types = await ref.read(eventTypeRepositoryProvider).watchAll().first;
+      final exporter = LedgerExcelExporter(
+        entries: entries,
+        events: events,
+        typeNames: {for (final type in types) type.id: type.name},
+        exportedAt: now ?? DateTime.now(),
+        isSample: ref.read(sampleModeProvider),
+      );
+      final isMember = ref.read(authRepositoryProvider).currentUser != null;
+      return ExcelExportFile(
+        bytes: exporter.encode(),
+        fileName: exporter.fileName,
+        sentCount: exporter.sentCount,
+        receivedCount: exporter.receivedCount,
+        mayBeOutdated: isMember && ref.read(isOnlineProvider).value == false,
+      );
+    } catch (error) {
+      onError?.call(error);
+      return null;
+    } finally {
+      if (ref.mounted) state = state.copyWith(isExporting: false);
+    }
+  }
+
+  /// 공유 창으로 보낸다. 끝까지 공유했으면 true.
+  Future<bool> shareExcel(ExcelExportFile file, {Rect? origin}) =>
+      ref.read(exportFileServiceProvider).share(file.bytes, file.fileName, origin: origin);
+
+  /// 휴대폰에 저장한다 (저장 위치 고르기). 저장했으면 true.
+  Future<bool> saveExcel(ExcelExportFile file) =>
+      ref.read(exportFileServiceProvider).saveToDevice(file.bytes, file.fileName);
+
   AuthRepository get _authRepository => ref.read(authRepositoryProvider);
 
   /// 로그아웃. 성공하면 true. (인터넷이 없어도 기기에서는 로그아웃된다)
