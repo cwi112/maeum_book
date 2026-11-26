@@ -1,10 +1,10 @@
 [
   {
     "language": "ko",
-    "text": "1.1.0 · 어느 기기에서든, 내 장부를 이어서\n\n[새로워졌어요]\n• 카카오 · Apple 로그인: 휴대폰을 바꾸거나 앱을 다시 깔아도 기록이 그대로\n• 처음 로그인할 때 이 기기에 쓰던 기록을 계정으로 옮기기\n• 로그인 없이 시작하기 (이 기기에만 저장)\n• 설정에서 카카오 ↔ Apple 계정 연결\n• 샘플 데이터로 둘러보기 (앱을 끄면 사라져요)\n• 설정 › 앱 정보에서 최신 버전 확인\n\n[고쳤어요]\n• 받아요 목록의 그림자 · 행사 만들기 버튼이 남던 문제\n• 인터넷이 끊기면 한 번만 알려 드려요\n\n[이렇게 써 봐 주세요]\n1. 로그인 없이 기록 몇 개 → 설정에서 카카오 로그인 → 기록 옮기기\n2. 로그아웃 후 Apple로 로그인 (연결 전이면 새 계정)\n3. 설정에서 Apple 연결 → 로그아웃 → Apple로 로그인해 같은 장부인지\n4. 비행기 모드에서 기록 저장 (회원은 안내가 떠야 정상)\n5. 앱 삭제 후 재설치 → 로그인하면 기록이 돌아오는지"
+    "text": "1.2.0 · 화환 사진도 남기고, 장부는 엑셀로 꺼내요\n\n[새로워졌어요]\n• 화환 · 꽃 사진: 받아요 › 행사에서 찍거나 앨범에서 여러 장 골라 남겨요\n• 사진마다 보낸 분을 적으면 받은 기록 옆에 꽃 표시\n• 엑셀로 내보내기: 요약 · 보낸 · 받은 · 사람별 4개 시트, 합계는 엑셀 함수로\n• 카톡 · 메일로 공유하거나 휴대폰에 저장\n\n[고쳤어요]\n• 빠진 칸이 화면 밖에 있으면 그 칸으로 바로 이동해요\n• 저장 · 삭제 중에는 다른 곳이 눌리지 않고, 진행 중임을 보여 드려요\n• 연결이 너무 느리면 기다리지 않고 알려 드려요\n• 금액이 아주 커도 화면이 넘치지 않아요\n\n[이렇게 써 봐 주세요]\n1. 받아요 › 행사 › 사진 추가 (찍기 · 앨범 여러 장)\n2. 사진을 눌러 보낸 분을 받은 기록에서 고르기 → 목록에 꽃 표시\n3. 설정 › 엑셀로 내보내기 → 공유하기 / 내 휴대폰에 저장 → 파일 열어 보기\n4. 기록하기에서 경조사 종류를 비우고 저장 → 그 칸으로 이동하는지\n5. 회원으로 비행기 모드에서 사진 추가 · 삭제 (안내가 떠야 정상)"
   },
   {
     "language": "en-US",
-    "text": "1.1.0 · Your ledger on any device\n\n[NEW]\n• Sign in with Kakao or Apple: keep your records when you switch phones or reinstall\n• Move records you made before signing in to your account\n• Start without signing in (saved on this device only)\n• Link Kakao and Apple accounts in Settings\n• Explore with sample data (cleared when you close the app)\n• Check for the latest version in Settings › App info\n\n[FIXED]\n• Shadow and Create event button left behind on the Received list\n• You are notified once when the connection drops"
+    "text": "1.2.0 · Keep wreath photos, export your ledger to Excel\n\n[NEW]\n• Wreath and flower photos: take or pick several photos for each of your events\n• Add who sent each photo and a flower mark appears next to their record\n• Export to Excel: summary, sent, received, and per-person sheets with formula totals\n• Share via KakaoTalk or email, or save to your phone\n\n[FIXED]\n• Saving with a missing field now scrolls to that field\n• Other buttons are blocked while saving or deleting, with a progress indicator\n• Very slow connections are cancelled with a notice instead of waiting forever\n• Very large amounts no longer overflow the screen"
   }
 ]
