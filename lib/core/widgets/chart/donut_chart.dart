@@ -88,12 +88,19 @@ class _DonutChartState extends State<DonutChart> {
                   ],
                 ),
               ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (widget.centerLabel != null) AppText.caption(widget.centerLabel!),
-                  if (widget.centerValue != null) AppText.amount(widget.centerValue!),
-                ],
+              // 가운데 빈 원 안에 들어가도록 폭을 제한하고, 금액이 크면 글자를 줄인다.
+              SizedBox(
+                width: radius * 1.15,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (widget.centerLabel != null) AppText.caption(widget.centerLabel!),
+                      if (widget.centerValue != null) AppText.amount(widget.centerValue!),
+                    ],
+                  ),
+                ),
               ),
             ],
           ),
@@ -131,8 +138,17 @@ class _LegendRow extends StatelessWidget {
             decoration: BoxDecoration(color: slice.color, shape: BoxShape.circle),
           ),
           const SizedBox(width: AppSpacing.sm),
-          Expanded(child: AppText(slice.label, style: textStyle)),
-          AppText(slice.value.won, style: textStyle),
+          // 이름은 길면 "…"로 줄이고, 금액은 자리가 모자랄 때만 글자를 줄여 다 보이게 한다. (금액이 수억 원이어도 넘치지 않게)
+          Expanded(flex: 2, child: AppText(slice.label, style: textStyle, maxLines: 1)),
+          const SizedBox(width: AppSpacing.sm),
+          Flexible(
+            flex: 3,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: AppText(slice.value.won, style: textStyle),
+            ),
+          ),
           SizedBox(
             width: 52,
             child: AppText.caption('${percent.round()}%', align: TextAlign.right, color: AppColors.textSecondary),

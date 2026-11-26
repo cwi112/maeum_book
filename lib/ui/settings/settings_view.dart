@@ -8,7 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 /// 설정 탭.
 ///
 /// - 데이터: 샘플 데이터로 둘러보기(메모리 전용, 앱을 끄면 사라짐), 모든 기록 지우기(확인 창 필수, 되돌릴 수 없음)
-/// - 준비 중: 알림, 백업 (누르면 "곧 추가될 기능" 토스트)
+/// - 준비 중: 알림, 백업, 화면 모드(라이트 · 다크 · 시스템) (누르면 "곧 추가될 기능" 토스트)
 /// - 앱 정보: 설치된 버전 표시, 누르면 최신 버전 확인 → 업데이트 안내
 class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
   const SettingsView({super.key});
@@ -138,6 +138,14 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
                   subtitle: const Text('준비 중'),
                   onTap: () => _showComingSoon(context),
                 ),
+                const Divider(indent: AppSpacing.screen, endIndent: AppSpacing.screen),
+                // TODO: 라이트 · 다크 · 시스템(기기 설정 따라가기) 중 고르는 화면. 고른 값은 기기에 저장해 MaterialApp.themeMode로.
+                ListTile(
+                  leading: const Icon(Icons.dark_mode_outlined),
+                  title: const Text('화면 모드'),
+                  subtitle: const Text('라이트 · 다크 · 시스템 (준비 중)'),
+                  onTap: () => _showComingSoon(context),
+                ).testId(TestIds.settingsThemeMode),
               ],
             ),
           ),
