@@ -46,7 +46,7 @@ Codemagic 사이트에서도 같은 빌드를 실시간으로 볼 수 있다.
 |---|---|
 | 이름 · 부제 · 설명 · 키워드 · 프로모션 텍스트 | `docs/STORE_LISTING.md` |
 | 스크린샷 | `store_assets/ios_iphone_6.9` (6.9형), `ios_iphone_6.5` (6.5형), `ios_ipad_13` (13형 iPad) — 01 ~ 06 순서대로 |
-| 개인정보 처리방침 URL | `https://github.com/cwi112/maeum_book/blob/main/docs/PRIVACY_POLICY.md` (먼저 문서의 [ ] 두 곳을 채운다) |
+| 개인정보 처리방침 URL | `https://cwi112.github.io/maeum_book/privacy` (깃허브 페이지, 원본은 docs/PRIVACY_POLICY.md. 먼저 서버 위치 칸을 채운다) |
 | 지원 URL | `https://github.com/cwi112/maeum_book` 또는 문의용 페이지 |
 | 카테고리 | 금융 (보조: 라이프스타일) |
 | 연령 등급 | 모든 질문 "없음" → 4+ |

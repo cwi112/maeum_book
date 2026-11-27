@@ -12,7 +12,7 @@ abstract final class AppDefine {
   static const String appName = '마음장부';
 
   /// 개인정보 처리방침 (스토어 등록 정보 · 설정 › 정보에서 연다). 내용은 docs/PRIVACY_POLICY.md
-  static const String privacyPolicyUrl = 'https://github.com/cwi112/maeum_book/blob/main/docs/PRIVACY_POLICY.md';
+  static const String privacyPolicyUrl = 'https://cwi112.github.io/maeum_book/privacy';
 
   /// 최신 버전 정보 JSON 주소. 저장소 main 브랜치의 app_version.json (릴리스 스크립트가 갱신).
   /// 지금 설치된 버전은 여기 적지 않고 기기에서 읽는다. (pubspec.yaml version → 빌드 시 앱에 들어감)
