@@ -1,4 +1,5 @@
 import 'package:maeum_book/core/core.dart';
+import 'package:maeum_book/core/utils/app_monitor.dart';
 import 'package:maeum_book/data/data.dart';
 import 'package:maeum_book/ui/entry/entry.dart';
 import 'package:maeum_book/ui/event/event.dart';
@@ -108,6 +109,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+  // 사용 분석: 화면이 바뀔 때마다 주소 모양(예: /events/:eventId)을 남긴다. 실제 번호 · 내용은 들어가지 않는다.
+  String? lastScreen;
+  void logScreen() {
+    final screen = router.routerDelegate.currentConfiguration.fullPath;
+    if (screen.isEmpty || screen == lastScreen) return;
+    lastScreen = screen;
+    AppMonitor.logScreen(screen);
+  }
+
+  router.routerDelegate.addListener(logScreen);
+  ref.onDispose(() => router.routerDelegate.removeListener(logScreen));
   ref.onDispose(router.dispose);
   return router;
 });

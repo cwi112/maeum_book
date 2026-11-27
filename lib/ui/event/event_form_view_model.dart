@@ -1,4 +1,5 @@
 import 'package:maeum_book/core/core.dart';
+import 'package:maeum_book/core/utils/app_monitor.dart';
 import 'package:maeum_book/data/data.dart';
 
 /// 행사 만들기·수정 화면의 상태.
@@ -111,8 +112,10 @@ class EventFormViewModel extends BaseAsyncViewModel<EventFormState> {
           memo: form.memo,
         );
       }
+      AppMonitor.logEvent(AppEvents.eventSave, {'mode': original == null ? 'new' : 'edit'});
       return true;
-    } catch (error) {
+    } catch (error, stack) {
+      AppMonitor.recordError(error, stack, reason: '행사 저장');
       onError?.call(error);
       return false;
     } finally {

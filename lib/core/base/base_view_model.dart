@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maeum_book/core/define/typedefs.dart';
+import 'package:maeum_book/core/utils/app_monitor.dart';
 
 /// 일반 화면용 ViewModel의 부모 클래스. (Riverpod `Notifier`)
 ///
@@ -79,6 +80,7 @@ abstract class BaseAsyncViewModel<S> extends AsyncNotifier<S> with TaskRunner {
         }
       },
       onError: (Object error, StackTrace stackTrace) {
+        AppMonitor.recordError(error, stackTrace, reason: '화면 데이터 불러오기');
         if (firstValue.isCompleted) {
           state = AsyncError(error, stackTrace);
         } else {
@@ -109,7 +111,8 @@ mixin TaskRunner {
   Future<T?> runTask<T>(Future<T> Function() task, {ErrorCallback? onError}) async {
     try {
       return await task();
-    } catch (error) {
+    } catch (error, stack) {
+      AppMonitor.recordError(error, stack, reason: '작업 실패');
       onError?.call(error);
       return null;
     }

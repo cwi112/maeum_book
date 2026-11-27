@@ -4,6 +4,7 @@ import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' show KakaoSd
 import 'package:maeum_book/app.dart';
 import 'package:maeum_book/core/core.dart';
 import 'package:maeum_book/core/define/app_env.dart';
+import 'package:maeum_book/core/utils/app_monitor.dart';
 import 'package:maeum_book/core/utils/font_licenses.dart';
 import 'package:maeum_book/data/data.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,6 +20,9 @@ Future<void> main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
   // 스플래시는 Flutter가 첫 화면을 그리는 순간 사라진다. 첫 화면 그리기를 잠시 미뤄서 스플래시를 붙잡아 둔다.
   binding.deferFirstFrame();
+
+  // 오류 기록 · 사용 분석 연결 (가장 먼저: 아래 준비 중에 나는 오류도 남기도록). 실패해도 앱은 켜진다.
+  await AppMonitor.init();
 
   // 카카오 로그인 SDK 준비
   await KakaoSdk.init(nativeAppKey: AppEnv.kakaoNativeAppKey);
