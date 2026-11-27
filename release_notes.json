@@ -1,10 +1,10 @@
 [
   {
     "language": "ko",
-    "text": "1.2.7 · 오류 기록 · 다크 모드 다듬기\n\n[고쳤어요]\n• 다크 모드에서 보내요 · 받아요 탭으로 옮길 때 밝은 색이 잠깐 보이던 문제\n\n[달라졌어요]\n• 전체 지우기 버튼은 입력 중일 때만 보이고, 금액의 원 글자와 겹치지 않아요\n• 앱 오류를 빨리 고칠 수 있도록 오류 정보와 사용 통계를 모아요 (장부 내용은 보내지 않아요)\n• 개인정보 처리방침에 위 내용을 추가했어요\n\n[이렇게 써 봐 주세요]\n1. 다크 모드로 바꾸고 탭을 여러 번 옮겨 보기\n2. 이름 · 금액 · 메모 칸을 눌렀을 때만 지우기 버튼이 나오는지\n3. 평소처럼 기록 · 사진 · 엑셀을 써 보기 (오류가 나면 자동으로 기록돼요)"
+    "text": "1.2.8 · 내 계정 화면 · 화면 다듬기\n\n[달라졌어요]\n• 설정의 내 이름 줄을 누르면 내 계정 화면이 열려요. 로그인 방법 연결 · 로그아웃 · 회원 탈퇴는 여기로 옮겼어요\n• 버튼을 길게 눌러도 설명 말풍선이 뜨지 않아요\n• 개인정보 처리방침 웹페이지 주소가 바뀌었어요 (설정 › 개인정보 처리방침 › 웹으로 보기)\n\n[이렇게 써 봐 주세요]\n1. 로그인한 상태로 설정 › 내 이름 줄 → 내 계정 화면 확인\n2. 뒤로 가기 등 버튼을 길게 눌러 보기\n3. 설정 › 개인정보 처리방침 › 오른쪽 위 웹으로 보기"
   },
   {
     "language": "en-US",
-    "text": "1.2.7 · Error reporting and dark mode polish\n\n[FIXED]\n• A brief light flash when switching tabs in dark mode\n\n[IMPROVED]\n• Clear button shows only while typing and no longer overlaps the currency label\n• Crash reports and usage statistics to fix problems faster (ledger contents are never sent)\n• Privacy policy updated"
+    "text": "1.2.8 · My Account screen\n\n[IMPROVED]\n• Tap your name in Settings to open My Account: sign-in methods, sign out and delete account moved here\n• No more tooltips on long press\n• New privacy policy web address"
   }
 ]
