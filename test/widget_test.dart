@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:drift/drift.dart' show DatabaseConnection, Value, driftRuntimeOptions;
 import 'package:drift/native.dart';
 import 'package:flutter/foundation.dart' show TargetPlatform, debugDefaultTargetPlatformOverride;
+import 'package:flutter/rendering.dart' show RenderParagraph;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
@@ -178,6 +179,43 @@ void main() {
     await pick(ThemeMode.system);
     expect(AppColors.palette, same(AppPalette.light));
     expect(scaffoldColor(), AppPalette.light.background);
+
+    await closeApp(tester);
+  });
+
+  testWidgets('다크로 바꾼 뒤 다른 탭으로 가도 라이트 색이 잠깐도 보이지 않는다', (tester) async {
+    await pumpApp(tester); // 보내요 탭이 라이트로 먼저 만들어져 있다.
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabReceived));
+    await settle(tester); // 받아요 탭도 라이트로 만들어 둔다.
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabSettings));
+    await settle(tester);
+    await tester.scrollUntilVisible(find.bySemanticsIdentifier(TestIds.settingsThemeMode), 200);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsThemeMode));
+    await settle(tester);
+    await tester.tap(find.bySemanticsIdentifier('${TestIds.themeModeOption}_dark'));
+    await settle(tester);
+
+    const light = AppPalette.light;
+    final lightBackgrounds = {light.background, light.surface, light.primaryLight};
+    // 지금 화면에 그려진 배경 색 중 라이트 팔레트 색이 있으면 그 색들을 돌려준다.
+    List<Color> lightColorsOnScreen() => [
+      for (final box in tester.widgetList<DecoratedBox>(find.byType(DecoratedBox)))
+        if (box.decoration case BoxDecoration(:final color?) when lightBackgrounds.contains(color)) color,
+      for (final material in tester.widgetList<Material>(find.byType(Material)))
+        if (lightBackgrounds.contains(material.color)) material.color!,
+      // 글자 색: 라이트의 진한 고동색 글자가 남아 있으면 안 된다.
+      for (final paragraph in tester.renderObjectList<RenderParagraph>(find.byType(RichText)))
+        if (paragraph.text.style?.color == light.textPrimary) light.textPrimary,
+    ];
+
+    for (final tab in [TestIds.tabSent, TestIds.tabReceived, TestIds.tabStats]) {
+      await tester.tap(find.bySemanticsIdentifier(tab));
+      await tester.pump(); // 탭으로 넘어간 바로 첫 화면
+      expect(lightColorsOnScreen(), isEmpty, reason: '$tab 첫 화면에 라이트 색');
+      await tester.pump(const Duration(milliseconds: 100)); // 넘어가는 도중
+      expect(lightColorsOnScreen(), isEmpty, reason: '$tab 넘어가는 도중 라이트 색');
+      await settle(tester);
+    }
 
     await closeApp(tester);
   });
@@ -748,7 +786,7 @@ void main() {
     }
     final list = find.byType(ListView);
     bool hasShadow() => tester
-        .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
+        .widgetList<DecoratedBox>(find.byType(DecoratedBox))
         .any((c) => ((c.decoration as BoxDecoration?)?.boxShadow ?? const []).isNotEmpty);
 
     expect(find.text('보낸 마음 기록'), findsOneWidget); // 처음: 글자 버튼
@@ -778,7 +816,7 @@ void main() {
       await seed(tester, name: '사람$i', amount: 10000 + i);
     }
     bool hasShadow() => tester
-        .widgetList<AnimatedContainer>(find.byType(AnimatedContainer))
+        .widgetList<DecoratedBox>(find.byType(DecoratedBox))
         .any((c) => ((c.decoration as BoxDecoration?)?.boxShadow ?? const []).isNotEmpty);
 
     await tester.fling(find.byType(ListView), const Offset(0, -5000), 3000); // 끝까지 → 버튼 숨김
