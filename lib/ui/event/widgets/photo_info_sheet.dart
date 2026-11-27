@@ -112,7 +112,11 @@ class _PhotoInfoSheetState extends State<PhotoInfoSheet> {
                   textInputAction: TextInputAction.next,
                   // 직접 고쳐 쓰면 받은 기록과의 연결은 푼다.
                   onChanged: (_) => setState(() => _entryId = null),
-                  decoration: const InputDecoration(hintText: '예) 김민준, OO회사 일동', counterText: ''),
+                  decoration: InputDecoration(
+                    hintText: '예) 김민준, OO회사 일동',
+                    counterText: '',
+                    suffixIcon: ClearTextButton(controller: _sender, onCleared: () => setState(() => _entryId = null)),
+                  ),
                 ).testId(TestIds.photoSenderField),
               ),
               if (choices.isNotEmpty) ...[
@@ -138,7 +142,11 @@ class _PhotoInfoSheetState extends State<PhotoInfoSheet> {
                 child: TextField(
                   controller: _memo,
                   maxLength: AppDefine.memoMaxLength,
-                  decoration: const InputDecoration(hintText: '예) 쌀화환 20kg, 꽃바구니', counterText: ''),
+                  decoration: InputDecoration(
+                    hintText: '예) 쌀화환 20kg, 꽃바구니',
+                    counterText: '',
+                    suffixIcon: ClearTextButton(controller: _memo, onCleared: () {}),
+                  ),
                 ).testId(TestIds.photoMemoField),
               ),
               const SizedBox(height: AppSpacing.lg),

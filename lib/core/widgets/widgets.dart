@@ -12,6 +12,7 @@ export 'empty_view.dart';
 export 'form/amount_field.dart';
 export 'form/app_text_field.dart';
 export 'form/choice_chip_group.dart';
+export 'form/clear_text_button.dart';
 export 'form/date_field.dart';
 export 'form/form_section.dart';
 export 'form/search_field.dart';
