@@ -108,6 +108,8 @@ abstract final class TestIds {
   static const String sampleTourEnd = 'sample_tour_end';
   static const String settingsAppInfo = 'settings_app_info';
   static const String settingsPrivacyPolicy = 'settings_privacy_policy';
+  static const String settingsLicenses = 'settings_licenses';
+  static const String datePickerDone = 'date_picker_done'; // 아이폰 날짜 돌림판: 완료
   static const String settingsThemeMode = 'settings_theme_mode';
   static const String themeModeOption = 'theme_mode_option'; // 화면 모드 창 항목 접두어: theme_mode_option_dark
   static const String settingsExcelExport = 'settings_excel_export';
