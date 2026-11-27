@@ -1,0 +1,18 @@
+# 깃허브 페이지 설정: docs 폴더 중 개인정보 처리방침만 웹페이지로 공개한다.
+# 주소: https://cwi112.github.io/maeum_book/privacy
+# (다른 문서는 저장소에서만 보이고 웹페이지로는 만들지 않는다)
+title: 마음장부
+description: 마음장부 개인정보 처리방침
+lang: ko
+theme: jekyll-theme-primer
+exclude:
+  - "*.md"
+  - screenshots
+include:
+  - PRIVACY_POLICY.md
+defaults:
+  - scope:
+      path: PRIVACY_POLICY.md
+    values:
+      permalink: /privacy
+      layout: default
