@@ -25,6 +25,7 @@ class SearchField extends StatefulWidget {
 
 class _SearchFieldState extends State<SearchField> {
   late final TextEditingController _controller = TextEditingController(text: widget.value);
+  final FocusNode _focusNode = FocusNode();
 
   /// 바깥에서 값이 바뀌었는데(예: 초기화) 입력칸 글자와 다르면 맞춘다. 직접 입력 중일 때는 같으므로 건드리지 않는다.
   @override
@@ -36,21 +37,28 @@ class _SearchFieldState extends State<SearchField> {
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return TextField(
+    return ClearableFieldBuilder(
       controller: _controller,
-      onChanged: widget.onChanged,
-      textInputAction: TextInputAction.search,
-      decoration: InputDecoration(
-        hintText: widget.hint,
-        prefixIcon: Icon(Icons.search_rounded, color: AppColors.textSecondary),
-        // 글자가 있을 때만 지우기 버튼을 보여준다. (컨트롤러 값이 바뀔 때마다 이 부분만 다시 그림)
-        suffixIcon: ClearTextButton(controller: _controller, onCleared: () => widget.onChanged('')),
-        contentPadding: const EdgeInsets.symmetric(vertical: 12),
+      focusNode: _focusNode,
+      onCleared: () => widget.onChanged(''),
+      builder: (context, clearButton, _) => TextField(
+        controller: _controller,
+        focusNode: _focusNode,
+        onChanged: widget.onChanged,
+        textInputAction: TextInputAction.search,
+        decoration: InputDecoration(
+          hintText: widget.hint,
+          prefixIcon: Icon(Icons.search_rounded, color: AppColors.textSecondary),
+          // 글자가 있을 때만 지우기 버튼을 보여준다. (컨트롤러 값이 바뀔 때마다 이 부분만 다시 그림)
+          suffixIcon: clearButton,
+          contentPadding: const EdgeInsets.symmetric(vertical: 12),
+        ),
       ),
     );
   }

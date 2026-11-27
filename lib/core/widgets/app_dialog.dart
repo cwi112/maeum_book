@@ -124,10 +124,12 @@ class _PromptDialog extends StatefulWidget {
 
 class _PromptDialogState extends State<_PromptDialog> {
   late final TextEditingController _controller = TextEditingController(text: widget.initialValue);
+  final FocusNode _focusNode = FocusNode();
 
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -139,7 +141,8 @@ class _PromptDialogState extends State<_PromptDialog> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: _controller,
+      // 글자 · 포커스가 바뀌면 확인 버튼(비면 막음)과 지우기 버튼(쓰는 중 + 글자 있을 때)을 다시 그린다.
+      listenable: Listenable.merge([_controller, _focusNode]),
       builder: (context, _) => _AppAlertDialog(
         title: widget.title,
         confirmLabel: widget.confirmLabel,
@@ -149,6 +152,7 @@ class _PromptDialogState extends State<_PromptDialog> {
         onConfirm: _controller.text.trim().isEmpty ? null : _submit,
         content: TextField(
           controller: _controller,
+          focusNode: _focusNode,
           autofocus: true,
           maxLength: widget.maxLength,
           textInputAction: TextInputAction.done,
@@ -156,7 +160,9 @@ class _PromptDialogState extends State<_PromptDialog> {
           decoration: InputDecoration(
             hintText: widget.hint,
             counterText: '',
-            suffixIcon: ClearTextButton(controller: _controller, onCleared: () {}),
+            suffixIcon: _focusNode.hasFocus && _controller.text.isNotEmpty
+                ? ClearTextButton(controller: _controller, onCleared: () {})
+                : null,
           ),
         ).testId(TestIds.dialogInput),
       ),

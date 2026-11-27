@@ -72,12 +72,16 @@ class PhotoInfoSheet extends StatefulWidget {
 class _PhotoInfoSheetState extends State<PhotoInfoSheet> {
   late final _sender = TextEditingController(text: widget.photo.senderName ?? '');
   late final _memo = TextEditingController(text: widget.photo.memo ?? '');
+  final _senderFocus = FocusNode();
+  final _memoFocus = FocusNode();
   late int? _entryId = widget.photo.entryId;
 
   @override
   void dispose() {
     _sender.dispose();
     _memo.dispose();
+    _senderFocus.dispose();
+    _memoFocus.dispose();
     super.dispose();
   }
 
@@ -106,16 +110,18 @@ class _PhotoInfoSheetState extends State<PhotoInfoSheet> {
               const SizedBox(height: AppSpacing.lg),
               FormSection(
                 label: '보낸 분',
-                child: TextField(
+                child: ClearableFieldBuilder(
                   controller: _sender,
-                  maxLength: AppDefine.personNameMaxLength,
-                  textInputAction: TextInputAction.next,
-                  // 직접 고쳐 쓰면 받은 기록과의 연결은 푼다.
-                  onChanged: (_) => setState(() => _entryId = null),
-                  decoration: InputDecoration(
-                    hintText: '예) 김민준, OO회사 일동',
-                    counterText: '',
-                    suffixIcon: ClearTextButton(controller: _sender, onCleared: () => setState(() => _entryId = null)),
+                  focusNode: _senderFocus,
+                  onCleared: () => setState(() => _entryId = null),
+                  builder: (context, clearButton, _) => TextField(
+                    controller: _sender,
+                    focusNode: _senderFocus,
+                    maxLength: AppDefine.personNameMaxLength,
+                    textInputAction: TextInputAction.next,
+                    // 직접 고쳐 쓰면 받은 기록과의 연결은 푼다.
+                    onChanged: (_) => setState(() => _entryId = null),
+                    decoration: InputDecoration(hintText: '예) 김민준, OO회사 일동', counterText: '', suffixIcon: clearButton),
                   ),
                 ).testId(TestIds.photoSenderField),
               ),
@@ -139,13 +145,19 @@ class _PhotoInfoSheetState extends State<PhotoInfoSheet> {
               const SizedBox(height: AppSpacing.lg),
               FormSection(
                 label: '메모',
-                child: TextField(
+                child: ClearableFieldBuilder(
                   controller: _memo,
-                  maxLength: AppDefine.memoMaxLength,
-                  decoration: InputDecoration(
-                    hintText: '예) 쌀화환 20kg, 꽃바구니',
-                    counterText: '',
-                    suffixIcon: ClearTextButton(controller: _memo, onCleared: () {}),
+                  focusNode: _memoFocus,
+                  onCleared: () {},
+                  builder: (context, clearButton, _) => TextField(
+                    controller: _memo,
+                    focusNode: _memoFocus,
+                    maxLength: AppDefine.memoMaxLength,
+                    decoration: InputDecoration(
+                      hintText: '예) 쌀화환 20kg, 꽃바구니',
+                      counterText: '',
+                      suffixIcon: clearButton,
+                    ),
                   ),
                 ).testId(TestIds.photoMemoField),
               ),

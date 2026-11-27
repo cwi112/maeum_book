@@ -47,9 +47,13 @@ void main() {
   });
 
   group('AppTextField: 전체 지우기', () {
-    testWidgets('글자가 있을 때만 ⓧ가 보이고, 누르면 비우고 빈 값을 알린다', (tester) async {
+    testWidgets('쓰는 중(포커스) + 글자가 있을 때만 ⓧ가 보이고, 누르면 비우고 빈 값을 알린다', (tester) async {
       String? changed;
       await tester.pumpWidget(_wrap(AppTextField(initialValue: '김민준', onChanged: (v) => changed = v)));
+      expect(find.byTooltip(ClearTextButton.tooltip), findsNothing); // 누르기 전에는 숨김
+
+      await tester.tap(find.byType(TextFormField));
+      await tester.pump();
       expect(find.byTooltip(ClearTextButton.tooltip), findsOneWidget);
 
       await tester.tap(find.byTooltip(ClearTextButton.tooltip));
@@ -61,10 +65,17 @@ void main() {
       await tester.enterText(find.byType(TextFormField), '이서연');
       await tester.pump();
       expect(find.byTooltip(ClearTextButton.tooltip), findsOneWidget);
+
+      // 다른 곳을 눌러 입력을 마치면 다시 숨김
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pump();
+      expect(find.byTooltip(ClearTextButton.tooltip), findsNothing);
     });
 
     testWidgets('여러 줄 메모: ⓧ는 줄이 늘어도 첫 줄 높이(오른쪽 위)에 있다', (tester) async {
       await tester.pumpWidget(_wrap(AppTextField(initialValue: '첫 줄\n둘째 줄\n셋째 줄', maxLines: 3, onChanged: (_) {})));
+      await tester.tap(find.byType(TextFormField));
+      await tester.pump();
       final field = tester.getRect(find.byType(TextFormField));
       final button = tester.getRect(find.byTooltip(ClearTextButton.tooltip));
       expect(button.top - field.top, lessThan(8)); // 위쪽에 붙어 있다 (가운데로 내려가지 않음)
@@ -88,6 +99,16 @@ void main() {
     await tester.pump();
     expect(amount, 1500000);
     expect(find.text('1,500,000'), findsOneWidget);
+
+    // 쓰는 중이 아니면 ⓧ 없이 '원'이 오른쪽 끝에 있다.
+    expect(find.byTooltip(ClearTextButton.tooltip), findsNothing);
+    await tester.tap(find.byType(TextField));
+    await tester.pump();
+    // 쓰는 중: ⓧ가 '원' 오른쪽에 나오고 서로 겹치지 않는다.
+    final won = tester.getRect(find.text('원'));
+    final clear = tester.getRect(find.byTooltip(ClearTextButton.tooltip));
+    expect(won.right, lessThanOrEqualTo(clear.left));
+    expect(won.overlaps(clear), isFalse);
 
     await tester.tap(find.byTooltip(ClearTextButton.tooltip));
     await tester.pump();
