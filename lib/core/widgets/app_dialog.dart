@@ -3,6 +3,7 @@ import 'package:maeum_book/core/extensions/widget_extension.dart';
 import 'package:maeum_book/core/theme/app_colors.dart';
 import 'package:maeum_book/core/theme/app_dimens.dart';
 import 'package:maeum_book/core/widgets/app_text.dart';
+import 'package:maeum_book/core/widgets/form/clear_text_button.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// 앱 공통 확인·입력 창.
@@ -152,7 +153,11 @@ class _PromptDialogState extends State<_PromptDialog> {
           maxLength: widget.maxLength,
           textInputAction: TextInputAction.done,
           onSubmitted: (_) => _submit(),
-          decoration: InputDecoration(hintText: widget.hint, counterText: ''),
+          decoration: InputDecoration(
+            hintText: widget.hint,
+            counterText: '',
+            suffixIcon: ClearTextButton(controller: _controller, onCleared: () {}),
+          ),
         ).testId(TestIds.dialogInput),
       ),
     );

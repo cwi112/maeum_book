@@ -1,5 +1,6 @@
 import 'package:maeum_book/core/define/typedefs.dart';
 import 'package:maeum_book/core/theme/app_colors.dart';
+import 'package:maeum_book/core/widgets/form/clear_text_button.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// 검색창. 왼쪽에 돋보기, 글자가 있으면 오른쪽에 지우기(X) 버튼이 나온다.
@@ -38,11 +39,6 @@ class _SearchFieldState extends State<SearchField> {
     super.dispose();
   }
 
-  void _clear() {
-    _controller.clear();
-    widget.onChanged('');
-  }
-
   @override
   Widget build(BuildContext context) {
     return TextField(
@@ -53,12 +49,7 @@ class _SearchFieldState extends State<SearchField> {
         hintText: widget.hint,
         prefixIcon: Icon(Icons.search_rounded, color: AppColors.textSecondary),
         // 글자가 있을 때만 지우기 버튼을 보여준다. (컨트롤러 값이 바뀔 때마다 이 부분만 다시 그림)
-        suffixIcon: ListenableBuilder(
-          listenable: _controller,
-          builder: (context, _) => _controller.text.isEmpty
-              ? const SizedBox.shrink()
-              : IconButton(icon: const Icon(Icons.close_rounded, size: 20), onPressed: _clear, tooltip: '지우기'),
-        ),
+        suffixIcon: ClearTextButton(controller: _controller, onCleared: () => widget.onChanged('')),
         contentPadding: const EdgeInsets.symmetric(vertical: 12),
       ),
     );

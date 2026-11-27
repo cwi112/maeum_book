@@ -2,9 +2,11 @@ import 'package:flutter/services.dart';
 import 'package:maeum_book/core/define/typedefs.dart';
 import 'package:maeum_book/core/extensions/extensions.dart';
 import 'package:maeum_book/core/theme/app_dimens.dart';
+import 'package:maeum_book/core/widgets/form/clear_text_button.dart';
 import 'package:material_ui/material_ui.dart';
 
-/// 금액 입력칸. 입력하면 세 자리마다 쉼표가 자동으로 찍히고, 아래 버튼으로 금액을 빠르게 더할 수 있다.
+/// 금액 입력칸. 입력하면 세 자리마다 쉼표가 자동으로 찍히고, 아래 버튼(+1만 · +5만 · +10만 · +50만 · +100만)으로
+/// 금액을 빠르게 더할 수 있다. 오른쪽 ⓧ로 전체 지우기.
 ///
 /// ```dart
 /// AmountField(value: state.amount, onChanged: viewModel.setAmount, errorText: state.amountError)
@@ -21,7 +23,7 @@ class AmountField extends StatefulWidget {
     required this.onChanged,
     this.errorText,
     this.maxAmount,
-    this.quickAmounts = const [10000, 50000, 100000],
+    this.quickAmounts = const [10000, 50000, 100000, 500000, 1000000],
     this.testId,
   });
 
@@ -85,11 +87,17 @@ class _AmountFieldState extends State<AmountField> {
           textInputAction: TextInputAction.next,
           inputFormatters: [_ThousandsFormatter(widget.maxAmount)],
           onChanged: (text) => widget.onChanged(text.toAmount ?? 0),
-          decoration: InputDecoration(hintText: '0', suffixText: '원', errorText: widget.errorText),
+          decoration: InputDecoration(
+            hintText: '0',
+            suffixText: '원',
+            errorText: widget.errorText,
+            suffixIcon: ClearTextButton(controller: _controller, onCleared: () => widget.onChanged(0)),
+          ),
         ).testIdOrSelf(widget.testId),
         const SizedBox(height: AppSpacing.sm),
         Wrap(
           spacing: AppSpacing.sm,
+          runSpacing: AppSpacing.xs,
           children: [
             // 10000 → '+1만', 50000 → '+5만'
             for (final amount in widget.quickAmounts)
@@ -97,7 +105,6 @@ class _AmountFieldState extends State<AmountField> {
                 label: Text('+${amount ~/ 10000}만'),
                 onPressed: () => _add(amount),
               ).testIdOrSelf(widget.testId == null ? null : '${widget.testId}_add_$amount'),
-            ActionChip(label: const Text('지우기'), onPressed: () => widget.onChanged(0)),
           ],
         ),
       ],

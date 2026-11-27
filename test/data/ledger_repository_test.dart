@@ -204,7 +204,10 @@ void main() {
     expect(all.map((e) => e.direction).toSet(), RecordDirection.values.toSet());
     expect(all.every((e) => e.date.isAfter(now.subtract(const Duration(days: 731)))), isTrue);
     final events = await EventRepository(database.eventDao).watchSummaries().first;
-    expect(events.length, 5); // 내 행사 5개
+    expect(events.length, SampleData.eventCount); // 내 행사 (행사 칩이 3줄을 넘을 만큼 많이)
+    // 샘플 전용 경조사 종류도 더해진다. (종류 칩 가로 스크롤 확인용)
+    final typeNames = (await database.select(database.eventTypes).get()).map((t) => t.name);
+    expect(typeNames, containsAll(SampleData.extraTypeNames));
     expect(all.where((e) => e.direction == RecordDirection.received).every((e) => e.eventId != null), isTrue);
   });
 
