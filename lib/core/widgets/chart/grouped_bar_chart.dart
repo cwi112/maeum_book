@@ -67,7 +67,7 @@ class GroupedBarChart extends StatelessWidget {
               gridData: FlGridData(
                 drawVerticalLine: false,
                 horizontalInterval: step,
-                getDrawingHorizontalLine: (_) => const FlLine(color: AppColors.divider, strokeWidth: 1),
+                getDrawingHorizontalLine: (_) => FlLine(color: AppColors.divider, strokeWidth: 1),
               ),
               borderData: FlBorderData(show: false),
               titlesData: FlTitlesData(

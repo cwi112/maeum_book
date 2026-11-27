@@ -79,7 +79,7 @@ class _SampleTourBanner extends ConsumerWidget {
         bottom: false,
         child: Row(
           children: [
-            const Icon(Icons.auto_awesome_outlined, size: 18, color: AppColors.primary),
+            Icon(Icons.auto_awesome_outlined, size: 18, color: AppColors.primary),
             const SizedBox(width: AppSpacing.sm),
             const Expanded(child: AppText.bodySmall('샘플 데이터로 둘러보는 중이에요 · 앱을 끄면 사라져요')),
             TextButton(

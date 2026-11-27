@@ -48,7 +48,7 @@ class ExcelExportSheet extends StatelessWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.table_view_outlined, color: AppColors.success),
+                Icon(Icons.table_view_outlined, color: AppColors.success),
                 const SizedBox(width: AppSpacing.sm),
                 AppText.subtitle(file.fileName, maxLines: 1).expanded(),
               ],
@@ -57,7 +57,7 @@ class ExcelExportSheet extends StatelessWidget {
             AppText.caption('보낸 ${file.sentCount}건 · 받은 ${file.receivedCount}건 · 합계는 엑셀 함수로 들어 있어요'),
             if (file.mayBeOutdated) ...[
               const SizedBox(height: AppSpacing.xs),
-              const AppText.caption('인터넷이 끊겨 있어서 마지막으로 받아 온 기록 기준이에요', color: AppColors.error),
+              AppText.caption('인터넷이 끊겨 있어서 마지막으로 받아 온 기록 기준이에요', color: AppColors.error),
             ],
             const SizedBox(height: AppSpacing.lg),
             Builder(

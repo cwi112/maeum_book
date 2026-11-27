@@ -109,7 +109,7 @@ class EventTypeView extends BaseAsyncView<EventTypeViewModel, List<EventType>> {
                   title: AppText.body(type.name),
                   trailing: type.isProtected
                       ? const AppText.caption('기본')
-                      : const Icon(Icons.edit_outlined, size: 18, color: AppColors.textHint),
+                      : Icon(Icons.edit_outlined, size: 18, color: AppColors.textHint),
                   onTap: () => _rename(context, viewModel, type),
                 ).testId(TestIds.eventTypeTile(type.id)),
               ),

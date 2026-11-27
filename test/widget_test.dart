@@ -8,9 +8,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 import 'package:maeum_book/app.dart';
-import 'package:maeum_book/core/define/app_define.dart';
 import 'package:maeum_book/core/define/test_ids.dart';
 import 'package:maeum_book/core/errors/network_exception.dart';
+import 'package:maeum_book/core/theme/app_colors.dart';
 import 'package:maeum_book/core/theme/app_theme.dart';
 import 'package:maeum_book/data/data.dart';
 import 'package:maeum_book/data/database/app_database.dart' show EventPhotosCompanion;
@@ -150,14 +150,34 @@ void main() {
     await closeApp(tester);
   });
 
-  testWidgets('설정의 화면 모드는 준비 중 안내만 띄운다', (tester) async {
+  testWidgets('설정 › 화면 모드: 다크를 고르면 바로 어두워지고, 시스템으로 돌리면 기기 설정(라이트)을 따른다', (tester) async {
     await pumpApp(tester);
     await tester.tap(find.bySemanticsIdentifier(TestIds.tabSettings));
     await settle(tester);
-    await tester.scrollUntilVisible(find.bySemanticsIdentifier(TestIds.settingsThemeMode), 200);
-    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsThemeMode));
-    await tester.pump();
-    expect(find.text(AppDefine.comingSoonMessage), findsOneWidget);
+    expect(find.text('시스템 설정 따라가기'), findsOneWidget); // 기본값
+
+    Future<void> pick(ThemeMode mode) async {
+      await tester.scrollUntilVisible(find.bySemanticsIdentifier(TestIds.settingsThemeMode), 200);
+      await tester.tap(find.bySemanticsIdentifier(TestIds.settingsThemeMode));
+      await settle(tester);
+      await tester.tap(find.bySemanticsIdentifier('${TestIds.themeModeOption}_${mode.name}'));
+      await settle(tester);
+    }
+
+    Color scaffoldColor() => tester
+        .widget<Material>(find.descendant(of: find.byType(Scaffold).last, matching: find.byType(Material)).first)
+        .color!;
+
+    await pick(ThemeMode.dark);
+    expect(AppColors.palette, same(AppPalette.dark));
+    expect(scaffoldColor(), AppPalette.dark.background);
+    expect(find.text('다크'), findsOneWidget); // 설정 줄에 고른 값
+    // AppColors를 바로 쓰는 위젯(설정 줄의 화살표)도 다시 그려져 어두운 색이 된다.
+    expect(tester.widget<Icon>(find.byIcon(Icons.chevron_right_rounded).first).color, AppPalette.dark.textHint);
+
+    await pick(ThemeMode.system);
+    expect(AppColors.palette, same(AppPalette.light));
+    expect(scaffoldColor(), AppPalette.light.background);
 
     await closeApp(tester);
   });

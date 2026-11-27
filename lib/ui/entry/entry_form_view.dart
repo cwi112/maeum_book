@@ -202,7 +202,7 @@ class _EventPicker extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (state.events.isEmpty)
-          const AppText.body('아직 만든 행사가 없어요. 먼저 행사를 만들어 주세요.', color: AppColors.textSecondary)
+          AppText.body('아직 만든 행사가 없어요. 먼저 행사를 만들어 주세요.', color: AppColors.textSecondary)
         else
           ChoiceChipGroup<int>(
             values: [for (final event in state.events) event.id],

@@ -109,6 +109,7 @@ abstract final class TestIds {
   static const String settingsAppInfo = 'settings_app_info';
   static const String settingsPrivacyPolicy = 'settings_privacy_policy';
   static const String settingsThemeMode = 'settings_theme_mode';
+  static const String themeModeOption = 'theme_mode_option'; // 화면 모드 창 항목 접두어: theme_mode_option_dark
   static const String settingsExcelExport = 'settings_excel_export';
   static const String excelShare = 'excel_share'; // 엑셀 내보내기 창: 공유하기
   static const String excelSave = 'excel_save'; // 엑셀 내보내기 창: 내 휴대폰에 저장

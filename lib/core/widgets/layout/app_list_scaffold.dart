@@ -144,7 +144,7 @@ class _AppListScaffoldState extends State<AppListScaffold> {
                   decoration: BoxDecoration(
                     color: AppColors.background,
                     boxShadow: _scrolled
-                        ? const [BoxShadow(color: AppColors.shadow, blurRadius: 8, offset: Offset(0, 2))]
+                        ? [BoxShadow(color: AppColors.shadow, blurRadius: 8, offset: const Offset(0, 2))]
                         : const [],
                   ),
                   padding: const EdgeInsets.only(bottom: AppSpacing.sm),

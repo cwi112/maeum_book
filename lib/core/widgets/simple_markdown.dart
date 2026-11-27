@@ -74,7 +74,7 @@ class SimpleMarkdown extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const AppText.body('•  ', color: AppColors.textSecondary),
+              AppText.body('•  ', color: AppColors.textSecondary),
               AppText.body(_plain(line.substring(2))).expanded(),
             ],
           ).paddingOnly(bottom: AppSpacing.xs),

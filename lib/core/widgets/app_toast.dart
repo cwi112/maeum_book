@@ -7,14 +7,20 @@ import 'package:material_ui/material_ui.dart';
 
 /// 토스트 종류. 종류에 따라 아이콘과 색이 바뀐다.
 enum ToastType {
-  success(Icons.check_circle_rounded, AppColors.success),
-  error(Icons.error_rounded, AppColors.error),
-  info(Icons.info_rounded, AppColors.secondary);
+  success(Icons.check_circle_rounded),
+  error(Icons.error_rounded),
+  info(Icons.info_rounded);
 
-  const ToastType(this.icon, this.color);
+  const ToastType(this.icon);
 
   final IconData icon;
-  final Color color;
+
+  /// 화면 모드(라이트 · 다크)에 맞는 색
+  Color get color => switch (this) {
+    ToastType.success => AppColors.success,
+    ToastType.error => AppColors.error,
+    ToastType.info => AppColors.secondary,
+  };
 }
 
 /// 화면 아래에 잠깐 떴다 사라지는 알림. (Material SnackBar를 앱 디자인에 맞게 꾸민 것)

@@ -173,11 +173,7 @@ class _DimContent extends StatelessWidget {
             AppText.subtitle(message ?? '처리하는 중이에요', color: Colors.white, align: TextAlign.center),
             if (slow) ...[
               const SizedBox(height: AppSpacing.xs),
-              const AppText.caption(
-                '연결이 느려요. 조금만 기다려 주세요',
-                color: AppColors.loadingDimSubtext,
-                align: TextAlign.center,
-              ),
+              AppText.caption('연결이 느려요. 조금만 기다려 주세요', color: AppColors.loadingDimSubtext, align: TextAlign.center),
             ],
           ],
         ),
