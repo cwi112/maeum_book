@@ -1,4 +1,5 @@
 import 'package:maeum_book/core/core.dart';
+import 'package:maeum_book/core/utils/app_monitor.dart';
 import 'package:maeum_book/data/data.dart';
 
 part 'entry_form_state.dart';
@@ -128,8 +129,13 @@ class EntryFormViewModel extends BaseAsyncViewModel<EntryFormState> {
           memo: form.memo,
         );
       }
+      AppMonitor.logEvent(AppEvents.entrySave, {
+        'direction': form.direction.name,
+        'mode': original == null ? 'new' : 'edit',
+      });
       return true;
-    } catch (error) {
+    } catch (error, stack) {
+      AppMonitor.recordError(error, stack, reason: '기록 저장');
       onError?.call(error);
       return false;
     } finally {

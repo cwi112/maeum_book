@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart' show TargetPlatform, defaultTargetPlatform;
 import 'package:maeum_book/core/core.dart';
+import 'package:maeum_book/core/utils/app_monitor.dart';
 import 'package:maeum_book/data/data.dart';
 
 /// 로그인 방법 (로그인 · 계정 연결에 같이 쓴다)
@@ -42,11 +43,13 @@ class LoginViewModel extends BaseViewModel<LoginMethod?> {
       }
       // 회원이 됐으므로 비회원 표시는 지운다. (나중에 로그아웃하면 시작 화면이 다시 나오게)
       await ref.read(guestModeProvider.notifier).exit();
+      AppMonitor.logEvent(AppEvents.login, {'method': method.name});
       return true;
     } on AuthFailure catch (failure) {
       if (!failure.isCanceled) onFailure?.call(failure); // 사용자가 닫은 것은 오류로 보지 않는다.
       return false;
-    } catch (error) {
+    } catch (error, stack) {
+      AppMonitor.recordError(error, stack, reason: '로그인');
       onFailure?.call(AuthFailure(AuthFailureType.unknown, error));
       return false;
     } finally {
@@ -55,7 +58,10 @@ class LoginViewModel extends BaseViewModel<LoginMethod?> {
   }
 
   /// "로그인 없이 시작하기"
-  Future<void> continueAsGuest() => ref.read(guestModeProvider.notifier).enter();
+  Future<void> continueAsGuest() {
+    AppMonitor.logEvent(AppEvents.guestStart);
+    return ref.read(guestModeProvider.notifier).enter();
+  }
 
   // ── 첫 로그인: 비로그인 기록 연동 ───────
 

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:maeum_book/core/utils/app_monitor.dart';
 import 'package:maeum_book/data/repositories/guest_mode.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,6 +20,7 @@ class ThemeModeNotifier extends Notifier<ThemeMode> {
 
   Future<void> set(ThemeMode mode) async {
     state = mode;
+    AppMonitor.logEvent(AppEvents.themeMode, {'mode': mode.name});
     await _prefs.setString(_key, mode.name);
   }
 }

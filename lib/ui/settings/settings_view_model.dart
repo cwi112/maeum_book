@@ -1,6 +1,7 @@
 import 'dart:isolate';
 
 import 'package:maeum_book/core/core.dart';
+import 'package:maeum_book/core/utils/app_monitor.dart';
 import 'package:maeum_book/data/data.dart';
 import 'package:maeum_book/ui/login/login_view_model.dart';
 
@@ -30,6 +31,7 @@ class SettingsViewModel extends BaseViewModel<SettingsState> {
   Future<int?> startSampleTour({ErrorCallback? onError}) {
     ref.read(samplePhotoFilesProvider).clear(); // 지난 둘러보기에서 넣은 사진은 비운다
     ref.read(sampleModeProvider.notifier).enter();
+    AppMonitor.logEvent(AppEvents.sampleTour);
     // enter 뒤에 읽어야 임시 DB를 쓰는 Repository가 나온다.
     return runTask(ref.read(ledgerRepositoryProvider).addSamples, onError: onError);
   }
@@ -73,7 +75,8 @@ class SettingsViewModel extends BaseViewModel<SettingsState> {
         receivedCount: exporter.receivedCount,
         mayBeOutdated: isMember && ref.read(isOnlineProvider).value == false,
       );
-    } catch (error) {
+    } catch (error, stack) {
+      AppMonitor.recordError(error, stack, reason: '엑셀 만들기');
       onError?.call(error);
       return null;
     } finally {
@@ -82,12 +85,18 @@ class SettingsViewModel extends BaseViewModel<SettingsState> {
   }
 
   /// 공유 창으로 보낸다. 끝까지 공유했으면 true.
-  Future<bool> shareExcel(ExcelExportFile file, {Rect? origin}) =>
-      ref.read(exportFileServiceProvider).share(file.bytes, file.fileName, origin: origin);
+  Future<bool> shareExcel(ExcelExportFile file, {Rect? origin}) async {
+    final done = await ref.read(exportFileServiceProvider).share(file.bytes, file.fileName, origin: origin);
+    if (done) AppMonitor.logEvent(AppEvents.excelExport, {'action': 'share'});
+    return done;
+  }
 
   /// 휴대폰에 저장한다 (저장 위치 고르기). 저장했으면 true.
-  Future<bool> saveExcel(ExcelExportFile file) =>
-      ref.read(exportFileServiceProvider).saveToDevice(file.bytes, file.fileName);
+  Future<bool> saveExcel(ExcelExportFile file) async {
+    final done = await ref.read(exportFileServiceProvider).saveToDevice(file.bytes, file.fileName);
+    if (done) AppMonitor.logEvent(AppEvents.excelExport, {'action': 'save'});
+    return done;
+  }
 
   AuthRepository get _authRepository => ref.read(authRepositoryProvider);
 
@@ -134,7 +143,8 @@ class SettingsViewModel extends BaseViewModel<SettingsState> {
     } on AuthFailure catch (failure) {
       if (!failure.isCanceled) onFailure?.call(failure);
       return false;
-    } catch (error) {
+    } catch (error, stack) {
+      AppMonitor.recordError(error, stack, reason: '계정 작업');
       onFailure?.call(AuthFailure(AuthFailureType.unknown, error));
       return false;
     }

@@ -1,6 +1,7 @@
 import 'dart:typed_data';
 
 import 'package:maeum_book/core/core.dart';
+import 'package:maeum_book/core/utils/app_monitor.dart';
 import 'package:maeum_book/data/data.dart';
 
 /// 사진을 어디서 가져올지
@@ -125,11 +126,13 @@ class EventDetailViewModel extends BaseAsyncViewModel<EventDetailState> {
         await _photos.add(eventId, raw);
         added++;
       }
-    } catch (error) {
+    } catch (error, stack) {
+      AppMonitor.recordError(error, stack, reason: '사진 추가');
       onError?.call(error);
     } finally {
       _setAdding(false);
     }
+    if (added > 0) AppMonitor.logEvent(AppEvents.photoAdd, {'source': source.name, 'count': added});
     return added;
   }
 
