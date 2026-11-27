@@ -251,6 +251,18 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
                   // 앱 안에 들어 있는 글을 보여 준다. (인터넷 없이도) 웹 페이지는 그 화면 오른쪽 위에서
                   onTap: () => context.pushOnce(AppRoutes.privacyPolicy),
                 ).testId(TestIds.settingsPrivacyPolicy),
+                const Divider(indent: AppSpacing.screen, endIndent: AppSpacing.screen),
+                // 앱에 쓴 패키지 · 글꼴의 저작권 안내. 대부분 "배포할 때 라이선스를 함께 넣을 것"이 조건이다.
+                ListTile(
+                  leading: const Icon(Icons.description_outlined),
+                  title: const Text('오픈소스 라이선스'),
+                  trailing: Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+                  onTap: () => showLicensePage(
+                    context: context,
+                    applicationName: AppDefine.appName,
+                    applicationVersion: state.appVersion,
+                  ),
+                ).testId(TestIds.settingsLicenses),
               ],
             ),
           ),

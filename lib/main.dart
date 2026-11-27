@@ -4,6 +4,7 @@ import 'package:kakao_flutter_sdk_user/kakao_flutter_sdk_user.dart' show KakaoSd
 import 'package:maeum_book/app.dart';
 import 'package:maeum_book/core/core.dart';
 import 'package:maeum_book/core/define/app_env.dart';
+import 'package:maeum_book/core/utils/font_licenses.dart';
 import 'package:maeum_book/data/data.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' show Supabase;
@@ -29,6 +30,9 @@ Future<void> main() async {
     publishableKey: AppEnv.supabasePublishableKey,
     httpClient: TimeoutHttpClient(),
   );
+
+  // 글꼴 라이선스를 오픈소스 라이선스 화면에 더한다. (패키지 라이선스는 자동)
+  FontLicenses.register();
 
   // 비회원 모드 같은 간단한 설정값 (첫 화면을 정하려고 앱을 그리기 전에 미리 읽는다)
   final prefs = await SharedPreferences.getInstance();
