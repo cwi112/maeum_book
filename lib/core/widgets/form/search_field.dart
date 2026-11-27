@@ -51,7 +51,7 @@ class _SearchFieldState extends State<SearchField> {
       textInputAction: TextInputAction.search,
       decoration: InputDecoration(
         hintText: widget.hint,
-        prefixIcon: const Icon(Icons.search_rounded, color: AppColors.textSecondary),
+        prefixIcon: Icon(Icons.search_rounded, color: AppColors.textSecondary),
         // 글자가 있을 때만 지우기 버튼을 보여준다. (컨트롤러 값이 바뀔 때마다 이 부분만 다시 그림)
         suffixIcon: ListenableBuilder(
           listenable: _controller,

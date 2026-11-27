@@ -10,7 +10,8 @@ import 'package:url_launcher/url_launcher.dart';
 ///
 /// - 데이터: 샘플 데이터로 둘러보기(메모리 전용, 앱을 끄면 사라짐), 모든 기록 지우기(확인 창 필수, 되돌릴 수 없음)
 /// - 데이터: 엑셀로 내보내기(공유하기 · 내 휴대폰에 저장)
-/// - 준비 중: 알림, 백업, 화면 모드(라이트 · 다크 · 시스템) (누르면 "곧 추가될 기능" 토스트)
+/// - 화면: 화면 모드(시스템 · 라이트 · 다크) 고르기
+/// - 준비 중: 알림, 백업 (누르면 "곧 추가될 기능" 토스트)
 /// - 앱 정보: 설치된 버전 표시, 누르면 최신 버전 확인 → 업데이트 안내 · 개인정보 처리방침(웹 페이지)
 class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
   const SettingsView({super.key});
@@ -114,9 +115,31 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
     }
   }
 
+  static IconData _themeModeIcon(ThemeMode mode) => switch (mode) {
+    ThemeMode.system => Icons.brightness_auto_outlined,
+    ThemeMode.light => Icons.light_mode_outlined,
+    ThemeMode.dark => Icons.dark_mode_outlined,
+  };
+
+  /// 화면 모드 고르기: 시스템(기기 설정 따라가기) · 라이트 · 다크. 고르면 바로 바뀌고 기기에 저장된다.
+  Future<void> _pickThemeMode(BuildContext context, WidgetRef ref, ThemeMode current) async {
+    final picked = await AppChoiceSheet.show<ThemeMode>(
+      context,
+      title: '화면 모드',
+      values: const [ThemeMode.system, ThemeMode.light, ThemeMode.dark],
+      selected: current,
+      labelOf: (mode) => mode.label,
+      iconOf: _themeModeIcon,
+      descriptionOf: (mode) => mode == ThemeMode.system ? '휴대폰이 다크 모드면 앱도 어둡게 바뀌어요' : null,
+      testIdOf: (mode) => '${TestIds.themeModeOption}_${mode.name}',
+    );
+    if (picked != null) await ref.read(themeModeProvider.notifier).set(picked);
+  }
+
   @override
   Widget buildView(BuildContext context, WidgetRef ref, SettingsState state, SettingsViewModel viewModel) {
     final sampleMode = ref.watch(sampleModeProvider);
+    final themeMode = ref.watch(themeModeProvider);
     return Scaffold(
       appBar: AppBar(title: const Text('설정')),
       body: ListView(
@@ -130,9 +153,19 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
               leading: const Icon(Icons.category_outlined),
               title: const Text('경조사 종류 관리'),
               subtitle: const Text('환갑·졸업처럼 필요한 종류를 추가하거나 지워요'),
-              trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+              trailing: Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
               onTap: () => context.pushOnce(AppRoutes.eventTypes),
             ).testId(TestIds.settingsEventTypes),
+          ),
+          const _SectionLabel('화면'),
+          Card(
+            child: ListTile(
+              leading: Icon(_themeModeIcon(themeMode)),
+              title: const Text('화면 모드'),
+              subtitle: Text(themeMode.label),
+              trailing: Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+              onTap: () => _pickThemeMode(context, ref, themeMode),
+            ).testId(TestIds.settingsThemeMode),
           ),
           const _SectionLabel('데이터'),
           Card(
@@ -167,8 +200,8 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
                   const Divider(indent: AppSpacing.screen, endIndent: AppSpacing.screen),
                   // 샘플 중에는 숨긴다. (샘플만 지우는데 "모든 기록"이 지워지는 줄 알고 놀라지 않게)
                   ListTile(
-                    leading: const Icon(Icons.delete_sweep_outlined, color: AppColors.error),
-                    title: const AppText.body('모든 기록 지우기', color: AppColors.error),
+                    leading: Icon(Icons.delete_sweep_outlined, color: AppColors.error),
+                    title: AppText.body('모든 기록 지우기', color: AppColors.error),
                     onTap: () => _clearAll(context, viewModel),
                   ).testId(TestIds.settingsClear),
                 ],
@@ -193,14 +226,6 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
                   subtitle: const Text('준비 중'),
                   onTap: () => _showComingSoon(context),
                 ),
-                const Divider(indent: AppSpacing.screen, endIndent: AppSpacing.screen),
-                // TODO: 라이트 · 다크 · 시스템(기기 설정 따라가기) 중 고르는 화면. 고른 값은 기기에 저장해 MaterialApp.themeMode로.
-                ListTile(
-                  leading: const Icon(Icons.dark_mode_outlined),
-                  title: const Text('화면 모드'),
-                  subtitle: const Text('라이트 · 다크 · 시스템 (준비 중)'),
-                  onTap: () => _showComingSoon(context),
-                ).testId(TestIds.settingsThemeMode),
               ],
             ),
           ),
@@ -214,7 +239,7 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
                   subtitle: Text(state.appVersion == null ? '버전 확인 중' : '버전 ${state.appVersion}'),
                   trailing: state.isCheckingUpdate
                       ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+                      : Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
                   onTap: () => _checkUpdate(context, viewModel),
                 ).testId(TestIds.settingsAppInfo),
                 const Divider(indent: AppSpacing.screen, endIndent: AppSpacing.screen),
@@ -222,7 +247,7 @@ class SettingsView extends BaseView<SettingsViewModel, SettingsState> {
                 ListTile(
                   leading: const Icon(Icons.privacy_tip_outlined),
                   title: const Text('개인정보 처리방침'),
-                  trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+                  trailing: Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
                   // 앱 안에 들어 있는 글을 보여 준다. (인터넷 없이도) 웹 페이지는 그 화면 오른쪽 위에서
                   onTap: () => context.pushOnce(AppRoutes.privacyPolicy),
                 ).testId(TestIds.settingsPrivacyPolicy),
@@ -306,7 +331,7 @@ class _AccountCard extends ConsumerWidget {
           leading: const Icon(Icons.person_outline),
           title: const Text('로그인'),
           subtitle: const Text('비회원으로 쓰는 중이에요. 로그인해도 기록은 그대로예요'),
-          trailing: const Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
+          trailing: Icon(Icons.chevron_right_rounded, color: AppColors.textHint),
           onTap: () => context.pushOnce(AppRoutes.login),
         ).testId(TestIds.settingsAccount),
       );
@@ -337,8 +362,8 @@ class _AccountCard extends ConsumerWidget {
           ).testId(TestIds.settingsSignOut),
           const Divider(indent: AppSpacing.screen, endIndent: AppSpacing.screen),
           ListTile(
-            leading: const Icon(Icons.person_remove_outlined, color: AppColors.textSecondary),
-            title: const AppText.body('회원 탈퇴', color: AppColors.textSecondary),
+            leading: Icon(Icons.person_remove_outlined, color: AppColors.textSecondary),
+            title: AppText.body('회원 탈퇴', color: AppColors.textSecondary),
             onTap: () => _deleteAccount(context),
           ).testId(TestIds.settingsDeleteAccount),
         ],
@@ -362,7 +387,7 @@ class _LinkTile extends StatelessWidget {
       leading: LoginProviderSymbol(isKakao: provider == LoginMethod.kakao),
       title: Text('${provider.label} 로그인'),
       trailing: isLinked
-          ? const AppText.caption('연결됨', color: AppColors.success)
+          ? AppText.caption('연결됨', color: AppColors.success)
           : isLoading
           ? const SizedBox.square(dimension: 20, child: CircularProgressIndicator(strokeWidth: 2))
           : TextButton(onPressed: onLink, child: const Text('연결하기')),

@@ -72,7 +72,10 @@ class ChoiceChipGroup<T> extends StatelessWidget {
   double _estimateWidth(BuildContext context, T value) {
     final base = ChipTheme.of(context).labelStyle ?? Theme.of(context).textTheme.labelLarge ?? const TextStyle();
     final painter = TextPainter(
-      text: TextSpan(text: labelOf(value), style: base.copyWith(fontWeight: FontWeight.w600)),
+      text: TextSpan(
+        text: labelOf(value),
+        style: base.copyWith(fontWeight: FontWeight.w600),
+      ),
       textDirection: TextDirection.ltr,
       textScaler: MediaQuery.textScalerOf(context),
       maxLines: 1,
@@ -117,11 +120,8 @@ class ChoiceChipGroup<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final limit = maxLines;
-    Widget wrap() => Wrap(
-      spacing: _spacing,
-      runSpacing: _spacing,
-      children: [for (final value in values) _chip(value)],
-    );
+    Widget wrap() =>
+        Wrap(spacing: _spacing, runSpacing: _spacing, children: [for (final value in values) _chip(value)]);
     if (limit == null || values.isEmpty) return wrap();
 
     return LayoutBuilder(

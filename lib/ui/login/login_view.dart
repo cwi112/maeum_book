@@ -114,7 +114,7 @@ class LoginView extends BaseView<LoginViewModel, LoginMethod?> {
               const SizedBox(height: AppSpacing.lg),
               const AppText.headline('마음장부에 로그인'),
               const SizedBox(height: AppSpacing.sm),
-              const AppText.body(
+              AppText.body(
                 '로그인해 두면 곧 추가될 백업 기능으로\n기록을 안전하게 보관할 수 있어요',
                 color: AppColors.textSecondary,
                 align: TextAlign.center,

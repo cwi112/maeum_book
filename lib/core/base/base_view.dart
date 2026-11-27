@@ -62,9 +62,9 @@ abstract class BaseAsyncView<VM extends BaseAsyncViewModel<S>, S> extends Consum
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('문제가 발생했어요', style: TextStyle(color: AppColors.error)),
+          Text('문제가 발생했어요', style: TextStyle(color: AppColors.error)),
           const SizedBox(height: 4),
-          Text('$error', style: const TextStyle(color: AppColors.textSecondary)),
+          Text('$error', style: TextStyle(color: AppColors.textSecondary)),
           const SizedBox(height: 12),
           FilledButton(onPressed: retry, child: const Text('다시 시도')),
         ],

@@ -114,7 +114,7 @@ class LedgerListLayout extends StatelessWidget {
                 itemCount: itemCount,
                 itemBuilder: itemBuilder,
                 separatorBuilder: (_, _) =>
-                    const Divider(indent: AppSpacing.screen, endIndent: AppSpacing.screen, color: AppColors.divider),
+                    Divider(indent: AppSpacing.screen, endIndent: AppSpacing.screen, color: AppColors.divider),
               ),
             ),
       fab: AppListFab(label: addLabel, icon: Icons.edit_outlined, onPressed: onAdd, testId: addTestId),

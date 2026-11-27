@@ -48,7 +48,7 @@ class KakaoLoginButton extends StatelessWidget {
       color: AppColors.kakao,
       onPressed: isLoading ? null : onPressed,
       child: isLoading
-          ? const _ButtonSpinner(color: AppColors.kakaoLabel)
+          ? _ButtonSpinner(color: AppColors.kakaoLabel)
           : Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -156,7 +156,7 @@ class LoginProviderSymbol extends StatelessWidget {
       return Container(
         width: size,
         height: size,
-        decoration: const BoxDecoration(color: AppColors.kakao, shape: BoxShape.circle),
+        decoration: BoxDecoration(color: AppColors.kakao, shape: BoxShape.circle),
         alignment: Alignment.center,
         child: SvgPicture.asset('assets/images/kakao_symbol.svg', width: size * 0.5, height: size * 0.5),
       );

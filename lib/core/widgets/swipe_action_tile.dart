@@ -17,7 +17,7 @@ class SwipeAction {
   });
 
   /// 삭제 버튼 기본 모양 (장밋빛, 누르면 진하게)
-  const SwipeAction.delete({required VoidCallback onPressed, String? testId})
+  SwipeAction.delete({required VoidCallback onPressed, String? testId})
     : this(
         label: '삭제',
         icon: Icons.delete_outline_rounded,
@@ -28,7 +28,7 @@ class SwipeAction {
       );
 
   /// 수정 버튼 기본 모양 (꿀색, 누르면 진하게)
-  const SwipeAction.edit({required VoidCallback onPressed, String? testId})
+  SwipeAction.edit({required VoidCallback onPressed, String? testId})
     : this(
         label: '수정',
         icon: Icons.edit_outlined,

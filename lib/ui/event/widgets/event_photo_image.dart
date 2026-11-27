@@ -18,7 +18,7 @@ class EventPhotoImage extends ConsumerWidget {
     return switch (image) {
       AsyncData(value: final bytes?) => Image.memory(bytes, fit: fit, gaplessPlayback: true),
       AsyncLoading() => _Placeholder(child: const CircularProgressIndicator(strokeWidth: 2).sized(20)),
-      _ => const _Placeholder(child: Icon(Icons.image_not_supported_outlined, color: AppColors.textHint)),
+      _ => _Placeholder(child: Icon(Icons.image_not_supported_outlined, color: AppColors.textHint)),
     };
   }
 }

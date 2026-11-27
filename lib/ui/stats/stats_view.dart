@@ -61,7 +61,7 @@ class StatsView extends BaseAsyncView<StatsViewModel, StatsState> {
             title: '월별 흐름',
             subtitle: '최근 12개월',
             child: GroupedBarChart(
-              series: const [
+              series: [
                 BarSeries(label: '보낸 마음', color: AppColors.sent),
                 BarSeries(label: '받은 마음', color: AppColors.received),
               ],

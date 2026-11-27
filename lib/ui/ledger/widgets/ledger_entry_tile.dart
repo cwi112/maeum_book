@@ -56,7 +56,7 @@ class LedgerEntryTile extends StatelessWidget {
               children: [
                 AppText.subtitle(entry.personName, maxLines: 1).flexible(),
                 const SizedBox(width: 4),
-                const Icon(Icons.local_florist, size: 16, color: AppColors.primary, semanticLabel: '화환 사진 있음'),
+                Icon(Icons.local_florist, size: 16, color: AppColors.primary, semanticLabel: '화환 사진 있음'),
               ],
             )
           : AppText.subtitle(entry.personName, maxLines: 1),

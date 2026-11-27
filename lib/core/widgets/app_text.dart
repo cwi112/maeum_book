@@ -16,44 +16,75 @@ import 'package:material_ui/material_ui.dart';
 /// - [align]: 정렬 (가운데 등)
 /// - [maxLines]: 줄 수 제한. 넘치면 "…"으로 줄인다.
 class AppText extends StatelessWidget {
-  const AppText(this.text, {super.key, this.style = AppTextStyles.body, this.color, this.align, this.maxLines});
+  const AppText(this.text, {super.key, this._style, this.color, this.align, this.maxLines}) : _kind = _Kind.body;
 
   const AppText.headline(this.text, {super.key, this.color, this.align, this.maxLines})
-    : style = AppTextStyles.headline;
+    : _style = null,
+      _kind = _Kind.headline;
 
-  const AppText.title(this.text, {super.key, this.color, this.align, this.maxLines}) : style = AppTextStyles.title;
+  const AppText.title(this.text, {super.key, this.color, this.align, this.maxLines})
+    : _style = null,
+      _kind = _Kind.title;
 
   const AppText.subtitle(this.text, {super.key, this.color, this.align, this.maxLines})
-    : style = AppTextStyles.subtitle;
+    : _style = null,
+      _kind = _Kind.subtitle;
 
-  const AppText.body(this.text, {super.key, this.color, this.align, this.maxLines}) : style = AppTextStyles.body;
+  const AppText.body(this.text, {super.key, this.color, this.align, this.maxLines}) : _style = null, _kind = _Kind.body;
 
   const AppText.bodySmall(this.text, {super.key, this.color, this.align, this.maxLines})
-    : style = AppTextStyles.bodySmall;
+    : _style = null,
+      _kind = _Kind.bodySmall;
 
-  const AppText.caption(this.text, {super.key, this.color, this.align, this.maxLines}) : style = AppTextStyles.caption;
+  const AppText.caption(this.text, {super.key, this.color, this.align, this.maxLines})
+    : _style = null,
+      _kind = _Kind.caption;
 
-  const AppText.label(this.text, {super.key, this.color, this.align, this.maxLines}) : style = AppTextStyles.label;
+  const AppText.label(this.text, {super.key, this.color, this.align, this.maxLines})
+    : _style = null,
+      _kind = _Kind.label;
 
   const AppText.amountLarge(this.text, {super.key, this.color, this.align, this.maxLines})
-    : style = AppTextStyles.amountLarge;
+    : _style = null,
+      _kind = _Kind.amountLarge;
 
-  const AppText.amount(this.text, {super.key, this.color, this.align, this.maxLines}) : style = AppTextStyles.amount;
-
+  const AppText.amount(this.text, {super.key, this.color, this.align, this.maxLines})
+    : _style = null,
+      _kind = _Kind.amount;
   final String text;
-  final TextStyle style;
+
+  /// 직접 지정한 스타일. 없으면 [_kind]의 스타일을 그릴 때 정한다. (화면 모드에 맞는 글자 색이 나오도록)
+  final TextStyle? _style;
+  final _Kind _kind;
   final Color? color;
   final TextAlign? align;
   final int? maxLines;
 
+  TextStyle get style =>
+      _style ??
+      switch (_kind) {
+        _Kind.headline => AppTextStyles.headline,
+        _Kind.title => AppTextStyles.title,
+        _Kind.subtitle => AppTextStyles.subtitle,
+        _Kind.body => AppTextStyles.body,
+        _Kind.bodySmall => AppTextStyles.bodySmall,
+        _Kind.caption => AppTextStyles.caption,
+        _Kind.label => AppTextStyles.label,
+        _Kind.amountLarge => AppTextStyles.amountLarge,
+        _Kind.amount => AppTextStyles.amount,
+      };
+
   @override
   Widget build(BuildContext context) {
+    final base = style;
     return Text(
       text,
-      style: color == null ? style : style.copyWith(color: color),
+      style: color == null ? base : base.copyWith(color: color),
       textAlign: align,
       maxLines: maxLines,
       overflow: maxLines == null ? null : TextOverflow.ellipsis,
     );
   }
 }
+
+enum _Kind { headline, title, subtitle, body, bodySmall, caption, label, amountLarge, amount }
