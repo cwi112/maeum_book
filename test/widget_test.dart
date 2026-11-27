@@ -183,6 +183,24 @@ void main() {
     await closeApp(tester);
   });
 
+  testWidgets('버튼을 길게 눌러도 말풍선(툴팁)이 뜨지 않는다', (tester) async {
+    await pumpApp(tester);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.tabSettings));
+    await settle(tester);
+    await tester.tap(find.bySemanticsIdentifier(TestIds.settingsEventTypes));
+    await settle(tester);
+
+    final back = find.byType(BackButton);
+    expect(back, findsOneWidget);
+    await tester.longPress(back);
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('뒤로'), findsNothing); // 툴팁 글자가 화면에 나오지 않는다
+    expect(find.bySemanticsLabel('뒤로'), findsOneWidget); // 버튼 이름(음성 안내용)은 남아 있다
+
+    await settle(tester);
+    await closeApp(tester);
+  });
+
   testWidgets('다크로 바꾼 뒤 다른 탭으로 가도 라이트 색이 잠깐도 보이지 않는다', (tester) async {
     await pumpApp(tester); // 보내요 탭이 라이트로 먼저 만들어져 있다.
     await tester.tap(find.bySemanticsIdentifier(TestIds.tabReceived));
@@ -768,7 +786,7 @@ void main() {
     expect(find.text('환갑'), findsOneWidget);
 
     // 보내요 → 기록 입력 화면의 종류 칩에도 보인다
-    await tester.tap(find.byTooltip('뒤로')); // material_ui 뒤로 버튼은 pageBack()이 찾지 못해 툴팁으로 누른다
+    await tester.tap(find.bySemanticsLabel('뒤로')); // 툴팁은 꺼져 있지만 버튼 이름(음성 안내용)은 남아 있다
     await settle(tester);
     await tester.tap(find.bySemanticsIdentifier(TestIds.tabSent));
     await settle(tester);
@@ -905,6 +923,10 @@ void main() {
     expect(server.entries, isEmpty);
 
     await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.tabSettings));
+    // 로그아웃 · 회원 탈퇴는 설정 첫 화면에 없고, 계정 줄을 눌러 들어간 내 계정 화면 맨 아래에 있다.
+    expect(find.bySemanticsIdentifier(TestIds.settingsSignOut), findsNothing);
+    expect(find.bySemanticsIdentifier(TestIds.settingsDeleteAccount), findsNothing);
+    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.settingsAccount)); // 내 계정 화면
     await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.settingsSignOut));
     await tapAndSettle(tester, find.text('로그아웃').last);
     ScaffoldMessenger.of(tester.element(find.text('카카오 로그인'))).removeCurrentSnackBar();
@@ -930,6 +952,7 @@ void main() {
 
     // 로그아웃 → 시작 화면, 기기 사본 비움, 서버는 그대로
     await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.tabSettings));
+    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.settingsAccount)); // 내 계정 화면
     await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.settingsSignOut));
     await tapAndSettle(tester, find.text('로그아웃').last);
     expect(find.text('로그인 없이 시작하기'), findsOneWidget);
@@ -943,6 +966,7 @@ void main() {
 
     // 탈퇴 → 시작 화면
     await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.tabSettings));
+    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.settingsAccount)); // 내 계정 화면
     await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.settingsDeleteAccount));
     await tapAndSettle(tester, find.text('탈퇴하기'));
     expect(auth.deleteCount, 1);
@@ -1026,6 +1050,7 @@ void main() {
     await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.tabSettings));
 
     auth.failNext = AuthFailureType.sessionExpired;
+    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.settingsAccount)); // 내 계정 화면
     await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.settingsDeleteAccount));
     await tapAndSettle(tester, find.text('탈퇴하기'));
     expect(auth.deleteCount, 0);
@@ -1040,6 +1065,7 @@ void main() {
     await auth.signInWithKakao();
     await pumpApp(tester, guest: false);
     await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.tabSettings));
+    await tapAndSettle(tester, find.bySemanticsIdentifier(TestIds.settingsAccount)); // 내 계정 화면
     expect(find.text('연결됨'), findsOneWidget); // 카카오만
 
     // 이미 다른 계정으로 가입된 Apple

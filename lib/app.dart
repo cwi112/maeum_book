@@ -30,13 +30,18 @@ class App extends ConsumerWidget {
       // 입력칸·버튼을 누르면 그 위젯이 터치를 먼저 가져가므로 키보드는 그대로 둔다.
       // AuthSessionWatcher: 로그인이 만료되면 어느 화면에서든 다시 로그인을 안내한다.
       // AppLoading: 서버 작업 중에는 앱 전체(다이얼로그 · 아래 창 포함)의 터치와 뒤로 가기를 막는다.
+      // TooltipVisibility(false): 버튼을 길게 누르거나 마우스를 올려도 말풍선(툴팁)을 띄우지 않는다. (앱 전체)
+      //   버튼 이름은 그대로 남아 화면 읽기(음성 안내)에는 계속 쓰인다.
       builder: (context, child) => AppPaletteSync(
-        child: AppLoading(
-          child: AuthSessionWatcher(
-            child: GestureDetector(
-              behavior: HitTestBehavior.translucent,
-              onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
-              child: child,
+        child: TooltipVisibility(
+          visible: false,
+          child: AppLoading(
+            child: AuthSessionWatcher(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+                child: child,
+              ),
             ),
           ),
         ),
