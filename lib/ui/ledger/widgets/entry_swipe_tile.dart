@@ -17,10 +17,14 @@ class EntrySwipeTile extends ConsumerWidget {
     required this.onRemove,
     required this.onRestore,
     this.linkedPhotoCount = 0,
+    this.showRelation = false,
   });
 
   /// 이 사람(이 기록)과 연결된 화환 · 꽃 사진 수. 1장 이상이면 이름 옆에 꽃 표시, 지울 때 확인 창
   final int linkedPhotoCount;
+
+  /// true면 줄 앞 배지에 경조사 종류 대신 관계를 보여 준다. (행사 상세: 종류는 행사가 이미 알려 줌)
+  final bool showRelation;
 
   final LedgerEntry entry;
 
@@ -75,6 +79,7 @@ class EntrySwipeTile extends ConsumerWidget {
         entry: entry,
         typeName: typeName,
         hasPhoto: linkedPhotoCount > 0,
+        showRelation: showRelation,
         onTap: openEdit,
       ).testId(TestIds.entryTile(entry.id)),
     );

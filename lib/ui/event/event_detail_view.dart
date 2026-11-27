@@ -157,6 +157,7 @@ class EventDetailView extends BaseAsyncView<EventDetailViewModel, EventDetailSta
                   key: ValueKey(entry.id),
                   entry: entry,
                   linkedPhotoCount: state.photoCountOf(entry.id),
+                  showRelation: true, // 행사 안에서는 종류가 모두 같으니 사람마다 다른 관계를 보여 준다
                   onRemove: viewModel.removeEntry,
                   onRestore: viewModel.restoreEntry,
                 ),
