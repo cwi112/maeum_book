@@ -50,6 +50,30 @@ definitions:
         flutter build ipa --release \
           --build-number=$BUILD_NUMBER \
           --export-options-plist=/Users/builder/export_options.plist
+    - name: 아이폰 오류 기호 파일 올리기 (파이어베이스 Crashlytics)
+      # 기호 파일(dSYM): 앱이 멈췄을 때의 위치(암호 같은 주소)를 "어느 파일 몇째 줄"로 풀어 주는 파일.
+      # 빌드할 때마다 만들어지므로 그 빌드의 것을 파이어베이스에 올려 둔다.
+      # 올리는 도구는 파이어베이스 패키지 안에 들어 있다. (CocoaPods면 ios/Pods, Swift 패키지 방식이면 DerivedData)
+      # 이 단계가 실패해도 배포는 막지 않는다. (오류 위치만 덜 정확해질 뿐)
+      script: |
+        #!/usr/bin/env bash
+        UPLOAD=$(find "$CM_BUILD_DIR/ios/Pods/FirebaseCrashlytics" "$HOME/Library/Developer/Xcode/DerivedData" \
+          -name upload-symbols -type f 2>/dev/null | head -n 1)
+        if [ -z "$UPLOAD" ]; then
+          echo "기호 파일 올리는 도구를 찾지 못해 건너뜁니다."
+          exit 0
+        fi
+        echo "도구: $UPLOAD"
+        COUNT=0
+        while IFS= read -r DSYM; do
+          echo "올리는 중: $(basename "$DSYM")"
+          if "$UPLOAD" -gsp "$CM_BUILD_DIR/ios/Runner/GoogleService-Info.plist" -p ios "$DSYM"; then
+            COUNT=$((COUNT + 1))
+          else
+            echo "올리기 실패: $DSYM"
+          fi
+        done < <(find "$CM_BUILD_DIR/build/ios/archive" -name "*.dSYM" -type d 2>/dev/null)
+        echo "기호 파일 $COUNT개 올림"
 
 workflows:
   ios-testflight:
