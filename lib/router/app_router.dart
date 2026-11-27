@@ -98,6 +98,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
 
       // 설정 → 개인정보 처리방침 (앱 안에 들어 있는 글)
       GoRoute(path: AppRoutes.privacyPolicy, builder: (_, _) => const PrivacyPolicyView()),
+      GoRoute(path: AppRoutes.profile, builder: (_, _) => const ProfileView()),
 
       // 설정 → 로그인
       GoRoute(path: AppRoutes.login, builder: (_, _) => const LoginView()),

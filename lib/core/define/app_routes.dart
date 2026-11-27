@@ -47,6 +47,9 @@ abstract final class AppRoutes {
   /// 개인정보 처리방침 (앱 안에서 보기)
   static const String privacyPolicy = '/settings/privacy';
 
+  /// 내 계정 (설정 맨 위 계정 줄 → 로그인 방법 연결 · 로그아웃 · 회원 탈퇴)
+  static const String profile = '/settings/profile';
+
   /// 로그인 (카카오 · Apple). 설정 탭에서 연다.
   static const String login = '/login';
 
