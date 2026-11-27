@@ -6,7 +6,7 @@ import 'package:maeum_book/core/widgets/form/clear_text_button.dart';
 import 'package:material_ui/material_ui.dart';
 
 /// 금액 입력칸. 입력하면 세 자리마다 쉼표가 자동으로 찍히고, 아래 버튼(+1만 · +5만 · +10만 · +50만 · +100만)으로
-/// 금액을 빠르게 더할 수 있다. 오른쪽 ⓧ로 전체 지우기.
+/// 금액을 빠르게 더할 수 있다. 쓰는 중에는 오른쪽 ⓧ로 전체 지우기.
 ///
 /// ```dart
 /// AmountField(value: state.amount, onChanged: viewModel.setAmount, errorText: state.amountError)
@@ -47,6 +47,7 @@ class AmountField extends StatefulWidget {
 
 class _AmountFieldState extends State<AmountField> {
   late final TextEditingController _controller = TextEditingController(text: _format(widget.value));
+  final FocusNode _focusNode = FocusNode();
 
   static String _format(int value) => value == 0 ? '' : value.comma;
 
@@ -67,6 +68,7 @@ class _AmountFieldState extends State<AmountField> {
   @override
   void dispose() {
     _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -81,17 +83,24 @@ class _AmountFieldState extends State<AmountField> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextField(
+        // '원'은 오른쪽 끝에 붙어 있고, 쓰는 중에 지우기 버튼이 나오면 그 왼쪽으로 비켜선다. (겹치지 않음)
+        ClearableFieldBuilder(
           controller: _controller,
-          keyboardType: TextInputType.number,
-          textInputAction: TextInputAction.next,
-          inputFormatters: [_ThousandsFormatter(widget.maxAmount)],
-          onChanged: (text) => widget.onChanged(text.toAmount ?? 0),
-          decoration: InputDecoration(
-            hintText: '0',
-            suffixText: '원',
-            errorText: widget.errorText,
-            suffixIcon: ClearTextButton(controller: _controller, onCleared: () => widget.onChanged(0)),
+          focusNode: _focusNode,
+          onCleared: () => widget.onChanged(0),
+          builder: (context, clearButton, _) => TextField(
+            controller: _controller,
+            focusNode: _focusNode,
+            keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.next,
+            inputFormatters: [_ThousandsFormatter(widget.maxAmount)],
+            onChanged: (text) => widget.onChanged(text.toAmount ?? 0),
+            decoration: InputDecoration(
+              hintText: '0',
+              suffixText: '원',
+              errorText: widget.errorText,
+              suffixIcon: clearButton,
+            ),
           ),
         ).testIdOrSelf(widget.testId),
         const SizedBox(height: AppSpacing.sm),
