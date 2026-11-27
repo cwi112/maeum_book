@@ -139,16 +139,31 @@ class _AppListScaffoldState extends State<AppListScaffold> {
               verticalDirection: VerticalDirection.up,
               children: [
                 body.expanded(),
-                AnimatedContainer(
+                // 그림자만 서서히 나타나게 하고, 배경색은 서서히 바꾸지 않는다.
+                // (AnimatedContainer로 색까지 서서히 바꾸면, 화면 모드를 바꿀 때 보이지 않는 탭에서는 움직임이 멈춰
+                //  이전 색으로 남아 있다가 그 탭에 들어가는 순간 라이트 → 다크로 바뀌는 게 보였다)
+                TweenAnimationBuilder<double>(
+                  tween: Tween(end: _scrolled ? 1 : 0),
                   duration: const Duration(milliseconds: 200),
-                  decoration: BoxDecoration(
-                    color: AppColors.background,
-                    boxShadow: _scrolled
-                        ? [BoxShadow(color: AppColors.shadow, blurRadius: 8, offset: const Offset(0, 2))]
-                        : const [],
+                  builder: (context, shadow, child) => DecoratedBox(
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      boxShadow: shadow == 0
+                          ? const []
+                          : [
+                              BoxShadow(
+                                color: AppColors.shadow.withValues(alpha: AppColors.shadow.a * shadow),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                    ),
+                    child: child,
                   ),
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: top,
+                  child: Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                    child: top,
+                  ),
                 ),
               ],
             ),
